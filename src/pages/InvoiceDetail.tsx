@@ -17,11 +17,11 @@ import {
 } from '../invoices';
 import { Pill } from './Budgets';
 
-type View = 'edit' | 'split' | 'document';
+type View = 'lines' | 'document' | 'details';
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'edit', label: 'Lines' },
-  { id: 'split', label: 'Lines + document' },
+  { id: 'lines', label: 'Lines' },
   { id: 'document', label: 'Document' },
+  { id: 'details', label: 'Details' },
 ];
 const ICON: Partial<Record<InvoiceStatus, typeof Send>> = { Sent: Send, Paid: BadgeDollarSign, Void: Ban };
 const CONFIRM: Partial<Record<InvoiceStatus, string>> = {
@@ -36,7 +36,7 @@ export default function InvoiceDetail() {
   const { db, update } = useStore();
   const L = useLookups();
   const nav = useNavigate();
-  const [view, setView] = useRememberedChoice<View>('buildtrack-invoice-view', ['edit', 'split', 'document'], 'split');
+  const [view, setView] = useRememberedChoice<View>('buildtrack-invoice-view', ['lines', 'document', 'details'], 'lines', (v) => v !== 'details');
   useEffect(() => {
     const prev = document.title;
     const inv = db.invoices.find((x) => x.id === id);
@@ -109,32 +109,56 @@ export default function InvoiceDetail() {
           </>
         }
       />
-      <div className="j-bar">
+      <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${invoice.jobId}&tab=invoices`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} invoices</Link>
         <Pill label={invoice.status} color={INVOICE_STATUS_COLOR[invoice.status]} />
         {!editable && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock size={12} /> Locked{invoice.status === 'Paid' ? ' — paid' : invoice.status === 'Sent' ? ' — sent to the customer' : ''}.
-          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Lock size={12} /> Locked{invoice.status === 'Paid' ? ' · paid' : invoice.status === 'Sent' ? ' · sent to the customer' : ''}</span>
         )}
+        <span className="grow" />
+        <Segmented label="View" options={VIEWS} value={view} onChange={setView} />
       </div>
 
       <div className="detail">
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Segmented label="Layout" options={VIEWS} value={view} onChange={setView} />
-          {view !== 'edit' && (
-            <label className="inline-flex items-center gap-2 text-sm">
+        {view === 'lines' && (
+          <div className="b-wrap">
+            <div className="toolbar b-toolbar flex-wrap">
+              <span className="text-sm text-muted-foreground">
+                Contract <b className="text-foreground tabular-nums">{money(t.value)}</b>
+                <span className="mx-2">·</span>Previously billed <b className="text-foreground tabular-nums">{money(t.previous)}</b>
+                <span className="mx-2">·</span>Balance to finish <b className="text-foreground tabular-nums">{money(t.remaining)}</b>
+              </span>
+              <span className="grow" />
+              <span className="text-sm">This invoice <b className="text-base tabular-nums">{fmt(t.amount)}</b></span>
+            </div>
+            {t.sections.map((s) => <SectionTable key={s.budget.id} section={s} editable={editable} setPct={setPct} />)}
+            {t.sections.length === 0 && (
+              <div className="card b-empty">
+                <p>Nothing on this invoice yet. Choose which approved proposals and change orders it bills on the Details tab.</p>
+                <button type="button" className="btn primary" onClick={() => setView('details')}>Open details</button>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {view === 'document' && (
+          <>
+            <label className="mb-3 inline-flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Customer sees</span>
               <select className="b-input w-auto rounded-md border" value={invoice.detail} disabled={!editable} onChange={(e) => edit(() => ({ detail: e.target.value as Invoice['detail'] }))}>
                 <option value="lines">Every line</option>
                 <option value="groups">Group totals</option>
               </select>
             </label>
-          )}
-        </div>
+            <div className="bt-doc-col">
+              <InvoiceDocument invoice={invoice} db={db} L={L} />
+            </div>
+          </>
+        )}
 
-        <div className={view === 'split' ? 'bt-split' : ''}>
-          <div className={'b-wrap min-w-0' + (view === 'document' ? ' hidden' : '')}>
+        {view === 'details' && (
+          <div className="b-wrap max-w-4xl">
             <section className="card mb-4">
               <div className="card-body grid gap-3 sm:grid-cols-2">
                 <Field label="Title">
@@ -179,24 +203,9 @@ export default function InvoiceDetail() {
               </section>
             )}
 
-            <div className="b-summary">
-              <div className="card stat"><span className="stat-label">Contract</span><b>{money(t.value)}</b><span className="muted small-text">{t.sections.length} budgets</span></div>
-              <div className="card stat"><span className="stat-label">Previously billed</span><b>{money(t.previous)}</b></div>
-              <div className="card stat"><span className="stat-label">This invoice</span><b>{fmt(t.amount)}</b></div>
-              <div className="card stat"><span className="stat-label">Balance to finish</span><b>{money(t.remaining)}</b><span className="muted small-text">{pctText(t.value ? (t.toDate / t.value) * 100 : 0)} billed to date</span></div>
-            </div>
-
-            {t.sections.map((s) => <SectionTable key={s.budget.id} section={s} editable={editable} setPct={setPct} />)}
-            {t.sections.length === 0 && <div className="card b-empty"><p>Nothing on this invoice yet. Tick an approved proposal or change order above.</p></div>}
-
             <History match={(a) => a.invoiceId === invoice.id} empty="No history recorded for this invoice yet." />
           </div>
-          {view !== 'edit' && (
-            <div className="bt-doc-col">
-              <InvoiceDocument invoice={invoice} db={db} L={L} />
-            </div>
-          )}
-        </div>
+        )}
       </div>
       {createPortal(<div className="print-only"><InvoiceDocument invoice={invoice} db={db} L={L} /></div>, document.body)}
     </div>

@@ -21,11 +21,11 @@ const CONFIRM: Partial<Record<BudgetStatus, string>> = {
   Void: 'Voiding takes this budget out of the contract for good. It stays on record but can never be used again. Void it?',
 };
 
-type View = 'edit' | 'split' | 'document' | 'signed';
+type View = 'lines' | 'document' | 'details' | 'signed';
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'edit', label: 'Lines' },
-  { id: 'split', label: 'Lines + document' },
+  { id: 'lines', label: 'Lines' },
   { id: 'document', label: 'Document' },
+  { id: 'details', label: 'Details' },
   { id: 'signed', label: 'Signed copy' },
 ];
 const DETAIL_LABEL: Record<BudgetDetailLevel, string> = { lines: 'Every line priced', groups: 'Group totals only', total: 'One total for the whole scope' };
@@ -38,8 +38,8 @@ export default function BudgetDetail() {
   const clone = useCloneBudget();
   const [newGroup, setNewGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
-  // 'signed' depends on the budget, so only the other layouts are remembered
-  const [chosenView, setView] = useRememberedChoice<View>('buildtrack-budget-view', ['edit', 'split', 'document', 'signed'], 'split', (v) => v !== 'signed');
+  // Lines or Document is remembered between budgets; Details and Signed copy are one-off visits
+  const [chosenView, setView] = useRememberedChoice<View>('buildtrack-budget-view', ['lines', 'document', 'details', 'signed'], 'lines', (v) => v === 'lines' || v === 'document');
   const [approving, setApproving] = useState(false);
   // the PDF file name browsers suggest comes from the page title
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function BudgetDetail() {
   const groups = [...new Set(lines.map((l) => l.group))];
   const t = totals(lines);
   const display = budget.display ?? DEFAULT_DISPLAY;
-  const view: View = chosenView === 'signed' && !budget.signedCopy ? 'split' : chosenView;
+  const view: View = chosenView === 'signed' && !budget.signedCopy ? 'lines' : chosenView;
   const codeName = (cid: string) => {
     const c = db.costCodes.find((x) => x.id === cid);
     return c ? `${c.number} ${c.name}` : '';
@@ -125,101 +125,49 @@ export default function BudgetDetail() {
           </>
         }
       />
-      <div className="j-bar">
+      <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${budget.jobId}&tab=budget`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} budgets</Link>
         <StatusPill status={budget.status} />
         {!editable && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock size={12} /> Locked{budget.status === 'Approved' ? ' — signed by the customer' : budget.status === 'Sent' ? ' — sent to the customer' : ''}. Clone it to make changes.
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title="Sent and signed budgets can't be edited, so they always match what the customer saw.">
+            <Lock size={12} /> Locked · clone to make changes
           </span>
         )}
-        {budget.clonedFromId && (() => {
-          const src = db.budgets.find((b) => b.id === budget.clonedFromId);
-          return src ? <span className="text-xs text-muted-foreground">Cloned from <Link to={`/budgets/${src.id}`} className="text-primary hover:underline">{budgetLabel(src)}</Link></span> : null;
-        })()}
+        <span className="grow" />
+        <Segmented label="View" options={VIEWS.filter((v) => v.id !== 'signed' || budget.signedCopy)} value={view} onChange={setView} />
       </div>
 
       <div className="detail">
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Segmented label="Layout" options={VIEWS.filter((v) => v.id !== 'signed' || budget.signedCopy)} value={view} onChange={setView} />
-          {(view === 'split' || view === 'document') && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              <label className="inline-flex items-center gap-2">
-                <span className="text-muted-foreground">Customer sees</span>
-                <select className="b-input w-auto rounded-md border" value={display.detail} disabled={!editable} onChange={(e) => setField({ display: { ...display, detail: e.target.value as BudgetDetailLevel } })}>
-                  {(Object.keys(DETAIL_LABEL) as BudgetDetailLevel[]).map((k) => <option key={k} value={k}>{DETAIL_LABEL[k]}</option>)}
-                </select>
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input type="checkbox" checked={display.quantities} disabled={!editable} onChange={(e) => setField({ display: { ...display, quantities: e.target.checked } })} />
-                Show quantities
-              </label>
+        {view === 'lines' && (
+          <div className="b-wrap">
+            <div className="toolbar b-toolbar flex-wrap">
+              {editable && (
+                <>
+                  <button type="button" className="btn" onClick={() => add(groups[groups.length - 1] ?? 'General')}><Plus size={14} /> Item</button>
+                  <button type="button" className="btn" onClick={() => { setGroupName(''); setNewGroup(true); }}><FolderPlus size={14} /> Group</button>
+                </>
+              )}
+              <span className="grow" />
+              <span className="text-sm text-muted-foreground">
+                Cost <b className="text-foreground tabular-nums">{money(t.cost)}</b>
+                <span className="mx-2">·</span>Price <b className="text-foreground tabular-nums">{money(t.price)}</b>
+                <span className="mx-2">·</span>Margin <b className="text-foreground tabular-nums">{pct(t.margin)}</b>
+              </span>
+              <button
+                type="button"
+                className="btn icon-only"
+                title="Export to spreadsheet"
+                aria-label="Export"
+                onClick={() =>
+                  downloadCsv(`${job?.name ?? 'Job'} ${budgetLabel(budget)}.csv`, [
+                    ['Group', 'Cost code', 'Item', 'Description', 'Type', 'Vendor', 'Qty', 'Unit', 'Unit cost', 'Markup %', 'Cost', 'Price'],
+                    ...lines.map((l) => [l.group, codeName(l.costCodeId), l.name, l.description, l.costType, L.account.get(l.vendorId)?.name ?? '', String(l.quantity), l.unit, String(l.unitCost), String(l.markup), lineCost(l).toFixed(2), linePrice(l).toFixed(2)]),
+                  ])
+                }
+              >
+                <Upload size={14} />
+              </button>
             </div>
-          )}
-        </div>
-        <div className={view === 'split' ? 'bt-split' : ''}>
-        <div className={'b-wrap min-w-0' + (view === 'document' || view === 'signed' ? ' hidden' : '')}>
-          <section className="card mb-4">
-            <div className="card-body grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <Field label="Title">
-                {editable
-                  ? <TextCell value={budget.title} label="Title" placeholder={budget.kind === 'Proposal' ? 'e.g. Kitchen remodel — Option A' : 'e.g. Add pantry cabinets'} onSave={(v) => setField({ title: v })} />
-                  : <div className="py-1.5">{budget.title || <span className="muted">Untitled</span>}</div>}
-              </Field>
-              <Field label="To">
-                {editable ? (
-                  <select className="b-input" value={budget.partyId} onChange={(e) => setField({ partyId: e.target.value })}>
-                    <option value="">—</option>
-                    {recipients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                ) : (
-                  <div className="py-1.5">{L.party.get(budget.partyId)?.name ?? <span className="muted">—</span>}</div>
-                )}
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Notes on the document">
-                  {editable ? (
-                    <NotesBox value={budget.notes} onSave={(v) => setField({ notes: v })} />
-                  ) : (
-                    <div className="whitespace-pre-wrap py-1.5">{budget.notes || <span className="muted">No notes</span>}</div>
-                  )}
-                </Field>
-              </div>
-            </div>
-          </section>
-
-          <SignedCopyCard budget={budget} onView={() => setView('signed')} />
-
-          <div className="b-summary">
-            <div className="card stat"><span className="stat-label">Cost</span><b>{money(t.cost)}</b></div>
-            <div className="card stat"><span className="stat-label">Price to customer</span><b>{money(t.price)}</b></div>
-            <div className="card stat"><span className="stat-label">Profit · margin</span><b>{money(t.profit)}</b><span className="muted small-text">{pct(t.margin)} margin</span></div>
-            <div className="card stat"><span className="stat-label">Lines</span><b>{lines.length}</b><span className="muted small-text">{groups.length} groups</span></div>
-          </div>
-
-          <div className="toolbar b-toolbar">
-            {editable && (
-              <>
-                <button type="button" className="btn" onClick={() => add(groups[groups.length - 1] ?? 'General')}><Plus size={14} /> Item</button>
-                <button type="button" className="btn" onClick={() => { setGroupName(''); setNewGroup(true); }}><FolderPlus size={14} /> Group</button>
-              </>
-            )}
-            <span className="grow" />
-            <button
-              type="button"
-              className="btn icon-only"
-              title="Export to spreadsheet"
-              aria-label="Export"
-              onClick={() =>
-                downloadCsv(`${job?.name ?? 'Job'} ${budgetLabel(budget)}.csv`, [
-                  ['Group', 'Cost code', 'Item', 'Description', 'Type', 'Vendor', 'Qty', 'Unit', 'Unit cost', 'Markup %', 'Cost', 'Price'],
-                  ...lines.map((l) => [l.group, codeName(l.costCodeId), l.name, l.description, l.costType, L.account.get(l.vendorId)?.name ?? '', String(l.quantity), l.unit, String(l.unitCost), String(l.markup), lineCost(l).toFixed(2), linePrice(l).toFixed(2)]),
-                ])
-              }
-            >
-              <Upload size={14} />
-            </button>
-          </div>
 
           {lines.length === 0 ? (
             <div className="card b-empty">
@@ -324,15 +272,78 @@ export default function BudgetDetail() {
               </table>
             </div>
           )}
-          <BudgetHistory budget={budget} />
-        </div>
-        {(view === 'split' || view === 'document') && (
-          <div className="bt-doc-col">
-            <BudgetDocument budget={budget} lines={lines} db={db} L={L} />
           </div>
         )}
+
+        {view === 'document' && (
+          <>
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <label className="inline-flex items-center gap-2">
+                <span className="text-muted-foreground">Customer sees</span>
+                <select className="b-input w-auto rounded-md border" value={display.detail} disabled={!editable} onChange={(e) => setField({ display: { ...display, detail: e.target.value as BudgetDetailLevel } })}>
+                  {(Object.keys(DETAIL_LABEL) as BudgetDetailLevel[]).map((k) => <option key={k} value={k}>{DETAIL_LABEL[k]}</option>)}
+                </select>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" checked={display.quantities} disabled={!editable} onChange={(e) => setField({ display: { ...display, quantities: e.target.checked } })} />
+                Show quantities
+              </label>
+            </div>
+            <div className="bt-doc-col">
+              <BudgetDocument budget={budget} lines={lines} db={db} L={L} />
+            </div>
+          </>
+        )}
+
+        {view === 'details' && (
+          <div className="b-wrap max-w-4xl">
+            <section className="card mb-4">
+              <div className="card-body grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <Field label="Title">
+                  {editable
+                    ? <TextCell value={budget.title} label="Title" placeholder={budget.kind === 'Proposal' ? 'e.g. Kitchen remodel — Option A' : 'e.g. Add pantry cabinets'} onSave={(v) => setField({ title: v })} />
+                    : <div className="py-1.5">{budget.title || <span className="muted">Untitled</span>}</div>}
+                </Field>
+                <Field label="To">
+                  {editable ? (
+                    <select className="b-input" value={budget.partyId} onChange={(e) => setField({ partyId: e.target.value })}>
+                      <option value="">—</option>
+                      {recipients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  ) : (
+                    <div className="py-1.5">{L.party.get(budget.partyId)?.name ?? <span className="muted">—</span>}</div>
+                  )}
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Notes on the document">
+                    {editable ? (
+                      <NotesBox value={budget.notes} onSave={(v) => setField({ notes: v })} />
+                    ) : (
+                      <div className="whitespace-pre-wrap py-1.5">{budget.notes || <span className="muted">No notes</span>}</div>
+                    )}
+                  </Field>
+                </div>
+                {budget.clonedFromId && (() => {
+                  const src = db.budgets.find((b) => b.id === budget.clonedFromId);
+                  return src ? <p className="text-sm text-muted-foreground sm:col-span-2">Cloned from <Link to={`/budgets/${src.id}`} className="text-primary hover:underline">{budgetLabel(src)}</Link></p> : null;
+                })()}
+              </div>
+            </section>
+
+            <SignedCopyCard budget={budget} onView={() => setView('signed')} />
+
+            <div className="b-summary">
+              <div className="card stat"><span className="stat-label">Cost</span><b>{money(t.cost)}</b></div>
+              <div className="card stat"><span className="stat-label">Price to customer</span><b>{money(t.price)}</b></div>
+              <div className="card stat"><span className="stat-label">Profit · margin</span><b>{money(t.profit)}</b><span className="muted small-text">{pct(t.margin)} margin</span></div>
+              <div className="card stat"><span className="stat-label">Lines</span><b>{lines.length}</b><span className="muted small-text">{groups.length} groups</span></div>
+            </div>
+
+            <BudgetHistory budget={budget} />
+          </div>
+        )}
+
         {view === 'signed' && budget.signedCopy && <SignedCopyViewer file={budget.signedCopy} />}
-        </div>
       </div>
       {createPortal(<div className="print-only"><BudgetDocument budget={budget} lines={lines} db={db} L={L} /></div>, document.body)}
 

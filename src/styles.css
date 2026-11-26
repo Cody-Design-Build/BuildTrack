@@ -2296,29 +2296,14 @@ body {
   min-width: 200px;
 }
 
-/* Budget page: editor and document side by side on wide screens, stacked otherwise. */
-.bt-split {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr);
-}
-@media (min-width: 1400px) {
-  .bt-split {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 720px);
-    align-items: start;
-  }
-  .bt-split .bt-doc-col {
-    position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
-    overflow-y: auto;
-  }
-}
+/* The customer document shown on the budget and invoice pages. */
 .bt-doc-col {
   min-width: 0;
   padding: 4px 4px 24px;
 }
 .b-input.bt-desc {
+  display: block;
+  width: 100%;
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;

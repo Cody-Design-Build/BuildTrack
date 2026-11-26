@@ -12,7 +12,7 @@ A job has no single budget table. Instead, each **proposal** or **change order**
 - Lines can be negative, e.g. a credit for a design fee paid under another contract.
 - Every line has a **cost code**. Job costing is by cost code: expenses are recorded against a job and cost code, and linking an expense to a specific budget line is optional.
 
-- Each budget is its own customer **document** (`src/components/BudgetDocument.tsx`), shown live next to the line editor. It shows prices only, never cost or markup. You choose how much the customer sees: every line priced, group totals only, or one total for the whole scope, with or without quantities. Change orders also show the original contract, previous change orders and the new contract total. **Print / PDF** prints just the document, so you can save it as a PDF from the print dialog.
+- Each budget is its own customer **document** (`src/components/BudgetDocument.tsx`). A budget page has three tabs: **Lines** (the line editor), **Document** (what the customer gets, updated as you edit) and **Details** (title, recipient, notes, signed copy, totals and history). The document shows prices only, never cost or markup. You choose how much the customer sees: every line priced, group totals only, or one total for the whole scope, with or without quantities. Change orders also show the original contract, previous change orders and the new contract total. **Print / PDF** prints just the document, so you can save it as a PDF from the print dialog.
 
 Budgets live on each job's **Budgets** tab and in the top-level **Budgets** page, which can be filtered, sorted and grouped by job. The rules are in `src/budgets.ts`.
 
