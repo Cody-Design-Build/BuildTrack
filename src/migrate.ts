@@ -53,9 +53,20 @@ interface LegacyDb {
 export const isLegacy = (raw: unknown): raw is LegacyDb =>
   !!raw && typeof raw === 'object' && Array.isArray((raw as LegacyDb).contacts) && !Array.isArray((raw as Db).people);
 
+type LegacyScheduleDb = Omit<Db, 'tasks' | 'scheduleEntries'> & {
+  todos?: Db['tasks'];
+  tasks?: Omit<Db['scheduleEntries'][number], 'crewIds'>[];
+};
+
+export function migrateSchedule(db: Db | LegacyScheduleDb): Db {
+  if ('scheduleEntries' in db) return db;
+  const { todos = [], tasks = [], ...rest } = db;
+  return { ...rest, tasks: todos, scheduleEntries: tasks.map((entry) => ({ ...entry, crewIds: [] })) };
+}
+
 const fullName = (c: { firstName: string; lastName: string }) => `${c.firstName} ${c.lastName}`.trim();
 
-export function migrateLegacy(old: LegacyDb): Db {
+export function migrateLegacy(old: LegacyDb): LegacyScheduleDb {
   // People: one record per real person. Contacts with the same full name are the same person.
   const people: Person[] = [];
   const personFor = new Map<string, string>(); // legacy contact id -> person id
@@ -120,14 +131,14 @@ export function migrateLegacy(old: LegacyDb): Db {
 
   const { contacts: _c, locations: _l, ...others } = old;
   return {
-    ...(others as unknown as Db),
+    ...(others as unknown as LegacyScheduleDb),
     people,
     accounts,
     memberships,
     jobLinks,
     jobs: jobs as unknown as Db['jobs'],
     docs: repoint(old.docs) as unknown as Db['docs'],
-    todos: repoint(old.todos) as unknown as Db['todos'],
+    todos: repoint(old.todos) as unknown as Db['tasks'],
     activity: repoint(old.activity) as unknown as Db['activity'],
   };
 }

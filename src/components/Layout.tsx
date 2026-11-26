@@ -25,7 +25,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: '/', label: 'Home', icon: House },
       { to: '/jobs', label: 'Jobs', icon: Wrench },
-      { to: '/to-dos', label: 'To-Dos', icon: SquareCheck },
+      { to: '/tasks', label: 'Tasks', icon: SquareCheck },
       { to: '/schedule', label: 'Schedule', icon: Calendar },
     ],
   },
@@ -209,7 +209,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   const nav = useNavigate();
   const [q, setQ] = useState('');
   const input = useRef<HTMLInputElement>(null);
-  const openTodos = db.todos.filter((t) => !t.done && t.assignees.includes(db.team[0]?.id)).length;
+  const openTasks = db.tasks.filter((t) => !t.done && t.assignees.includes(db.team[0]?.id)).length;
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -251,7 +251,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         <IconLink to="/documents" label="Documents">
           <ReceiptText className="size-5" />
         </IconLink>
-        <IconLink to="/to-dos" label={`My to-dos (${openTodos} open)`} badge={openTodos}>
+        <IconLink to="/tasks" label={`My tasks (${openTasks} open)`} badge={openTasks}>
           <Bell className="size-5" />
         </IconLink>
       </div>

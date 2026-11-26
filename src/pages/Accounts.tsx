@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, MapPin, Pencil, Phone, Plus, StickyNote, Star, UserPlus, Wrench, Hammer } from 'lucide-react';
 import { PageHeader } from '../components/Layout';
-import { AccountForm, JobForm, JobLinkForm, MembershipForm, TodoForm } from '../components/Forms';
+import { AccountForm, JobForm, JobLinkForm, MembershipForm, TaskForm } from '../components/Forms';
 import { PartyAvatar, PartyLink, RoleBadge } from '../components/Party';
 import { BackLink, Empty, InfoLine, Row, SearchInput, Section } from '../components/Detail';
 import { StatusDot } from './Jobs';
@@ -22,14 +22,14 @@ function AccountDetail({ account }: { account: Account }) {
   const [membership, setMembership] = useState<Membership | 'new' | null>(null);
   const [jobLink, setJobLink] = useState<JobLink | 'new' | null>(null);
   const [newJob, setNewJob] = useState(false);
-  const [newTodo, setNewTodo] = useState(false);
+  const [newTask, setNewTask] = useState(false);
   const members = [...(L.membersOf.get(account.id) ?? [])].sort((a, b) => Number(b.primary) - Number(a.primary));
   const links = L.linksByParty.get(account.id) ?? [];
   // jobs its people are on without the account itself being linked, e.g. a vendor's estimator
   const linkedJobs = new Set(links.map((l) => l.jobId));
   const viaPeople = members.flatMap((m) => (L.linksByParty.get(m.personId) ?? []).filter((l) => !linkedJobs.has(l.jobId)));
   const docs = db.docs.filter((d) => d.partyId === account.id);
-  const todos = db.todos.filter((t) => t.partyId === account.id && !t.done);
+  const tasks = db.tasks.filter((t) => t.partyId === account.id && !t.done);
   const budgetLines = db.items.filter((i) => i.vendorId === account.id);
 
   return (
@@ -42,7 +42,7 @@ function AccountDetail({ account }: { account: Account }) {
             <Button variant="outline" onClick={() => setMembership('new')}><UserPlus /> Add person</Button>
             <Button variant="outline" onClick={() => setJobLink('new')}><Wrench /> Add to job</Button>
             {account.types.includes('Customer') && <Button variant="outline" onClick={() => setNewJob(true)}><Plus /> New job</Button>}
-            <Button variant="outline" onClick={() => setNewTodo(true)}><Plus /> To-Do</Button>
+            <Button variant="outline" onClick={() => setNewTask(true)}><Plus /> Task</Button>
             <Button onClick={() => setEditing(true)}><Pencil /> Edit</Button>
           </>
         }
@@ -135,11 +135,11 @@ function AccountDetail({ account }: { account: Account }) {
                   </Row>
                 ))}
               </Section>
-              <Section title="Open to-dos" count={todos.length} action={<Button size="sm" variant="ghost" onClick={() => setNewTodo(true)}><Plus /> Add</Button>}>
-                {todos.length === 0 && <Empty>Nothing open</Empty>}
-                {todos.map((t) => (
+              <Section title="Open tasks" count={tasks.length} action={<Button size="sm" variant="ghost" onClick={() => setNewTask(true)}><Plus /> Add</Button>}>
+                {tasks.length === 0 && <Empty>Nothing open</Empty>}
+                {tasks.map((t) => (
                   <Row key={t.id}>
-                    <Link to={`/to-dos?id=${t.id}`} className="line-clamp-2 text-sm text-foreground hover:text-primary">{t.name}</Link>
+                    <Link to={`/tasks?id=${t.id}`} className="line-clamp-2 text-sm text-foreground hover:text-primary">{t.name}</Link>
                     <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t.due}</span>
                   </Row>
                 ))}
@@ -165,7 +165,7 @@ function AccountDetail({ account }: { account: Account }) {
       {membership && <MembershipForm accountId={account.id} membership={membership === 'new' ? undefined : membership} onClose={() => setMembership(null)} />}
       {jobLink && <JobLinkForm partyId={account.id} link={jobLink === 'new' ? undefined : jobLink} onClose={() => setJobLink(null)} />}
       {newJob && <JobForm presetCustomerId={account.id} onClose={() => setNewJob(false)} />}
-      {newTodo && <TodoForm presetPartyId={account.id} onClose={() => setNewTodo(false)} />}
+      {newTask && <TaskForm presetPartyId={account.id} onClose={() => setNewTask(false)} />}
     </div>
   );
 }

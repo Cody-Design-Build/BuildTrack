@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from './Layout';
 import { PartyPicker } from './Party';
 import { useStore, useLookups, uid, personName, colorFor } from '../store';
-import { ACCOUNT_TYPES, JOB_ROLES, JOB_STATUSES, type Account, type Db, type Job, type JobLink, type JobStatus, type Membership, type Person, type Todo } from '../data';
+import { ACCOUNT_TYPES, JOB_ROLES, JOB_STATUSES, type Account, type Db, type Job, type JobLink, type JobStatus, type Membership, type Person, type Task } from '../data';
 import { Button } from '@/components/ui/button';
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export function removeParty(d: Db, id: string): Db {
     memberships: d.memberships.filter((m) => m.personId !== id && m.accountId !== id),
     jobLinks: d.jobLinks.filter((l) => l.partyId !== id),
     docs: d.docs.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    todos: d.todos.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
+    tasks: d.tasks.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
     items: d.items.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
   };
 }
@@ -172,28 +172,28 @@ export function JobForm({ onClose, job, defaultStatus, presetCustomerId }: { onC
   );
 }
 
-export function TodoForm({ onClose, todo, presetPartyId, presetJobId }: { onClose: () => void; todo?: Todo; presetPartyId?: string; presetJobId?: string }) {
+export function TaskForm({ onClose, task, presetPartyId, presetJobId }: { onClose: () => void; task?: Task; presetPartyId?: string; presetJobId?: string }) {
   const { db, update } = useStore();
   const L = useLookups();
-  const [name, setName] = useState(todo?.name ?? '');
-  const [partyId, setPartyId] = useState(todo?.partyId ?? presetPartyId ?? '');
-  const [jobId, setJobId] = useState(todo?.jobId ?? presetJobId ?? '');
-  const [due, setDue] = useState(todo?.due ?? '');
-  const [type, setType] = useState(todo?.type ?? '');
-  const [assignees, setAssignees] = useState<string[]>(todo?.assignees ?? ([db.team[0]?.id].filter(Boolean) as string[]));
+  const [name, setName] = useState(task?.name ?? '');
+  const [partyId, setPartyId] = useState(task?.partyId ?? presetPartyId ?? '');
+  const [jobId, setJobId] = useState(task?.jobId ?? presetJobId ?? '');
+  const [due, setDue] = useState(task?.due ?? '');
+  const [type, setType] = useState(task?.type ?? '');
+  const [assignees, setAssignees] = useState<string[]>(task?.assignees ?? ([db.team[0]?.id].filter(Boolean) as string[]));
   // with a person or account chosen, offer their jobs first
   const theirs = new Set((L.linksByParty.get(partyId) ?? []).map((l) => l.jobId));
   const jobs = [...db.jobs].sort((a, b) => Number(theirs.has(b.id)) - Number(theirs.has(a.id)) || a.name.localeCompare(b.name));
 
   const save = () => {
     if (!name.trim()) return;
-    const next: Todo = { id: todo?.id ?? uid('t'), name: name.trim(), partyId, jobId, due, type, assignees, done: todo?.done ?? false };
-    update((d) => ({ ...d, todos: todo ? d.todos.map((t) => (t.id === todo.id ? next : t)) : [...d.todos, next] }));
+    const next: Task = { id: task?.id ?? uid('t'), name: name.trim(), partyId, jobId, due, type, assignees, done: task?.done ?? false };
+    update((d) => ({ ...d, tasks: task ? d.tasks.map((t) => (t.id === task.id ? next : t)) : [...d.tasks, next] }));
     onClose();
   };
 
   return (
-    <Modal title={todo ? 'Edit To-Do' : 'New To-Do'} onClose={onClose}>
+    <Modal title={task ? 'Edit Task' : 'New Task'} onClose={onClose}>
       <Field label="What needs doing?">
         <input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
       </Field>
@@ -212,9 +212,9 @@ export function TodoForm({ onClose, todo, presetPartyId, presetJobId }: { onClos
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         </Field>
         <Field label="Type">
-          <input value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. Site Visit" list="todo-types" />
-          <datalist id="todo-types">
-            {[...new Set(db.todos.map((t) => t.type).filter(Boolean))].map((t) => <option key={t} value={t} />)}
+          <input value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. Site Visit" list="task-types" />
+          <datalist id="task-types">
+            {[...new Set(db.tasks.map((t) => t.type).filter(Boolean))].map((t) => <option key={t} value={t} />)}
           </datalist>
         </Field>
       </div>
@@ -236,7 +236,7 @@ export function TodoForm({ onClose, todo, presetPartyId, presetJobId }: { onClos
         onClose={onClose}
         onSave={save}
         canSave={!!name.trim()}
-        onDelete={todo ? () => { update((d) => ({ ...d, todos: d.todos.filter((t) => t.id !== todo.id) })); onClose(); } : undefined}
+        onDelete={task ? () => { update((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== task.id) })); onClose(); } : undefined}
       />
     </Modal>
   );

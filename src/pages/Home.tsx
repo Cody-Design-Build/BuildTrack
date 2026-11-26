@@ -143,7 +143,7 @@ export default function Home() {
   const draftBills = db.docs.filter((d) => d.kind === 'Bill' && d.status === 'Draft');
   const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
   const sum = (xs: number[]) => money(total(xs));
-  const myTodos = db.todos.filter((t) => !t.done && t.assignees.includes(me?.id));
+  const myTasks = db.tasks.filter((t) => !t.done && t.assignees.includes(me?.id));
 
   let lastDay = '';
   return (
@@ -175,7 +175,7 @@ export default function Home() {
         <Stat label="Active contracts" value={sum(activeCustomerJobs.map((j) => j.total))} sub={`${activeCustomerJobs.length} jobs underway`} icon={Wrench} to="/jobs" />
         <Stat label="Open invoices" value={sum(openInvoices.map((d) => d.amount))} sub={`${openInvoices.length} awaiting payment`} icon={Receipt} to="/documents" />
         <Stat label="Pipeline" value={sum(leads.map((j) => j.projectedCost))} sub={`${leads.length} leads & estimates`} icon={Target} to="/jobs" />
-        <Stat label="My to-dos" value={String(myTodos.length)} sub={myTodos.length ? 'open and assigned to you' : 'all caught up'} icon={SquareCheck} to="/to-dos" />
+        <Stat label="My tasks" value={String(myTasks.length)} sub={myTasks.length ? 'open and assigned to you' : 'all caught up'} icon={SquareCheck} to="/tasks" />
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -225,22 +225,21 @@ export default function Home() {
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="gap-0 py-0">
             <CardHeader className="border-b px-5 py-4 [.border-b]:pb-4">
-              <CardTitle className="text-[15px]">Action Items</CardTitle>
-              <CardDescription>Your open to-dos</CardDescription>
+              <CardTitle className="text-[15px]">My Open Tasks</CardTitle>
               <CardAction>
                 <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-                  <Link to="/to-dos">
+                  <Link to="/tasks">
                     View all <ArrowUpRight />
                   </Link>
                 </Button>
               </CardAction>
             </CardHeader>
             <div className="max-h-80 overflow-y-auto p-2">
-              {myTodos.length === 0 && <div className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing to do — nice!</div>}
-              {myTodos.map((t) => (
+              {myTasks.length === 0 && <div className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing to do — nice!</div>}
+              {myTasks.map((t) => (
                 <Link
                   key={t.id}
-                  to={`/to-dos?id=${t.id}`}
+                  to={`/tasks?id=${t.id}`}
                   className="group flex items-center gap-3 rounded-lg p-3 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">

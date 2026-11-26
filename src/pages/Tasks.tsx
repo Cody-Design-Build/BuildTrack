@@ -3,55 +3,33 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Calendar, SquarePen, Eye, ChevronDown, Search, Maximize, Upload, Circle, CircleCheck, EllipsisVertical, Settings, List } from 'lucide-react';
 import { EditTools } from '../components/EditTools';
 import { PageHeader, Modal, Avatar } from '../components/Layout';
-import { TodoForm, Field } from '../components/Forms';
+import { TaskForm, Field } from '../components/Forms';
 import { useLookups, useStore } from '../store';
-import type { Todo } from '../data';
+import { downloadCsv, downloadIcs } from '../lib/downloads';
+import type { Task } from '../data';
 
 const VIEWS = {
-  mine: 'My Incomplete To-Dos',
-  open: 'All Incomplete To-Dos',
-  done: 'Completed To-Dos',
-  all: 'All To-Dos',
+  mine: 'My Incomplete Tasks',
+  open: 'All Incomplete Tasks',
+  done: 'Completed Tasks',
+  all: 'All Tasks',
 } as const;
 type View = keyof typeof VIEWS;
 
 const TYPE_COLORS = ['#ff0000', '#2563eb', '#16a34a', '#9333ea', '#ea580c', '#0d9488'];
 
-export function typeColor(types: string[], t: string) {
+function typeColor(types: string[], t: string) {
   const i = types.indexOf(t);
   return TYPE_COLORS[(i < 0 ? 0 : i) % TYPE_COLORS.length];
 }
 
-export function downloadIcs(name: string, events: { title: string; date: string; end?: string }[]) {
-  const fmt = (d: string) => d.replace(/-/g, '');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BuildTrack//EN'];
-  events.forEach((e, i) => {
-    const endDate = new Date((e.end ?? e.date) + 'T00:00:00');
-    endDate.setDate(endDate.getDate() + 1);
-    lines.push('BEGIN:VEVENT', `UID:${i}-${fmt(e.date)}@buildtrack`, `DTSTART;VALUE=DATE:${fmt(e.date)}`, `DTEND;VALUE=DATE:${fmt(endDate.toISOString().slice(0, 10))}`, `SUMMARY:${e.title.replace(/[,;]/g, ' ')}`, 'END:VEVENT');
-  });
-  lines.push('END:VCALENDAR');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar' }));
-  a.download = name;
-  a.click();
-}
-
-export function downloadCsv(name: string, rows: string[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = name;
-  a.click();
-}
-
 function TypesModal({ onClose }: { onClose: () => void }) {
   const { db, update } = useStore();
-  const types = [...new Set(db.todos.map((t) => t.type).filter(Boolean))];
+  const types = [...new Set(db.tasks.map((t) => t.type).filter(Boolean))];
   const [draft, setDraft] = useState<Record<string, string>>(Object.fromEntries(types.map((t) => [t, t])));
   return (
     <Modal title="Task Types" onClose={onClose}>
-      <p className="form-note">Rename a type to update every to-do that uses it.</p>
+      <p className="form-note">Rename a type to update every task that uses it.</p>
       {types.map((t) => (
         <Field key={t} label="">
           <div className="type-edit">
@@ -66,7 +44,7 @@ function TypesModal({ onClose }: { onClose: () => void }) {
           type="button"
           className="btn primary"
           onClick={() => {
-            update((d) => ({ ...d, todos: d.todos.map((x) => (x.type && draft[x.type] !== undefined ? { ...x, type: draft[x.type].trim() } : x)) }));
+            update((d) => ({ ...d, tasks: d.tasks.map((x) => (x.type && draft[x.type] !== undefined ? { ...x, type: draft[x.type].trim() } : x)) }));
             onClose();
           }}
         >
@@ -77,7 +55,7 @@ function TypesModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function Todos() {
+export default function Tasks() {
   const { db, update } = useStore();
   const L = useLookups();
   const [params, setParams] = useSearchParams();
@@ -86,29 +64,29 @@ export default function Todos() {
   const [sortMenu, setSortMenu] = useState(false);
   const [sort, setSort] = useState<'list' | 'due'>('list');
   const [q, setQ] = useState('');
-  const [editing, setEditing] = useState<Todo | null>(null);
+  const [editing, setEditing] = useState<Task | null>(null);
   const [creating, setCreating] = useState(false);
   const [types, setTypes] = useState(false);
   const me = db.team[0]?.id;
 
   useEffect(() => {
     const id = params.get('id');
+    const showTypes = params.has('types');
+    if (!id && !showTypes) return;
     if (id) {
-      const t = db.todos.find((x) => x.id === id);
+      const t = db.tasks.find((x) => x.id === id);
       if (t) setEditing(t);
-      params.delete('id');
-      setParams(params, { replace: true });
     }
-    if (params.get('types')) {
-      setTypes(true);
-      params.delete('types');
-      setParams(params, { replace: true });
-    }
-  }, [params, setParams, db.todos]);
+    if (showTypes) setTypes(true);
+    const next = new URLSearchParams(params);
+    next.delete('id');
+    next.delete('types');
+    setParams(next, { replace: true });
+  }, [params, setParams, db.tasks]);
 
-  const allTypes = [...new Set(db.todos.map((t) => t.type).filter(Boolean))];
+  const allTypes = [...new Set(db.tasks.map((t) => t.type).filter(Boolean))];
   const needle = q.trim().toLowerCase();
-  const rows = db.todos.filter((t) => {
+  const rows = db.tasks.filter((t) => {
     if (view === 'mine' && (t.done || !t.assignees.includes(me))) return false;
     if (view === 'open' && t.done) return false;
     if (view === 'done' && !t.done) return false;
@@ -116,21 +94,21 @@ export default function Todos() {
     return [t.name, L.party.get(t.partyId)?.name, L.job.get(t.jobId)?.name, t.type].join(' ').toLowerCase().includes(needle);
   });
   if (sort === 'due') rows.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
-  const icsDownload = () => downloadIcs('to-dos.ics', db.todos.filter((t) => t.due && !t.done).map((t) => ({ title: t.name, date: t.due })));
+  const icsDownload = () => downloadIcs('tasks.ics', db.tasks.filter((t) => t.due && !t.done).map((t) => ({ title: t.name, date: t.due })));
 
-  const setField = (id: string, patch: Partial<Todo>) => update((d) => ({ ...d, todos: d.todos.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+  const setField = (id: string, patch: Partial<Task>) => update((d) => ({ ...d, tasks: d.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
 
   return (
     <div className="page fill">
       <PageHeader
-        title="To-Dos"
+        title="Tasks"
         actions={
           <>
-            <button type="button" className="btn" onClick={() => setCreating(true)}><Plus size={14} /> To-Do</button>
+            <button type="button" className="btn" onClick={() => setCreating(true)}><Plus size={14} /> Task</button>
             <button
               type="button"
               className="btn"
-              onClick={() => downloadIcs('to-dos.ics', db.todos.filter((t) => t.due && !t.done).map((t) => ({ title: t.name, date: t.due })))}
+              onClick={icsDownload}
             >
               <Calendar size={14} /> Calendar URL
             </button>
@@ -138,7 +116,7 @@ export default function Todos() {
           </>
         }
       />
-      <div className="toolbar todo-toolbar">
+      <div className="toolbar task-toolbar">
         <div className="menu-wrap">
           <button type="button" className="btn view-btn" onClick={() => setMenu((m) => !m)}>
             <Eye size={14} /> {VIEWS[view]} <ChevronDown size={14} />
@@ -177,14 +155,14 @@ export default function Todos() {
           className="btn icon-only tb-wide"
           title="Export to spreadsheet"
           aria-label="Export"
-          onClick={() => downloadCsv('to-dos.csv', [['Name', 'With', 'Job', 'Due', 'Type', 'Done'], ...rows.map((t) => [t.name, L.party.get(t.partyId)?.name ?? '', L.job.get(t.jobId)?.name ?? '', t.due, t.type, t.done ? 'yes' : 'no'])])}
+          onClick={() => downloadCsv('tasks.csv', [['Name', 'With', 'Job', 'Due', 'Type', 'Done'], ...rows.map((t) => [t.name, L.party.get(t.partyId)?.name ?? '', L.job.get(t.jobId)?.name ?? '', t.due, t.type, t.done ? 'yes' : 'no'])])}
         >
           <Upload size={14} />
         </button>
         <EditTools onDownload={icsDownload} />
       </div>
       <div className="table-wrap">
-        <table className="grid-table todo-table">
+        <table className="grid-table task-table">
           <colgroup>
             <col style={{ width: 50 }} />
             <col style={{ width: 300 }} />
@@ -219,11 +197,11 @@ export default function Todos() {
                     </button>
                   </td>
                   <td className="name-cell">
-                    <div className="todo-meta">
-                      {[who?.name, job?.name].filter(Boolean).join(' / ') || t.type || 'To-Do'}
+                    <div className="task-meta">
+                      {[who?.name, job?.name].filter(Boolean).join(' / ') || t.type || 'Task'}
                     </div>
                     <input className="cell-input" value={t.name} onChange={(e) => setField(t.id, { name: e.target.value })} aria-label="Name" />
-                    <button type="button" className="row-more" aria-label="Edit to-do" onClick={() => setEditing(t)}>
+                    <button type="button" className="row-more" aria-label="Edit task" onClick={() => setEditing(t)}>
                       <EllipsisVertical size={14} />
                     </button>
                   </td>
@@ -250,10 +228,10 @@ export default function Todos() {
             </tr>
           </tbody>
         </table>
-        {rows.length === 0 && <div className="wt-empty">No to-dos here. Use “+ To-Do” to add one.</div>}
+        {rows.length === 0 && <div className="wt-empty">No tasks here. Use “+ Task” to add one.</div>}
       </div>
-      {creating && <TodoForm onClose={() => setCreating(false)} />}
-      {editing && <TodoForm todo={editing} onClose={() => setEditing(null)} />}
+      {creating && <TaskForm onClose={() => setCreating(false)} />}
+      {editing && <TaskForm task={editing} onClose={() => setEditing(null)} />}
       {types && <TypesModal onClose={() => setTypes(false)} />}
     </div>
   );

@@ -1,16 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { seed, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
-import { isLegacy, migrateLegacy } from './migrate';
+import { isLegacy, migrateLegacy, migrateSchedule } from './migrate';
 
-export const KEY = 'buildtrack-db-v4';
-/** Where the old account/contact model was saved. Left untouched as a fallback after migrating. */
-const LEGACY_KEY = 'buildtrack-db-v3';
+export const KEY = 'buildtrack-db-v5';
+const LEGACY_KEYS = ['buildtrack-db-v4', 'buildtrack-db-v3'];
 
-/** Parses saved data or a backup file, converting the old account/contact model if needed. */
+/** Parses saved data or a backup file and migrates older records. */
 export function parseDb(raw: string): Db {
-  const parsed = JSON.parse(raw) as Db & { messages?: unknown };
+  const parsed = JSON.parse(raw) as (Db | ReturnType<typeof migrateLegacy>) & { messages?: unknown };
   delete parsed.messages; // Drop legacy messages from browser saves and restored backups.
-  const db = isLegacy(parsed) ? migrateLegacy(parsed) : parsed;
+  const db = migrateSchedule(isLegacy(parsed) ? migrateLegacy(parsed) : parsed);
   if (!db.items) db.items = seed().items; // data saved before budgets existed
   if (!db.activity) db.activity = seed().activity;
   return db;
@@ -18,8 +17,10 @@ export function parseDb(raw: string): Db {
 
 function load(): Db {
   try {
-    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
-    if (raw) return parseDb(raw);
+    for (const key of [KEY, ...LEGACY_KEYS]) {
+      const raw = localStorage.getItem(key);
+      if (raw) return parseDb(raw);
+    }
   } catch {
     /* ignore */
   }
@@ -90,7 +91,7 @@ export const colorFor = (s: string) => {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 };
 
-/** A person or an account, seen the same way wherever either can appear (job links, documents, to-dos). */
+/** A person or an account, seen the same way wherever either can appear (job links, documents, tasks). */
 export interface Party {
   id: string;
   kind: 'person' | 'account';

@@ -1,6 +1,6 @@
 # BuildTrack
 
-A simple job-management web app for a design-build company: Home dashboard, Jobs, To-Dos, Schedule, and a small CRM of People and Accounts. People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
+A simple job-management web app for a design-build company with a Home dashboard, Jobs, Tasks, a job and crew Schedule, and a small CRM of People and Accounts. People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
 
 ## Develop
 
@@ -30,6 +30,6 @@ All data is sample data stored in your browser (localStorage). Use **Settings �
 ## Where things live
 
 - **The app itself:** this folder. `src/` holds the code, and `npm run build` writes the finished site to `dist/`.
-- **Your data:** your web browser's own storage (localStorage, under the key `buildtrack-db-v4`; data saved by the older customer/vendor version under `buildtrack-db-v3` is converted automatically the first time the app loads and left in place untouched), inside the browser's private profile folder. It isn't a file you can open directly, and each browser keeps its own copy. To get a file, go to **Settings → Your data → Download backup**. **Restore backup** loads that file back in.
+- **Your data:** your browser saves a local copy under `buildtrack-db-v5`. Older saves and restored backups are migrated automatically. Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. To export or restore a copy, go to **Settings → Your data**.
 
 Legacy message records are removed when the app loads saved data or restores an older backup. Other records are retained.

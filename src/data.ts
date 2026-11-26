@@ -4,7 +4,7 @@
 // (customers, vendors, subcontractors, architects…), tagged with one or more types.
 // A person can belong to any number of accounts through a MEMBERSHIP (with a title), and
 // both people and accounts are linked to jobs through JOB LINKS, each with a role.
-// Documents, to-dos and activity point at a "party": the id of a person or an account.
+// Documents, tasks and activity point at a "party": the id of a person or an account.
 
 export interface Person {
   id: string;
@@ -107,7 +107,7 @@ export interface TeamMember {
   color: string;
 }
 
-export interface Todo {
+export interface Task {
   id: string;
   name: string;
   partyId: string; // person or account, optional
@@ -118,12 +118,13 @@ export interface Todo {
   done: boolean;
 }
 
-export interface Task {
+export interface ScheduleEntry {
   id: string;
   jobId: string;
   name: string;
   start: string;
   end: string;
+  crewIds: string[];
   progress: number;
 }
 
@@ -168,8 +169,8 @@ export interface Db {
   jobs: Job[];
   docs: Doc[];
   team: TeamMember[];
-  todos: Todo[];
   tasks: Task[];
+  scheduleEntries: ScheduleEntry[];
   companyName: string;
 }
 
@@ -379,20 +380,20 @@ export function seed(): Db {
       { id: 'd8', jobId: 'j12', partyId: 'v1', kind: 'Bid Request', number: '133-80', amount: 0, status: 'Pending' },
       { id: 'd9', jobId: 'j8', partyId: 'c6', kind: 'Proposal', number: '135-4', amount: 58460, status: 'Approved' },
     ],
-    todos: [
+    tasks: [
       { id: 't1', name: 'Follow up with client about the next steps for the project', partyId: 'c2', jobId: 'j6', due: '', type: 'Project Management', assignees: ['u1'], done: false },
       { id: 't2', name: 'Make an appointment with clients to be able to walk the project before starting it', partyId: 'c3', jobId: 'j9', due: '2026-12-02', type: 'Site Visit', assignees: ['u1', 'u2'], done: false },
       { id: 't3', name: 'Make an appointment with clients to be able to walk the project before starting it', partyId: 'c3', jobId: 'j10', due: '2026-12-09', type: 'Site Visit', assignees: ['u1'], done: false },
       { id: 't4', name: 'Order tile samples', partyId: 'c4', jobId: 'j7', due: '2026-12-04', type: 'Purchasing', assignees: ['u1'], done: false },
       { id: 't5', name: 'Vendor intake', partyId: 'v1', jobId: '', due: '', type: '', assignees: ['u1', 'u2', 'u3', 'u4'], done: false },
     ],
-    tasks: [
-      { id: 'k1', jobId: 'j12', name: 'Demolition', start: '2026-10-12', end: '2026-10-23', progress: 100 },
-      { id: 'k2', jobId: 'j12', name: 'Framing', start: '2026-10-26', end: '2026-11-20', progress: 60 },
-      { id: 'k3', jobId: 'j12', name: 'Rough plumbing & electrical', start: '2026-11-23', end: '2026-12-18', progress: 0 },
-      { id: 'k4', jobId: 'j12', name: 'Drywall', start: '2027-01-04', end: '2027-01-29', progress: 0 },
-      { id: 'k5', jobId: 'j8', name: 'Tile', start: '2026-11-16', end: '2026-12-04', progress: 40 },
-      { id: 'k6', jobId: 'j8', name: 'Fixtures', start: '2026-12-07', end: '2026-12-18', progress: 0 },
+    scheduleEntries: [
+      { id: 'k1', jobId: 'j12', name: 'Demolition', start: '2026-10-12', end: '2026-10-23', crewIds: ['u2', 'u3'], progress: 100 },
+      { id: 'k2', jobId: 'j12', name: 'Framing', start: '2026-10-26', end: '2026-11-20', crewIds: ['u2', 'u3'], progress: 60 },
+      { id: 'k3', jobId: 'j12', name: 'Rough plumbing & electrical', start: '2026-11-23', end: '2026-12-18', crewIds: ['u4'], progress: 0 },
+      { id: 'k4', jobId: 'j12', name: 'Drywall', start: '2027-01-04', end: '2027-01-29', crewIds: ['u3'], progress: 0 },
+      { id: 'k5', jobId: 'j8', name: 'Tile', start: '2026-11-16', end: '2026-12-04', crewIds: ['u4'], progress: 40 },
+      { id: 'k6', jobId: 'j8', name: 'Fixtures', start: '2026-12-07', end: '2026-12-18', crewIds: ['u2'], progress: 0 },
     ],
   };
 }

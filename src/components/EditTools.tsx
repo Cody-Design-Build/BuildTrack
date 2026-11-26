@@ -2,13 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Undo2, Redo2, Ban, Check, Ellipsis, CloudDownload } from 'lucide-react';
 import { useStore } from '../store';
 
-/** Undo / redo / discard, the Notify switch and the "saved" indicator shared by the To-Dos and Schedule toolbars. */
+/** Shared editing controls for the Tasks and Schedule toolbars. */
 export function EditTools({ onDownload, extra }: { onDownload?: () => void; extra?: { label: string; run: () => void }[] }) {
   const { undo, redo, revert, canUndo, canRedo } = useStore();
-  const [notify, setNotify] = useState(() => localStorage.getItem('buildtrack-notify') === '1');
   const [more, setMore] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => localStorage.setItem('buildtrack-notify', notify ? '1' : '0'), [notify]);
   useEffect(() => {
     const close = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setMore(false);
     document.addEventListener('click', close);
@@ -26,9 +24,6 @@ export function EditTools({ onDownload, extra }: { onDownload?: () => void; extr
         <button type="button" className="btn icon-only" title="Redo" aria-label="Redo" onClick={redo} disabled={!canRedo}><Redo2 size={14} /></button>
         <button type="button" className="btn icon-only" title="Discard all changes" aria-label="Discard all changes" onClick={() => canUndo && confirm('Discard all changes made since the page was opened?') && revert()} disabled={!canUndo}><Ban size={14} /></button>
       </div>
-      <button type="button" className={'btn notify tb-mid' + (notify ? ' on' : '')} role="switch" aria-checked={notify} title="Notify assignees about changes" onClick={() => setNotify((n) => !n)}>
-        <span className="switch" /> Notify
-      </button>
       <button type="button" className="btn saved" disabled title="Changes save automatically">
         <Check size={14} /> Save
       </button>
@@ -38,7 +33,6 @@ export function EditTools({ onDownload, extra }: { onDownload?: () => void; extr
           <div className="dropdown right" onClick={() => setMore(false)}>
             <button type="button" onClick={undo} disabled={!canUndo}>Undo</button>
             <button type="button" onClick={redo} disabled={!canRedo}>Redo</button>
-            <button type="button" onClick={() => setNotify((n) => !n)}>{notify ? 'Turn notifications off' : 'Turn notifications on'}</button>
             {onDownload && <button type="button" onClick={onDownload}>Download calendar</button>}
             {extra?.map((x) => <button key={x.label} type="button" onClick={x.run}>{x.label}</button>)}
           </div>

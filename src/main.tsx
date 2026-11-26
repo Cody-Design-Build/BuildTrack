@@ -1,18 +1,23 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { StoreProvider } from './store';
 import { Shell } from './components/Layout';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import Home from './pages/Home';
 import Jobs from './pages/Jobs';
-import Todos from './pages/Todos';
+import Tasks from './pages/Tasks';
 import Schedule from './pages/Schedule';
 import Accounts from './pages/Accounts';
 import People from './pages/People';
 import { Documents, Reports, SettingsPage, Placeholder } from './pages/Other';
 import '@fontsource-variable/inter';
 import './index.css';
+
+function LegacyTasksRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: '/tasks', search, hash }} replace />;
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -23,7 +28,8 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/jobs" element={<Jobs />} />
-            <Route path="/to-dos" element={<Todos />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/to-dos" element={<LegacyTasksRedirect />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/people" element={<People />} />
             <Route path="/accounts" element={<Accounts />} />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, MapPin, Pencil, Phone, Plus, StickyNote, Star, Building2, Wrench } from 'lucide-react';
 import { PageHeader } from '../components/Layout';
-import { JobLinkForm, MembershipForm, PersonForm, TodoForm } from '../components/Forms';
+import { JobLinkForm, MembershipForm, PersonForm, TaskForm } from '../components/Forms';
 import { PartyAvatar, PartyLink, RoleBadge } from '../components/Party';
 import { BackLink, Empty, InfoLine, Row, SearchInput, Section } from '../components/Detail';
 import { StatusDot } from './Jobs';
@@ -21,11 +21,11 @@ function PersonDetail({ person }: { person: Person }) {
   const [editing, setEditing] = useState(false);
   const [membership, setMembership] = useState<Membership | 'new' | null>(null);
   const [jobLink, setJobLink] = useState<JobLink | 'new' | null>(null);
-  const [newTodo, setNewTodo] = useState(false);
+  const [newTask, setNewTask] = useState(false);
   const memberships = L.accountsOf.get(person.id) ?? [];
   const links = L.linksByParty.get(person.id) ?? [];
   const docs = db.docs.filter((d) => d.partyId === person.id);
-  const todos = db.todos.filter((t) => t.partyId === person.id && !t.done);
+  const tasks = db.tasks.filter((t) => t.partyId === person.id && !t.done);
 
   return (
     <div className="page scroll">
@@ -36,7 +36,7 @@ function PersonDetail({ person }: { person: Person }) {
           <>
             <Button variant="outline" onClick={() => setJobLink('new')}><Wrench /> Add to job</Button>
             <Button variant="outline" onClick={() => setMembership('new')}><Building2 /> Add to account</Button>
-            <Button variant="outline" onClick={() => setNewTodo(true)}><Plus /> To-Do</Button>
+            <Button variant="outline" onClick={() => setNewTask(true)}><Plus /> Task</Button>
             <Button onClick={() => setEditing(true)}><Pencil /> Edit</Button>
           </>
         }
@@ -116,11 +116,11 @@ function PersonDetail({ person }: { person: Person }) {
                   </Row>
                 ))}
               </Section>
-              <Section title="Open to-dos" count={todos.length} action={<Button size="sm" variant="ghost" onClick={() => setNewTodo(true)}><Plus /> Add</Button>}>
-                {todos.length === 0 && <Empty>Nothing open</Empty>}
-                {todos.map((t) => (
+              <Section title="Open tasks" count={tasks.length} action={<Button size="sm" variant="ghost" onClick={() => setNewTask(true)}><Plus /> Add</Button>}>
+                {tasks.length === 0 && <Empty>Nothing open</Empty>}
+                {tasks.map((t) => (
                   <Row key={t.id}>
-                    <Link to={`/to-dos?id=${t.id}`} className="line-clamp-2 text-sm text-foreground hover:text-primary">{t.name}</Link>
+                    <Link to={`/tasks?id=${t.id}`} className="line-clamp-2 text-sm text-foreground hover:text-primary">{t.name}</Link>
                     <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t.due}</span>
                   </Row>
                 ))}
@@ -132,7 +132,7 @@ function PersonDetail({ person }: { person: Person }) {
       {editing && <PersonForm person={person} onClose={() => setEditing(false)} />}
       {membership && <MembershipForm personId={person.id} membership={membership === 'new' ? undefined : membership} onClose={() => setMembership(null)} />}
       {jobLink && <JobLinkForm partyId={person.id} link={jobLink === 'new' ? undefined : jobLink} onClose={() => setJobLink(null)} />}
-      {newTodo && <TodoForm presetPartyId={person.id} onClose={() => setNewTodo(false)} />}
+      {newTask && <TaskForm presetPartyId={person.id} onClose={() => setNewTask(false)} />}
     </div>
   );
 }

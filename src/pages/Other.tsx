@@ -88,8 +88,8 @@ const TABLES: { key: keyof Db; label: string; what: string }[] = [
   { key: 'jobs', label: 'jobs', what: 'Jobs (name, site address, status, contract total, dates)' },
   { key: 'items', label: 'budget items', what: 'Budget / estimate lines per job (group, cost type, vendor, qty, unit cost, markup, spent)' },
   { key: 'docs', label: 'documents', what: 'Proposals, change orders, invoices, bids, purchase orders and bills' },
-  { key: 'todos', label: 'to-dos', what: 'To-dos with the person or account involved, job, due date, type and assignees' },
-  { key: 'tasks', label: 'schedule tasks', what: 'Schedule tasks per job (start, finish, % done)' },
+  { key: 'tasks', label: 'tasks', what: 'Tasks with the person or account involved, job, due date, type and assignees' },
+  { key: 'scheduleEntries', label: 'schedule entries', what: 'Scheduled work by job, start and finish dates, crew and progress' },
   { key: 'activity', label: 'activity', what: 'Document events shown in the Home feed' },
   { key: 'team', label: 'team', what: 'Your own team members' },
 ];

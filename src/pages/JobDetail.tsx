@@ -2,21 +2,21 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Plus, Trash2, FileText, FolderPlus, Upload, MapPin, Calendar } from 'lucide-react';
 import { PageHeader, Modal } from '../components/Layout';
-import { JobForm, JobLinkForm, TodoForm, Field } from '../components/Forms';
+import { JobForm, JobLinkForm, TaskForm, Field } from '../components/Forms';
 import { PartyLink, RoleBadge } from '../components/Party';
 import { Button } from '@/components/ui/button';
-import { TaskForm } from './Schedule';
-import { downloadCsv } from './Todos';
+import { ScheduleEntryForm, ScheduleTable } from './Schedule';
+import { downloadCsv } from '../lib/downloads';
 import { useLookups, useStore, money, uid, lineCost, linePrice } from '../store';
-import { COST_TYPES, JOB_STATUSES, type JobLink, type Activity, type Db, type BudgetItem, type CostType, type Doc, type Job, type JobStatus, type Task } from '../data';
+import { COST_TYPES, JOB_STATUSES, type JobLink, type Activity, type Db, type BudgetItem, type CostType, type Doc, type Job, type JobStatus, type ScheduleEntry } from '../data';
 
-const TABS = ['overview', 'budget', 'schedule', 'to-dos', 'documents'] as const;
+const TABS = ['overview', 'budget', 'schedule', 'tasks', 'documents'] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   overview: 'Overview',
   budget: 'Budget & Estimate',
   schedule: 'Schedule',
-  'to-dos': 'To-Dos',
+  'tasks': 'Tasks',
   documents: 'Documents',
 };
 
@@ -283,9 +283,9 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
   );
   const items = db.items.filter((i) => i.jobId === job.id);
   const t = totals(items);
-  const todos = db.todos.filter((x) => x.jobId === job.id && !x.done);
-  const tasks = db.tasks.filter((x) => x.jobId === job.id);
-  const progress = tasks.length ? Math.round(tasks.reduce((s, x) => s + x.progress, 0) / tasks.length) : job.progress;
+  const tasks = db.tasks.filter((x) => x.jobId === job.id && !x.done);
+  const entries = db.scheduleEntries.filter((x) => x.jobId === job.id);
+  const progress = entries.length ? Math.round(entries.reduce((s, x) => s + x.progress, 0) / entries.length) : job.progress;
   return (
     <div className="detail-grid">
       <section className="card">
@@ -346,13 +346,13 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
 
       <section className="card">
         <div className="card-head">
-          <h2>Open To-Dos ({todos.length})</h2>
-          <button type="button" className="btn btn-sm" onClick={() => go('to-dos')}>All to-dos</button>
+          <h2>Open Tasks ({tasks.length})</h2>
+          <button type="button" className="btn btn-sm" onClick={() => go('tasks')}>All tasks</button>
         </div>
         <div className="card-body">
-          {todos.length === 0 && <div className="wt-empty">Nothing open</div>}
-          {todos.map((x) => (
-            <Link key={x.id} to={`/to-dos?id=${x.id}`} className="list-row"><span className="grow">{x.name}</span><span className="muted">{x.due}</span></Link>
+          {tasks.length === 0 && <div className="wt-empty">Nothing open</div>}
+          {tasks.map((x) => (
+            <Link key={x.id} to={`/tasks?id=${x.id}`} className="list-row"><span className="grow">{x.name}</span><span className="muted">{x.due}</span></Link>
           ))}
         </div>
       </section>
@@ -362,52 +362,39 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
 
 function ScheduleTab({ job }: { job: Job }) {
   const { db } = useStore();
-  const [editing, setEditing] = useState<Task | 'new' | null>(null);
-  const tasks = db.tasks.filter((t) => t.jobId === job.id).sort((a, b) => a.start.localeCompare(b.start));
+  const [editing, setEditing] = useState<ScheduleEntry | 'new' | null>(null);
+  const entries = db.scheduleEntries.filter((t) => t.jobId === job.id).sort((a, b) => a.start.localeCompare(b.start));
   return (
     <div>
       <div className="toolbar j-tab-bar">
-        <button type="button" className="btn" onClick={() => setEditing('new')}><Plus size={14} /> Task</button>
+        <button type="button" className="btn" onClick={() => setEditing('new')}><Plus size={14} /> Schedule Entry</button>
         <span className="grow" />
         <Link to="/schedule" className="btn">See all jobs on the schedule</Link>
       </div>
-      <div className="table-wrap">
-        <table className="grid-table j-table">
-          <thead><tr><th>Task</th><th>Start</th><th>Finish</th><th className="num">% done</th></tr></thead>
-          <tbody>
-            {tasks.map((t) => (
-              <tr key={t.id} className="clickable" onClick={() => setEditing(t)}>
-                <td>{t.name}</td><td>{t.start}</td><td>{t.end}</td>
-                <td className="num"><span className="bar-track j-mini"><span className="bar-fill" style={{ width: `${t.progress}%`, background: '#51a2ff' }} /></span> {t.progress}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {tasks.length === 0 && <div className="wt-empty">No tasks scheduled yet.</div>}
-      </div>
-      {editing && <TaskForm task={editing === 'new' ? undefined : editing} presetJobId={job.id} onClose={() => setEditing(null)} />}
+      <ScheduleTable entries={entries} onEdit={setEditing} />
+      {editing && <ScheduleEntryForm entry={editing === 'new' ? undefined : editing} presetJobId={job.id} onClose={() => setEditing(null)} />}
     </div>
   );
 }
 
-function TodosTab({ job }: { job: Job }) {
+function TasksTab({ job }: { job: Job }) {
   const { db, update } = useStore();
   const L = useLookups();
   const [adding, setAdding] = useState(false);
-  const todos = db.todos.filter((t) => t.jobId === job.id);
+  const tasks = db.tasks.filter((t) => t.jobId === job.id);
   return (
     <div>
       <div className="toolbar j-tab-bar">
-        <button type="button" className="btn" onClick={() => setAdding(true)}><Plus size={14} /> To-Do</button>
+        <button type="button" className="btn" onClick={() => setAdding(true)}><Plus size={14} /> Task</button>
       </div>
       <div className="table-wrap">
         <table className="grid-table j-table">
           <thead><tr><th className="center">✓</th><th>Name</th><th>Due</th><th>Type</th><th>Assignees</th></tr></thead>
           <tbody>
-            {todos.map((t) => (
+            {tasks.map((t) => (
               <tr key={t.id} className={t.done ? 'done' : ''}>
-                <td className="center"><input type="checkbox" checked={t.done} aria-label="Done" onChange={() => update((d) => ({ ...d, todos: d.todos.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)) }))} /></td>
-                <td><Link to={`/to-dos?id=${t.id}`}>{t.name}</Link></td>
+                <td className="center"><input type="checkbox" checked={t.done} aria-label="Done" onChange={() => update((d) => ({ ...d, tasks: d.tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)) }))} /></td>
+                <td><Link to={`/tasks?id=${t.id}`}>{t.name}</Link></td>
                 <td>{t.due}</td>
                 <td>{t.type}</td>
                 <td>{t.assignees.map((a) => L.team.get(a)?.name).filter(Boolean).join(', ')}</td>
@@ -415,9 +402,9 @@ function TodosTab({ job }: { job: Job }) {
             ))}
           </tbody>
         </table>
-        {todos.length === 0 && <div className="wt-empty">No to-dos for this job.</div>}
+        {tasks.length === 0 && <div className="wt-empty">No tasks for this job.</div>}
       </div>
-      {adding && <TodoForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
+      {adding && <TaskForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
     </div>
   );
 }
@@ -469,7 +456,8 @@ export default function JobDetail({ job }: { job: Job }) {
   const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
-  const tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? (params.get('tab') as Tab) : 'overview';
+  const tabParam = params.get('tab');
+  const tab = tabParam === 'to-dos' ? 'tasks' : TABS.find((t) => t === tabParam) ?? 'overview';
   const go = (t: Tab) => setParams({ job: job.id, tab: t });
   const status = JOB_STATUSES.find((s) => s.name === job.status);
   return (
@@ -479,7 +467,7 @@ export default function JobDetail({ job }: { job: Job }) {
         title={job.name}
         actions={
           <>
-            <button type="button" className="btn" onClick={() => setAdding(true)}><Plus size={14} /> To-Do</button>
+            <button type="button" className="btn" onClick={() => setAdding(true)}><Plus size={14} /> Task</button>
             <button type="button" className="btn" onClick={() => setEditing(true)}><Pencil size={14} /> Edit Job</button>
           </>
         }
@@ -499,11 +487,11 @@ export default function JobDetail({ job }: { job: Job }) {
         {tab === 'overview' && <Overview job={job} go={go} />}
         {tab === 'budget' && <Budget job={job} />}
         {tab === 'schedule' && <ScheduleTab job={job} />}
-        {tab === 'to-dos' && <TodosTab job={job} />}
+        {tab === 'tasks' && <TasksTab job={job} />}
         {tab === 'documents' && <DocumentsTab job={job} />}
       </div>
       {editing && <JobForm job={job} onClose={() => setEditing(false)} />}
-      {adding && <TodoForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
+      {adding && <TaskForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
     </div>
   );
 }

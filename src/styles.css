@@ -348,7 +348,7 @@ svg {
   color: var(--faint);
 }
 
-/* Toolbar extras: undo/redo, notify, save, more */
+/* Toolbar extras: undo/redo, save, more */
 .tb-more {
   display: none;
 }
@@ -357,47 +357,12 @@ svg {
   width: 92px;
 }
 
-.todo-toolbar > .menu-wrap:first-child .view-btn {
+.task-toolbar > .menu-wrap:first-child .view-btn {
   min-width: 209px;
 }
 
 .gantt-btn {
   width: 105px;
-}
-
-.btn.notify {
-  padding: 0 8px;
-  gap: 6px;
-}
-
-.switch {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 9999px;
-  background: #d1d5dc;
-  transition: background 0.15s;
-}
-
-.switch::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
-  background: #fff;
-  box-shadow: var(--shadow);
-  transition: left 0.15s;
-}
-
-.btn.notify.on .switch {
-  background: var(--cyan);
-}
-
-.btn.notify.on .switch::after {
-  left: 18px;
 }
 
 .btn.saved:disabled {
@@ -420,14 +385,6 @@ svg {
 .dropdown button:disabled {
   color: var(--faint);
   cursor: default;
-}
-
-.gantt.list-mode .g-right {
-  display: none;
-}
-
-.gantt.list-mode .g-left {
-  flex: 1;
 }
 
 /* ---------- Generic pages ---------- */
@@ -669,12 +626,12 @@ svg {
   padding: 0;
 }
 
-.todo-table {
+.task-table {
   width: 1275px;
   min-width: 0;
 }
 
-.todo-table tr.done .cell-input {
+.task-table tr.done .cell-input {
   text-decoration: line-through;
   color: var(--faint);
 }
@@ -716,7 +673,7 @@ svg {
   border-radius: 2px;
 }
 
-.todo-meta {
+.task-meta {
   display: none;
   font-size: 12px;
   line-height: 16px;
@@ -917,10 +874,6 @@ svg {
 
 .g-sub {
   font-size: 12px;
-}
-
-.g-task {
-  cursor: pointer;
 }
 
 .g-task .g-name.task {
@@ -1614,13 +1567,6 @@ body {
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 40%, transparent);
 }
-.switch {
-  background: var(--border-strong);
-}
-.btn.notify.on .switch {
-  background: var(--primary);
-}
-
 /* Small bits */
 .tag {
   font-size: 11px;
@@ -1895,12 +1841,12 @@ body {
     display: block;
   }
 
-  .todo-toolbar,
+  .task-toolbar,
 .sched-toolbar {
     gap: 4px;
   }
 
-  .todo-toolbar > .menu-wrap:first-child,
+  .task-toolbar > .menu-wrap:first-child,
 .sched-toolbar > .menu-wrap:first-child {
     flex: 0 1 auto;
   }
@@ -1971,19 +1917,19 @@ body {
     display: none;
   }
 
-  .todo-toolbar > .menu-wrap:first-child,
+  .task-toolbar > .menu-wrap:first-child,
 .sched-toolbar > .menu-wrap:first-child {
     flex: 1;
     min-width: 0;
   }
 
-  .todo-toolbar > .menu-wrap:first-child .view-btn,
+  .task-toolbar > .menu-wrap:first-child .view-btn,
 .sched-toolbar > .menu-wrap:first-child .view-btn {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .todo-toolbar > .menu-wrap:first-child .view-btn svg:last-child {
+  .task-toolbar > .menu-wrap:first-child .view-btn svg:last-child {
     margin-left: auto;
   }
 
@@ -1993,44 +1939,44 @@ body {
   }
 
   .sched-toolbar,
-.todo-toolbar {
+.task-toolbar {
     padding: 4px;
     gap: 4px;
   }
 
   .sched-toolbar .btn,
-.todo-toolbar .btn {
+.task-toolbar .btn {
     height: 30px;
   }
 
   .sched-toolbar .btn.icon-only,
-.todo-toolbar .btn.icon-only {
+.task-toolbar .btn.icon-only {
     width: 32px;
   }
 
-  .todo-table {
+  .task-table {
     width: 100%;
   }
 
-  .todo-table col:nth-child(2) {
+  .task-table col:nth-child(2) {
     width: auto !important;
   }
 
-  .todo-table col:nth-child(n + 3),
-.todo-table th:nth-child(n + 3),
-.todo-table td:nth-child(n + 3) {
+  .task-table col:nth-child(n + 3),
+.task-table th:nth-child(n + 3),
+.task-table td:nth-child(n + 3) {
     display: none;
   }
 
-  .todo-table tbody tr:not(.filler) td {
+  .task-table tbody tr:not(.filler) td {
     height: 57px;
   }
 
-  .todo-table .check-btn {
+  .task-table .check-btn {
     vertical-align: middle;
   }
 
-  .todo-meta {
+  .task-meta {
     display: block !important;
   }
 
