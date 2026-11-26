@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Lock, Printer, RotateCcw, Trash2, CircleCheck } from 'lucide-react';
+import { ArrowLeft, Banknote, Lock, Printer, RotateCcw, Trash2, CircleCheck } from 'lucide-react';
 import { StatusMenu } from '../components/StatusMenu';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
@@ -9,12 +9,13 @@ import { NumCell, TextCell } from '../components/Cells';
 import { Segmented, useRememberedChoice } from '../components/DocLayout';
 import { History } from '../components/BudgetSigning';
 import { InvoiceDocument } from '../components/InvoiceDocument';
+import { PaymentForm, PaymentsTable } from '../components/Payments';
 import { useLookups, useStore, money } from '../store';
 import { INVOICE_STATUSES, type Invoice, type InvoiceStatus } from '../data';
 import { budgetLabel, linesByBudget } from '../budgets';
 import {
-  INVOICE_NEXT, INVOICE_STATUS_COLOR, billableBudgets, deleteInvoice, editInvoice, invoiceLabel, invoiceTotals,
-  isInvoiceEditable, setInvoiceStatus, weightedPct, type InvoiceRow, type InvoiceSection,
+  INVOICE_NEXT, INVOICE_STATUS_COLOR, STAGE_COLOR, billableBudgets, deleteInvoice, editInvoice, invoiceLabel, invoiceMoney, invoicePayments,
+  invoiceStage, invoiceTotals, isInvoiceEditable, setInvoiceStatus, weightedPct, type InvoiceRow, type InvoiceSection,
 } from '../invoices';
 
 type View = 'lines' | 'document' | 'details';
@@ -25,8 +26,8 @@ const VIEWS: { id: View; label: string }[] = [
 ];
 const STATUS_HINT: Record<InvoiceStatus, string> = {
   Draft: 'Marking it sent locks it and freezes what was billed before it.',
-  Sent: "A sent invoice can't go back to draft. Void it and start a new one to change it.",
-  Paid: 'Paid is final.',
+  Sent: "A sent invoice can't go back to draft. Void it and start a new one to change it. It becomes Paid when payments cover it.",
+  Paid: 'Paid in full. Remove a payment to reopen it.',
   Void: 'Void is final. Its amounts can be billed again on a new invoice.',
 };
 const CONFIRM: Partial<Record<InvoiceStatus, string>> = {
@@ -41,6 +42,7 @@ export default function InvoiceDetail() {
   const { db, update } = useStore();
   const L = useLookups();
   const nav = useNavigate();
+  const [paying, setPaying] = useState(false);
   const [view, setView] = useRememberedChoice<View>('buildtrack-invoice-view', ['lines', 'document', 'details'], 'lines', (v) => v !== 'details');
   useEffect(() => {
     const prev = document.title;
@@ -62,6 +64,12 @@ export default function InvoiceDetail() {
   const job = L.job.get(invoice.jobId);
   const editable = isInvoiceEditable(invoice);
   const t = invoiceTotals(db, invoice, byBudget);
+  const m = invoiceMoney(db, invoice, byBudget);
+  const payments = invoicePayments(db, invoice.id);
+  const stage = invoiceStage(db, invoice, byBudget);
+  const billed = invoice.status === 'Sent' || invoice.status === 'Paid';
+  // a sent invoice with payments can't be voided until they're removed
+  const allowed = INVOICE_NEXT[invoice.status].filter((s) => s !== 'Void' || payments.length === 0);
   const recipients = [...new Set((L.linksByJob.get(invoice.jobId) ?? []).map((l) => l.partyId))].map((pid) => L.party.get(pid)).filter((p) => !!p);
   // every approved budget can be added; budgets already on the invoice stay listed even if voided since
   const choices = [...billableBudgets(db, invoice.jobId), ...invoice.budgetIds.map((bid) => db.budgets.find((b) => b.id === bid)).filter((b) => !!b && b.status !== 'Approved')].filter((b) => !!b);
@@ -102,13 +110,15 @@ export default function InvoiceDetail() {
         actions={
           <>
             <button type="button" className="btn" onClick={() => window.print()}><Printer size={14} /> Print / PDF</button>
+            {invoice.status === 'Sent' && <button type="button" className="btn primary" onClick={() => setPaying(true)}><Banknote size={14} /> Record payment</button>}
             {editable && <button type="button" className="btn" onClick={del}><Trash2 size={14} /> Delete</button>}
           </>
         }
       />
       <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${invoice.jobId}&tab=invoices`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} invoices</Link>
-        <StatusMenu value={invoice.status} statuses={INVOICE_STATUSES} allowed={INVOICE_NEXT[invoice.status]} colors={INVOICE_STATUS_COLOR} onSelect={move} hint={STATUS_HINT[invoice.status]} />
+        <StatusMenu value={invoice.status} statuses={INVOICE_STATUSES} allowed={allowed} colors={INVOICE_STATUS_COLOR} onSelect={move} hint={invoice.status === 'Sent' && payments.length ? 'It becomes Paid when payments cover it. Remove its payments before voiding it.' : STATUS_HINT[invoice.status]} />
+        {stage !== invoice.status && <span className="text-xs font-medium" style={{ color: STAGE_COLOR[stage] }}>{stage}</span>}
         {!editable && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Lock size={12} /> Locked{invoice.status === 'Paid' ? ' · paid' : invoice.status === 'Sent' ? ' · sent to the customer' : ''}</span>
         )}
@@ -119,6 +129,7 @@ export default function InvoiceDetail() {
       <div className="detail">
         {view === 'lines' && (
           <div className="b-wrap">
+            {billed && <PaymentsCard m={m} canPay={invoice.status === 'Sent'} onPay={() => setPaying(true)} payments={payments} />}
             <div className="toolbar b-toolbar flex-wrap">
               <span className="text-sm text-muted-foreground">
                 Contract <b className="text-foreground tabular-nums">{money(t.value)}</b>
@@ -200,12 +211,32 @@ export default function InvoiceDetail() {
               </section>
             )}
 
+            {billed && <PaymentsCard m={m} canPay={invoice.status === 'Sent'} onPay={() => setPaying(true)} payments={payments} />}
             <History match={(a) => a.invoiceId === invoice.id} empty="No history recorded for this invoice yet." />
           </div>
         )}
       </div>
+      {paying && <PaymentForm invoice={invoice} onClose={() => setPaying(false)} />}
       {createPortal(<div className="print-only"><InvoiceDocument invoice={invoice} db={db} L={L} /></div>, document.body)}
     </div>
+  );
+}
+
+/** What this invoice billed, what has come in against it, and the balance still due. */
+function PaymentsCard({ m, payments, canPay, onPay }: { m: { amount: number; paid: number; balance: number }; payments: ReturnType<typeof invoicePayments>; canPay: boolean; onPay: () => void }) {
+  return (
+    <section className="card mb-4">
+      <div className="card-head">
+        <h2>Payments</h2>
+        <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className="text-muted-foreground">Invoice <b className="text-foreground tabular-nums">{fmt(m.amount)}</b></span>
+          <span className="text-muted-foreground">Paid <b className="text-foreground tabular-nums">{fmt(m.paid)}</b></span>
+          <span className={m.balance > 0 ? '' : 'text-muted-foreground'}>{m.balance < 0 ? 'Credit' : 'Balance due'} <b className="tabular-nums">{fmt(Math.abs(m.balance))}</b></span>
+          {canPay && <button type="button" className="btn btn-sm" onClick={onPay}><Banknote size={14} /> Record payment</button>}
+        </span>
+      </div>
+      <PaymentsTable payments={payments} empty="Nothing received yet." />
+    </section>
   );
 }
 

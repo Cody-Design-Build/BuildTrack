@@ -168,7 +168,7 @@ export interface LegacyBudgetItem {
 
 type LegacyDoc = Omit<Doc, 'kind' | 'status'> & { kind: string; status: string };
 
-export type PreBudgetDb = Omit<Db, 'costCodes' | 'budgets' | 'budgetLines' | 'expenses' | 'invoices' | 'docs'> & {
+export type PreBudgetDb = Omit<Db, 'costCodes' | 'budgets' | 'budgetLines' | 'expenses' | 'invoices' | 'payments' | 'docs'> & {
   items?: LegacyBudgetItem[];
   docs: LegacyDoc[];
 };
@@ -291,5 +291,6 @@ export function migrateBudgets(old: PreBudgetDb, now = new Date(Date.now() - new
     budgetLines,
     expenses,
     invoices: [],
+    payments: [],
   };
 }

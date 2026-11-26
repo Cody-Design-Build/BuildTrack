@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { seed, sampleBilling, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
 import { pruneFiles } from './files';
+import { invoiceTotals } from './invoices';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
 export const KEY = 'buildtrack-db-v6';
@@ -13,8 +14,27 @@ export function parseDb(raw: string): Db {
   const scheduled: unknown = migrateSchedule(isLegacy(parsed) ? migrateLegacy(parsed) : parsed);
   const db = isBudgetDb(scheduled) ? scheduled : migrateBudgets(scheduled as PreBudgetDb);
   if (!db.invoices) db.invoices = []; // saved before invoices existed
+  if (!db.payments) addPayments(db);
   if (!db.activity) db.activity = seed().activity;
   return db;
+}
+
+// Saved before payments were tracked. If the only invoices are the old samples, swap in the
+// fuller sample billing history; otherwise turn each paid invoice into one full payment.
+const OLD_SAMPLE_INVOICES = new Set(['inv-j12-1', 'inv-j12-2', 'inv-j12-3', 'inv-j8-1']);
+function addPayments(db: Db) {
+  db.payments = [];
+  if (db.invoices.every((i) => OLD_SAMPLE_INVOICES.has(i.id))) {
+    Object.assign(db, sampleBilling(db));
+    return;
+  }
+  for (const inv of db.invoices.filter((i) => i.status === 'Paid')) {
+    const date = (inv.statusDates?.Paid ?? inv.date).slice(0, 10);
+    db.payments.push({
+      id: uid('pay'), jobId: inv.jobId, invoiceId: inv.id, date, amount: invoiceTotals(db, inv).amount,
+      method: 'Other', reference: '', notes: 'Recorded before payments were tracked', created: `${date}T12:00:00`,
+    });
+  }
 }
 
 function load(): Db {

@@ -8,7 +8,11 @@
 // for that line. When an invoice is sent, that figure is frozen on it (billedFrom), so voiding
 // another invoice later never changes an invoice the customer already has; the voided amount
 // simply becomes billable again on the next draft.
-import type { Activity, Budget, BudgetLine, Db, Invoice, InvoiceStatus } from './data';
+//
+// Payments are separate records against one invoice. An invoice's balance is its amount minus
+// its payments; it turns Paid when the balance reaches zero and back to Sent if a payment is
+// removed. Paid is never set by hand.
+import type { Activity, Budget, BudgetLine, Db, Invoice, InvoiceStatus, Payment } from './data';
 import { linesByBudget, totals } from './budgets';
 import { linePrice, localIso, uid } from './store';
 
@@ -19,9 +23,10 @@ export const INVOICE_STATUS_COLOR: Record<InvoiceStatus, string> = {
   Void: '#6b7280',
 };
 
+/** Status changes made from the status menu. Paid isn't here: recording payments sets it. */
 export const INVOICE_NEXT: Record<InvoiceStatus, InvoiceStatus[]> = {
   Draft: ['Sent'],
-  Sent: ['Paid', 'Void'],
+  Sent: ['Void'],
   Paid: [],
   Void: [],
 };
@@ -121,16 +126,59 @@ export function weightedPct(rows: InvoiceRow[], pick: (r: InvoiceRow) => number)
   return Math.round((rows.reduce((s, r) => s + Math.abs(r.value) * pick(r), 0) / total) * 10) / 10;
 }
 
-/** The job's billing picture: contract, billed (sent + paid), paid, outstanding, drafts, left to bill. */
-export function jobBilling(db: Db, jobId: string) {
+/** Payments recorded against an invoice, oldest first. */
+export function invoicePayments(db: Db, invoiceId: string): Payment[] {
+  return db.payments.filter((p) => p.invoiceId === invoiceId).sort((a, b) => a.date.localeCompare(b.date) || a.created.localeCompare(b.created));
+}
+
+export const todayYmd = () => localIso().slice(0, 10);
+
+/** What an invoice bills, what has been paid on it, and what is still owed. */
+export function invoiceMoney(db: Db, inv: Invoice, byBudget = linesByBudget(db)) {
+  const amount = invoiceTotals(db, inv, byBudget).amount;
+  const paid = round2(invoicePayments(db, inv.id).reduce((s, p) => s + p.amount, 0));
+  const balance = inv.status === 'Sent' || inv.status === 'Paid' ? round2(amount - paid) : 0;
+  return { amount, paid, balance };
+}
+
+export type InvoiceStage = InvoiceStatus | 'Partially paid' | 'Overdue';
+export const STAGE_COLOR: Record<InvoiceStage, string> = { ...INVOICE_STATUS_COLOR, 'Partially paid': '#8b5cf6', Overdue: '#fb2c36' };
+
+/** The status to show: a sent invoice is Overdue past its due date, or Partially paid once money is in. */
+export function invoiceStage(db: Db, inv: Invoice, byBudget = linesByBudget(db), today = todayYmd()): InvoiceStage {
+  if (inv.status !== 'Sent') return inv.status;
+  if (inv.due && inv.due < today && invoiceMoney(db, inv, byBudget).balance > 0) return 'Overdue';
+  return invoicePayments(db, inv.id).length ? 'Partially paid' : 'Sent';
+}
+
+/**
+ * The job's billing picture. Contract is every approved budget. Billed counts sent and paid
+ * invoices; received is the payments on them; outstanding is billed minus received.
+ */
+export function jobBilling(db: Db, jobId: string, today = todayYmd()) {
   const byBudget = linesByBudget(db);
-  const contract = billableBudgets(db, jobId).reduce((s, b) => s + totals(byBudget.get(b.id) ?? []).price, 0);
+  const contract = round2(billableBudgets(db, jobId).reduce((s, b) => s + totals(byBudget.get(b.id) ?? []).price, 0));
   const invs = db.invoices.filter((i) => i.jobId === jobId);
-  const amt = (i: Invoice) => invoiceTotals(db, i, byBudget).amount;
-  const sum = (st: InvoiceStatus) => invs.filter((i) => i.status === st).reduce((s, i) => s + amt(i), 0);
-  const paid = sum('Paid');
-  const outstanding = sum('Sent');
-  return { contract, billed: paid + outstanding, paid, outstanding, drafts: sum('Draft'), left: contract - paid - outstanding };
+  let billed = 0, received = 0, overdue = 0, drafts = 0;
+  for (const i of invs) {
+    const m = invoiceMoney(db, i, byBudget);
+    if (i.status === 'Draft') drafts += m.amount;
+    if (i.status !== 'Sent' && i.status !== 'Paid') continue;
+    billed += m.amount;
+    received += m.paid;
+    if (i.status === 'Sent' && i.due && i.due < today) overdue += m.balance;
+  }
+  const payments = db.payments.filter((p) => p.jobId === jobId).sort((a, b) => b.date.localeCompare(a.date) || b.created.localeCompare(a.created));
+  return {
+    contract,
+    billed: round2(billed),
+    received: round2(received),
+    outstanding: round2(billed - received),
+    overdue: round2(overdue),
+    drafts: round2(drafts),
+    left: round2(contract - billed),
+    payments,
+  };
 }
 
 export function nextInvoiceNumber(db: Db, jobId: string) {
@@ -188,6 +236,7 @@ export function editInvoice(d: Db, id: string, fn: (inv: Invoice) => Partial<Inv
 export function setInvoiceStatus(d: Db, id: string, status: InvoiceStatus): Db {
   const src = d.invoices.find((x) => x.id === id);
   if (!src || !INVOICE_NEXT[src.status].includes(status)) return d;
+  if (status === 'Void' && d.payments.some((p) => p.invoiceId === id)) return d; // remove its payments first
   const t = localIso();
   const inv: Invoice = { ...src, status, updated: t, statusDates: { ...src.statusDates, [status]: t } };
   // sending freezes what had been billed before, so this invoice's amounts never change afterwards
@@ -200,4 +249,48 @@ export function deleteInvoice(d: Db, id: string): Db {
   const inv = d.invoices.find((x) => x.id === id);
   if (!inv || !isInvoiceEditable(inv)) return d;
   return { ...d, invoices: d.invoices.filter((x) => x.id !== id) };
+}
+
+function logPayment(d: Db, inv: Invoice, p: Payment, what: string): Activity {
+  const job = d.jobs.find((j) => j.id === inv.jobId);
+  return {
+    ...logInvoice(d, inv, what),
+    amount: Math.round(p.amount),
+    text: `${what}: ${p.method}${p.reference ? ` #${p.reference}` : ''}${job ? ` on ${job.name}` : ''}`,
+    color: INVOICE_STATUS_COLOR.Paid,
+  };
+}
+
+/** Moves an invoice between Sent and Paid to match its payments. */
+function settle(d: Db, invoiceId: string, paidOn: string): Db {
+  const inv = d.invoices.find((x) => x.id === invoiceId);
+  if (!inv || (inv.status !== 'Sent' && inv.status !== 'Paid')) return d;
+  const { balance } = invoiceMoney(d, inv);
+  const status: InvoiceStatus = balance <= 0.005 ? 'Paid' : 'Sent';
+  if (status === inv.status) return d;
+  const statusDates = { ...inv.statusDates };
+  if (status === 'Paid') statusDates.Paid = `${paidOn}T12:00:00`;
+  else delete statusDates.Paid;
+  const next: Invoice = { ...inv, status, statusDates, updated: localIso() };
+  const out = { ...d, invoices: d.invoices.map((x) => (x.id === invoiceId ? next : x)) };
+  return { ...out, activity: [...out.activity, logInvoice(out, next, status === 'Paid' ? 'Paid in full' : 'Reopened (payment removed)')] };
+}
+
+/** Records money received against a sent invoice; the invoice turns Paid when it's covered. */
+export function recordPayment(d: Db, p: Omit<Payment, 'id' | 'jobId' | 'created'> & { id?: string }): Db {
+  const inv = d.invoices.find((x) => x.id === p.invoiceId);
+  if (!inv || inv.status !== 'Sent' || !(p.amount > 0)) return d;
+  const payment: Payment = { ...p, id: p.id ?? uid('pay'), jobId: inv.jobId, amount: round2(p.amount), created: localIso() };
+  const out = { ...d, payments: [...d.payments, payment] };
+  return settle({ ...out, activity: [...out.activity, logPayment(out, inv, payment, 'Payment received')] }, inv.id, payment.date);
+}
+
+/** Removes a payment (e.g. a bounced check); a paid invoice goes back to Sent. */
+export function deletePayment(d: Db, paymentId: string): Db {
+  const p = d.payments.find((x) => x.id === paymentId);
+  if (!p) return d;
+  const inv = d.invoices.find((x) => x.id === p.invoiceId);
+  const out = { ...d, payments: d.payments.filter((x) => x.id !== paymentId) };
+  if (!inv) return out;
+  return settle({ ...out, activity: [...out.activity, logPayment(out, inv, p, 'Payment removed')] }, inv.id, p.date);
 }

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Maximize, RefreshCw, Plus, Settings, ArrowUpRight, FileText, Hammer, ChevronRight, Wrench, Receipt, Target, SquareCheck, type LucideIcon } from 'lucide-react';
 import { useLookups, useStore, money, sameDayLabel, timeLabel } from '../store';
 import { linesByBudget, totals } from '../budgets';
-import { invoiceLabel, invoiceTotals } from '../invoices';
+import { invoiceLabel, invoiceMoney } from '../invoices';
 import { QuickAdd } from '../components/QuickAdd';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -141,7 +141,7 @@ export default function Home() {
   const byBudget = linesByBudget(db);
   const openInvoices = [
     ...db.docs.filter((d) => d.kind === 'Invoice' && d.status === 'Open').map((d) => ({ id: d.id, partyId: d.partyId, label: `${d.kind} ${d.number}`, amount: d.amount, to: partyHref(d.partyId) })),
-    ...db.invoices.filter((i) => i.status === 'Sent').map((i) => ({ id: i.id, partyId: i.partyId, label: invoiceLabel(i), amount: invoiceTotals(db, i, byBudget).amount, to: `/invoices/${i.id}` })),
+    ...db.invoices.filter((i) => i.status === 'Sent').map((i) => ({ id: i.id, partyId: i.partyId, label: invoiceLabel(i), amount: invoiceMoney(db, i, byBudget).balance, to: `/invoices/${i.id}` })),
   ];
   const leads = db.jobs.filter((j) => ['Lead', 'Estimating', 'Negotiating'].includes(j.status));
   const custOrders = db.budgets.filter((b) => b.status === 'Sent').map((b) => ({ ...b, amount: totals(byBudget.get(b.id) ?? []).price }));

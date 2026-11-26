@@ -3,7 +3,7 @@
 import { Fragment } from 'react';
 import { COMPANY_LICENSE, type Db, type Invoice } from '../data';
 import { budgetLabel } from '../budgets';
-import { invoiceTotals, weightedPct, type InvoiceRow } from '../invoices';
+import { invoiceMoney, invoiceTotals, weightedPct, type InvoiceRow } from '../invoices';
 import { money, type Lookups } from '../store';
 
 const longDate = (ymd?: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '');
@@ -15,6 +15,7 @@ export function InvoiceDocument({ invoice, db, L }: { invoice: Invoice; db: Db; 
   const party = L.party.get(invoice.partyId);
   const partyAddress = party?.account?.address || party?.person?.address || '';
   const t = invoiceTotals(db, invoice);
+  const m = invoiceMoney(db, invoice);
   const stamp = invoice.status === 'Draft' ? 'Draft' : invoice.status === 'Void' ? 'Void' : invoice.status === 'Paid' ? 'Paid' : '';
 
   const Row = ({ label, sub, rows }: { label: string; sub?: string; rows: InvoiceRow[] }) => {
@@ -123,7 +124,9 @@ export function InvoiceDocument({ invoice, db, L }: { invoice: Invoice; db: Db; 
             <tr><th>Previously billed</th><td>{cents(t.previous)}</td></tr>
             <tr><th>Billed to date</th><td>{cents(t.toDate)}</td></tr>
             <tr><th>Balance to finish</th><td>{cents(t.remaining)}</td></tr>
-            <tr className="bd-grand"><th>{invoice.status === 'Paid' ? 'Amount paid' : 'Amount due'}</th><td>{cents(t.amount)}</td></tr>
+            <tr><th>This invoice</th><td>{cents(t.amount)}</td></tr>
+            {m.paid > 0 && <tr><th>Payments received</th><td>−{cents(m.paid)}</td></tr>}
+            <tr className="bd-grand"><th>{m.balance < 0 ? 'Credit' : 'Balance due'}</th><td>{cents(Math.abs(m.paid > 0 || invoice.status === 'Paid' ? m.balance : t.amount))}</td></tr>
           </tbody>
         </table>
       </section>
@@ -132,7 +135,7 @@ export function InvoiceDocument({ invoice, db, L }: { invoice: Invoice; db: Db; 
         <p className="bd-muted">
           {invoice.status === 'Paid'
             ? `Paid${invoice.statusDates?.Paid ? ` on ${longDate(invoice.statusDates.Paid)}` : ''}. Thank you.`
-            : `Please pay ${cents(t.amount)} by ${longDate(invoice.due)}. Make checks payable to ${db.companyName.replace(/\.$/, '')}.`}
+            : `Please pay ${cents(m.paid > 0 ? m.balance : t.amount)} by ${longDate(invoice.due)}. Make checks payable to ${db.companyName.replace(/\.$/, '')}.`}
         </p>
       </section>
       </div>

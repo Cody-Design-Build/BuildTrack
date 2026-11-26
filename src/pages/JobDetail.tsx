@@ -106,13 +106,15 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
 
       <section className="card">
         <div className="card-head">
-          <h2>Budgets</h2>
+          <h2>Budgets &amp; billing</h2>
           <button type="button" className="btn btn-sm" onClick={() => go('budget')}>Open budgets</button>
         </div>
         <div className="card-body info-list">
           <div className="j-row"><span>Approved ({r.approvedCount})</span><b>{money(r.contract.price)} <span className="muted">({pct(r.contract.price ? ((r.contract.price - r.contract.cost) / r.contract.price) * 100 : NaN)} margin)</span></b></div>
           <div className="j-row"><span>Awaiting approval</span><b>{money(r.pending.price)}</b></div>
-          <div className="j-row"><span>Billed to date</span><b>{money(billing.billed)} <span className="muted">({money(billing.outstanding)} outstanding)</span></b></div>
+          <div className="j-row"><span>Billed to date</span><b>{money(billing.billed)} <span className="muted">({pct(billing.contract ? (billing.billed / billing.contract) * 100 : NaN)} of contract)</span></b></div>
+          <div className="j-row"><span>Received</span><b>{money(billing.received)}</b></div>
+          <div className="j-row"><span>Outstanding</span><b className={billing.overdue > 0 ? 'text-destructive' : ''}>{money(billing.outstanding)}{billing.overdue > 0 && <span className="font-normal"> ({money(billing.overdue)} overdue)</span>}</b></div>
           <div className="j-row"><span>Spent so far</span><b>{money(r.spent)}</b></div>
         </div>
       </section>

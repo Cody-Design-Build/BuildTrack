@@ -232,6 +232,25 @@ export interface Invoice {
   statusDates?: Partial<Record<InvoiceStatus, string>>;
 }
 
+export const PAYMENT_METHODS = ['Check', 'ACH', 'Credit card', 'Cash', 'Wire', 'Other'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * Money received from the customer against one invoice. An invoice can take any number of
+ * payments; once they cover its amount it becomes Paid.
+ */
+export interface Payment {
+  id: string;
+  jobId: string;
+  invoiceId: string;
+  date: string; // yyyy-mm-dd, when the money came in
+  amount: number;
+  method: PaymentMethod;
+  reference: string; // check number, transaction id, …
+  notes: string;
+  created: string; // ISO datetime
+}
+
 /** Money spent on a job. Job costing is by cost code; linking a budget line is optional. */
 export interface Expense {
   id: string;
@@ -256,7 +275,7 @@ export interface Activity {
   text: string; // e.g. "Marked as approved by Sam Ortiz"
   color: string; // icon colour
   budgetId?: string; // set for budget events, so a budget can show its own history
-  invoiceId?: string; // likewise for invoices
+  invoiceId?: string; // likewise for invoices (payments too, under the invoice they paid)
 }
 
 export interface Db {
@@ -266,6 +285,7 @@ export interface Db {
   budgetLines: BudgetLine[];
   expenses: Expense[];
   invoices: Invoice[];
+  payments: Payment[];
   people: Person[];
   accounts: Account[];
   memberships: Membership[];
@@ -325,6 +345,44 @@ export function seed(): Db {
       { id: 'a6', date: '2026-11-24T21:31:00', partyId: 'v1', jobId: 'j12', title: 'Stoneworks Tile Co.', doc: 'Bid Request 133-85', amount: 0, text: 'Created by Kai Brooks for Harper Household at 2243 Lincoln Way', color: '#2b7fff' },
     ],
     items: [
+      bi('j6-1', 'j6', 'Demolition', 'Demo existing bathrooms', 'Labor', 40, 'hr', 65, 25, '', 2600),
+      bi('j6-2', 'j6', 'Plumbing', 'Rough & finish plumbing', 'Subcontractor', 1, 'lump', 14000, 15, '', 0),
+      bi('j6-3', 'j6', 'Tile', 'Tile install, two baths', 'Subcontractor', 1, 'lump', 15500, 15, 'v1', 0),
+      bi('j6-4', 'j6', 'Fixtures', 'Vanities, toilets & fixtures', 'Materials', 1, 'lump', 9800, 20, '', 0),
+      bi('j6-5', 'j6', 'Electrical', 'Lighting & fans', 'Subcontractor', 1, 'lump', 4200, 15, 'v4', 0),
+      bi('j6-6', 'j6', 'Painting', 'Paint both baths', 'Labor', 60, 'hr', 60, 25, '', 0),
+      bi('j6-7', 'j6', 'Project Management', 'Project management', 'Labor', 80, 'hr', 75, 20, '', 600),
+      bi('j7-1', 'j7', 'Foundation & Structure', 'Foundation & slab', 'Subcontractor', 1, 'lump', 38000, 15, '', 3800),
+      bi('j7-2', 'j7', 'Framing', 'Framing labor', 'Labor', 360, 'hr', 70, 25, '', 0),
+      bi('j7-3', 'j7', 'Framing', 'Lumber package', 'Materials', 1, 'lump', 22000, 20, '', 0),
+      bi('j7-4', 'j7', 'Roofing', 'Roof', 'Subcontractor', 1, 'lump', 18500, 15, '', 0),
+      bi('j7-5', 'j7', 'Electrical', 'Electrical', 'Subcontractor', 1, 'lump', 16000, 15, 'v4', 0),
+      bi('j7-6', 'j7', 'Plumbing', 'Plumbing', 'Subcontractor', 1, 'lump', 17500, 15, '', 0),
+      bi('j7-7', 'j7', 'HVAC', 'Mini-split heating & cooling', 'Subcontractor', 1, 'lump', 12000, 15, '', 0),
+      bi('j7-8', 'j7', 'Drywall', 'Drywall', 'Subcontractor', 1, 'lump', 11000, 15, '', 0),
+      bi('j7-9', 'j7', 'Cabinets & Finishes', 'Kitchenette & finishes', 'Materials', 1, 'lump', 14000, 20, '', 0),
+      bi('j7-10', 'j7', 'Project Management', 'Project management', 'Labor', 160, 'hr', 75, 20, '', 1800),
+      bi('j9-1', 'j9', 'Foundation & Structure', 'Foundation & slab', 'Subcontractor', 1, 'lump', 21000, 15, '', 21000),
+      bi('j9-2', 'j9', 'Framing', 'Framing labor', 'Labor', 200, 'hr', 70, 25, '', 9800),
+      bi('j9-3', 'j9', 'Framing', 'Lumber package', 'Materials', 1, 'lump', 12000, 20, '', 11400),
+      bi('j9-4', 'j9', 'Roofing', 'Roof', 'Subcontractor', 1, 'lump', 9500, 15, '', 4750),
+      bi('j9-5', 'j9', 'Electrical', 'Electrical', 'Subcontractor', 1, 'lump', 8800, 15, 'v4', 2200),
+      bi('j9-6', 'j9', 'Plumbing', 'Plumbing', 'Subcontractor', 1, 'lump', 9200, 15, '', 2300),
+      bi('j9-7', 'j9', 'Drywall', 'Drywall', 'Subcontractor', 1, 'lump', 6500, 15, '', 0),
+      bi('j9-8', 'j9', 'Project Management', 'Project management', 'Labor', 120, 'hr', 75, 20, '', 4000),
+      bi('j11-1', 'j11', 'Demolition', 'Demolition', 'Labor', 220, 'hr', 65, 25, '', 14300),
+      bi('j11-2', 'j11', 'Demolition', 'Dumpsters & haul-away', 'Other', 8, 'ea', 650, 15, '', 5200),
+      bi('j11-3', 'j11', 'Foundation & Structure', 'Foundation & structural work', 'Subcontractor', 1, 'lump', 62000, 15, '', 62000),
+      bi('j11-4', 'j11', 'Framing', 'Framing labor', 'Labor', 600, 'hr', 70, 25, '', 40000),
+      bi('j11-5', 'j11', 'Framing', 'Lumber package', 'Materials', 1, 'lump', 38000, 20, '', 38000),
+      bi('j11-6', 'j11', 'Electrical', 'Rough & finish electrical', 'Subcontractor', 1, 'lump', 46000, 15, 'v4', 32000),
+      bi('j11-7', 'j11', 'Plumbing', 'Rough & finish plumbing', 'Subcontractor', 1, 'lump', 52000, 15, '', 36000),
+      bi('j11-8', 'j11', 'HVAC', 'New heating & cooling', 'Subcontractor', 1, 'lump', 38000, 15, '', 30000),
+      bi('j11-9', 'j11', 'Roofing', 'Re-roof', 'Subcontractor', 1, 'lump', 34000, 15, '', 34000),
+      bi('j11-10', 'j11', 'Drywall', 'Drywall', 'Subcontractor', 1, 'lump', 24000, 15, '', 18000),
+      bi('j11-11', 'j11', 'Cabinets & Finishes', 'Cabinets & finish materials', 'Materials', 1, 'lump', 48000, 20, 'v2', 12000),
+      bi('j11-12', 'j11', 'Painting', 'Interior & exterior paint', 'Subcontractor', 1, 'lump', 22000, 15, '', 0),
+      bi('j11-13', 'j11', 'Project Management', 'Project management', 'Labor', 400, 'hr', 75, 20, '', 21000),
       bi('b1', 'j12', 'Demolition', 'Demo existing kitchen & bath', 'Labor', 48, 'hr', 65, 25, '', 3120),
       bi('b2', 'j12', 'Demolition', 'Dumpster & haul-away', 'Other', 3, 'ea', 650, 15, '', 1950),
       bi('b3', 'j12', 'Framing', 'Framing labor', 'Labor', 120, 'hr', 70, 25, '', 4900),
@@ -476,7 +534,6 @@ export function seed(): Db {
       { id: 'j12', name: '2243 Lincoln - Remodel', address: '2243 Lincoln Way', status: 'In Progress', total: 686933, projectedCost: 540000, start: '2026-10-10', end: '2027-05-14', progress: 25 },
     ],
     docs: [
-      { id: 'd1', jobId: 'j9', partyId: 'c3', kind: 'Invoice', number: '142-1', amount: 4500, status: 'Open' },
       { id: 'd3', jobId: 'j5', partyId: 'c10', kind: 'Proposal', number: '144-1', amount: 14837, status: 'Pending' },
       { id: 'd4', jobId: 'j12', partyId: 'v2', kind: 'Subcontractor Agreement', number: '133-69', amount: 33000, status: 'Pending' },
       { id: 'd5', jobId: 'j12', partyId: 'v2', kind: 'Subcontractor Agreement', number: '133-68', amount: 17000, status: 'Pending' },
@@ -501,23 +558,97 @@ export function seed(): Db {
       { id: 'k6', jobId: 'j8', name: 'Fixtures', start: '2026-12-07', end: '2026-12-18', crewIds: ['u2'], progress: 0 },
     ],
   };
-  return withSampleInvoices(withSampleBudgets(migrateBudgets(raw, '2026-11-20T10:00:00')));
+  const db = withSampleBudgets(migrateBudgets(raw, '2026-11-20T10:00:00'));
+  return { ...db, ...sampleBilling(db) };
 }
 
-/** Sample progress invoices: a paid deposit, a sent progress bill and an empty draft. */
-function withSampleInvoices(db: Db): Db {
-  const linesOf = (budgetId: string) => db.budgetLines.filter((l) => l.budgetId === budgetId);
-  const pct = (budgetId: string, f: (l: BudgetLine) => number) => Object.fromEntries(linesOf(budgetId).map((l) => [l.id, f(l)]));
-  const inv = (p: Omit<Invoice, 'title' | 'notes' | 'detail' | 'updated'> & Partial<Invoice>): Invoice => ({ title: '', notes: '', detail: 'lines', updated: p.created, ...p });
-  // progress on 2243 Lincoln by mid-November: demo done, framing mostly done, PM a quarter
-  const lincoln = (l: BudgetLine) => ({ Demolition: 100, Framing: 60, 'Project Management': 25, Credits: 100 } as Record<string, number>)[l.group] ?? 10;
-  const invoices: Invoice[] = [
-    inv({ id: 'inv-j12-1', jobId: 'j12', number: '12-1', title: 'Deposit', status: 'Paid', partyId: 'c1', date: '2026-10-12', due: '2026-10-26', budgetIds: ['bud-j12'], progress: pct('bud-j12', () => 10), billedFrom: {}, created: '2026-10-12T09:00:00', statusDates: { Sent: '2026-10-12T09:30:00', Paid: '2026-10-20T15:00:00' }, detail: 'groups', notes: '10% deposit on the construction contract.' }),
-    inv({ id: 'inv-j12-2', jobId: 'j12', number: '12-2', title: 'Progress billing — November', status: 'Sent', partyId: 'c1', date: '2026-11-15', due: '2026-11-29', budgetIds: ['bud-j12', 'co-j12-1'], progress: { ...pct('bud-j12', lincoln), ...pct('co-j12-1', () => 50) }, billedFrom: pct('bud-j12', () => 10), created: '2026-11-15T09:00:00', statusDates: { Sent: '2026-11-15T10:00:00' } }),
-    inv({ id: 'inv-j12-3', jobId: 'j12', number: '12-3', status: 'Draft', partyId: 'c1', date: '2026-11-26', due: '2026-12-10', budgetIds: ['bud-j12', 'co-j12-1'], progress: {}, created: '2026-11-26T08:00:00' }),
-    inv({ id: 'inv-j8-1', jobId: 'j8', number: '8-1', title: 'Progress billing', status: 'Paid', partyId: 'c6', date: '2026-11-02', due: '2026-11-16', budgetIds: ['d9'], progress: pct('d9', (l) => (l.group === 'Demolition' ? 100 : 50)), billedFrom: {}, created: '2026-11-02T09:00:00', statusDates: { Sent: '2026-11-02T09:00:00', Paid: '2026-11-09T11:00:00' } }),
-  ];
-  return { ...db, invoices };
+type SampleStep = {
+  n: number;
+  date: string;
+  title?: string;
+  notes?: string;
+  budgets: string[];
+  pct: (l: BudgetLine) => number; // percent complete to date
+  status: 'Draft' | 'Sent';
+  pays?: [date: string, method: PaymentMethod, reference: string, amount: number | 'rest'][];
+};
+
+/**
+ * Sample billing history: deposits, monthly progress bills, partial and overdue payments.
+ * Exported so saved data from before payments existed can be given the same samples.
+ * Jobs whose sample budgets aren't there (or aren't approved) are skipped.
+ */
+export function sampleBilling(db: Db): Pick<Db, 'invoices' | 'payments'> {
+  const approved = (id: string) => db.budgets.some((b) => b.id === id && b.status === 'Approved');
+  const price = (l: BudgetLine) => l.quantity * l.unitCost * (1 + l.markup / 100);
+  const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const invoices: Invoice[] = [];
+  const payments: Payment[] = [];
+
+  const job = (jobId: string, partyId: string, steps: SampleStep[]) => {
+    if (!steps.every((st) => st.budgets.every(approved))) return;
+    let billed: Record<string, number> = {}; // percent billed so far, by line
+    for (const st of steps) {
+      const lines = db.budgetLines.filter((l) => st.budgets.includes(l.budgetId));
+      const progress = Object.fromEntries(lines.map((l) => [l.id, st.pct(l)]));
+      const amount = r2(lines.reduce((s, l) => s + (price(l) * ((progress[l.id] ?? 0) - (billed[l.id] ?? 0))) / 100, 0));
+      const id = `inv-${jobId}-${st.n}`;
+      let paid = 0;
+      for (const [i, [date, method, reference, amt]] of (st.pays ?? []).entries()) {
+        const a = amt === 'rest' ? r2(amount - paid) : amt;
+        paid = r2(paid + a);
+        payments.push({ id: `pay-${jobId}-${st.n}-${i + 1}`, jobId, invoiceId: id, date, amount: a, method, reference, notes: '', created: `${date}T12:00:00` });
+      }
+      const sent = st.status === 'Sent';
+      const isPaid = sent && paid >= amount - 0.005;
+      const lastPay = st.pays?.[st.pays.length - 1]?.[0];
+      invoices.push({
+        id, jobId, number: `${jobId.replace(/\D/g, '')}-${st.n}`, title: st.title ?? '', notes: st.notes ?? '',
+        status: isPaid ? 'Paid' : st.status, partyId, date: st.date, due: addDays(st.date, 14),
+        budgetIds: st.budgets, progress, billedFrom: sent ? { ...billed } : undefined, detail: st.n === 1 ? 'groups' : 'lines',
+        created: `${st.date}T09:00:00`, updated: `${lastPay ?? st.date}T12:00:00`,
+        statusDates: sent ? { Sent: `${st.date}T10:00:00`, ...(isPaid && lastPay ? { Paid: `${lastPay}T12:00:00` } : {}) } : undefined,
+      });
+      if (sent) billed = { ...billed, ...progress };
+    }
+  };
+  const flat = (n: number) => () => n;
+  const deposit = '10% deposit on the construction contract.';
+
+  // 2243 Lincoln: deposit paid; November bill partly paid; December draft in progress
+  const lincolnNov = (l: BudgetLine) => (l.budgetId !== 'bud-j12' ? 50 : ({ Demolition: 100, Framing: 60, 'Project Management': 25, Credits: 100 } as Record<string, number>)[l.group] ?? 10);
+  const lincolnDec = (l: BudgetLine) => (l.budgetId !== 'bud-j12' ? 100 : ({ Demolition: 100, Framing: 90, Electrical: 30, Plumbing: 30, 'Project Management': 35, Credits: 100 } as Record<string, number>)[l.group] ?? 10);
+  job('j12', 'c1', [
+    { n: 1, date: '2026-10-12', title: 'Deposit', notes: deposit, budgets: ['bud-j12'], pct: flat(10), status: 'Sent', pays: [['2026-10-20', 'Check', '1042', 'rest']] },
+    { n: 2, date: '2026-11-15', title: 'Progress billing — November', budgets: ['bud-j12', 'co-j12-1'], pct: lincolnNov, status: 'Sent', pays: [['2026-11-24', 'ACH', 'HX-55120', 15000]] },
+    { n: 3, date: '2026-11-26', title: 'Progress billing — December', budgets: ['bud-j12', 'co-j12-1'], pct: lincolnDec, status: 'Draft' },
+  ]);
+  // 538 Market: first bill paid, second sent and not yet due
+  job('j8', 'c6', [
+    { n: 1, date: '2026-11-02', title: 'Progress billing — demo & rough-in', budgets: ['d9'], pct: (l) => (l.group === 'Demolition' ? 100 : 50), status: 'Sent', pays: [['2026-11-09', 'Check', '3310', 'rest']] },
+    { n: 2, date: '2026-11-20', title: 'Progress billing — tile', budgets: ['d9'], pct: (l) => (l.group === 'Demolition' ? 100 : 75), status: 'Sent' },
+  ]);
+  // 2200 Mesa ADU: two paid, the third overdue with a partial payment
+  job('j9', 'c3', [
+    { n: 1, date: '2026-09-14', title: 'Deposit', notes: deposit, budgets: ['bud-j9'], pct: flat(10), status: 'Sent', pays: [['2026-09-18', 'Check', '2207', 'rest']] },
+    { n: 2, date: '2026-10-15', title: 'Progress billing — October', budgets: ['bud-j9'], pct: flat(30), status: 'Sent', pays: [['2026-10-28', 'ACH', 'NG-88231', 'rest']] },
+    { n: 3, date: '2026-11-01', title: 'Progress billing — November', budgets: ['bud-j9'], pct: flat(45), status: 'Sent', pays: [['2026-11-20', 'Check', '2231', 5000]] },
+  ]);
+  // 1448 Elm: a long-running job billed monthly, latest bill just sent
+  job('j11', 'c5', [
+    { n: 1, date: '2026-06-01', title: 'Deposit', notes: deposit, budgets: ['bud-j11'], pct: flat(10), status: 'Sent', pays: [['2026-06-05', 'Wire', 'FW-40021', 'rest']] },
+    { n: 2, date: '2026-07-31', title: 'Progress billing — July', budgets: ['bud-j11'], pct: flat(30), status: 'Sent', pays: [['2026-08-12', 'ACH', 'EL-10834', 'rest']] },
+    { n: 3, date: '2026-09-30', title: 'Progress billing — September', budgets: ['bud-j11'], pct: flat(50), status: 'Sent', pays: [['2026-10-10', 'ACH', 'EL-11290', 50000], ['2026-10-24', 'ACH', 'EL-11402', 'rest']] },
+    { n: 4, date: '2026-10-31', title: 'Progress billing — October', budgets: ['bud-j11'], pct: flat(65), status: 'Sent', pays: [['2026-11-12', 'ACH', 'EL-11877', 'rest']] },
+    { n: 5, date: '2026-11-25', title: 'Progress billing — November', budgets: ['bud-j11'], pct: flat(70), status: 'Sent' },
+  ]);
+  // 87th St. ADU: deposit sent and overdue
+  job('j7', 'c4', [{ n: 1, date: '2026-11-03', title: 'Deposit', notes: deposit, budgets: ['bud-j7'], pct: flat(10), status: 'Sent' }]);
+  // Oak Avenue Bathrooms: deposit paid by card
+  job('j6', 'c2', [{ n: 1, date: '2026-11-20', title: 'Deposit', notes: deposit, budgets: ['bud-j6'], pct: flat(10), status: 'Sent', pays: [['2026-11-24', 'Credit card', 'Visa ••4417', 'rest']] }]);
+
+  return { invoices, payments };
 }
 
 /** Extra sample budgets: change orders, a credit line, and two alternate proposals. */
