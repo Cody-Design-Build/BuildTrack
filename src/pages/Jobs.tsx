@@ -1,61 +1,98 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, ChevronDown, ChevronRight, ArrowRight, Settings, Search } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, ArrowRight, Search, User, MapPin, Columns3, List, Eye, EyeOff } from 'lucide-react';
 import { PageHeader } from '../components/Layout';
 import { JobForm } from '../components/Forms';
 import { useLookups, useStore, money } from '../store';
 import { JOB_STATUSES, type Job, type JobStatus } from '../data';
 import JobDetail from './JobDetail';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-function JobCard({ job, color, onOpen }: { job: Job; color: string; onOpen: () => void }) {
+export function StatusDot({ status, className }: { status: JobStatus; className?: string }) {
+  return <span className={cn('size-2 shrink-0 rounded-full', className)} style={{ background: JOB_STATUSES.find((s) => s.name === status)?.color }} />;
+}
+
+function JobCard({ job, onOpen }: { job: Job; onOpen: () => void }) {
   const L = useLookups();
   const { update } = useStore();
   const [open, setOpen] = useState(false);
-  const account = L.account.get(job.accountId);
-  const loc = L.location.get(job.locationId);
+  const customer = L.customers(job.id)[0];
   return (
     <div
-      className="job-card"
-      style={{ borderLeftColor: color }}
+      className="group/card shrink-0 cursor-grab rounded-lg border bg-card p-3 shadow-xs transition-shadow hover:shadow-md active:cursor-grabbing"
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', job.id)}
     >
-      <div className="jc-head">
-        <button type="button" className="jc-toggle" aria-label="Details" onClick={() => setOpen((o) => !o)}>
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-        <button type="button" className="jc-title" onClick={onOpen}>
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 text-left text-sm font-semibold leading-snug text-foreground outline-none hover:text-primary focus-visible:text-primary"
+        >
           {job.name}
         </button>
-        <button type="button" className="jc-go" aria-label="Open job" onClick={onOpen}>
-          <ArrowRight size={14} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-mr-1 -mt-1 size-7 text-muted-foreground"
+          aria-label={open ? 'Hide details' : 'Show details'}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <ChevronDown className={cn('transition-transform', open && 'rotate-180')} />
+        </Button>
+      </div>
+      <div className="mt-2 space-y-1 text-[13px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <User className="size-3.5 shrink-0" />
+          {customer ? (
+            <Link to={customer.href} className="truncate hover:text-foreground hover:underline hover:underline-offset-2">
+              {customer.name}
+            </Link>
+          ) : (
+            <span>—</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <MapPin className="size-3.5 shrink-0" />
+          <span className="truncate">{job.address || '—'}</span>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-sm font-semibold tabular-nums text-foreground">
+          {job.total ? money(job.total) : <span className="font-normal text-muted-foreground">No total yet</span>}
+        </span>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity hover:text-primary focus-visible:opacity-100 group-hover/card:opacity-100"
+        >
+          Open <ArrowRight className="size-3" />
         </button>
       </div>
-      <div className="jc-field">
-        <div className="jc-label">Customer: Name</div>
-        {account ? <Link to={`/customers?id=${account.id}`} className="jc-value plain">{account.name}</Link> : <div className="jc-value">—</div>}
-      </div>
-      <div className="jc-field">
-        <div className="jc-label">Location: Name</div>
-        <div className="jc-value">{loc?.name ?? '—'}</div>
-      </div>
       {open && (
-        <>
-          <div className="jc-field">
-            <div className="jc-label">Contract Total</div>
-            <div className="jc-value">{job.total ? money(job.total) : '—'}</div>
-          </div>
-          <div className="jc-field">
-            <div className="jc-label">Status</div>
-            <select
-              className="jc-select"
-              value={job.status}
-              onChange={(e) => update((d) => ({ ...d, jobs: d.jobs.map((j) => (j.id === job.id ? { ...j, status: e.target.value as JobStatus } : j)) }))}
-            >
-              {JOB_STATUSES.map((s) => <option key={s.name}>{s.name}</option>)}
-            </select>
-          </div>
-        </>
+        <div className="mt-3 border-t pt-3">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Status</div>
+          <Select
+            value={job.status}
+            onValueChange={(v) => update((d) => ({ ...d, jobs: d.jobs.map((j) => (j.id === job.id ? { ...j, status: v as JobStatus } : j)) }))}
+          >
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JOB_STATUSES.map((st) => (
+                <SelectItem key={st.name} value={st.name}>
+                  <StatusDot status={st.name} /> {st.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
     </div>
   );
@@ -67,7 +104,6 @@ export default function Jobs() {
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState(params.get('q') ?? '');
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
-  const [viewMenu, setViewMenu] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<Job | null>(null);
@@ -85,7 +121,7 @@ export default function Jobs() {
   const needle = q.trim().toLowerCase();
   const jobs = db.jobs.filter((j) => {
     if (!needle) return true;
-    const hay = [j.name, L.account.get(j.accountId)?.name, L.location.get(j.locationId)?.name].join(' ').toLowerCase();
+    const hay = [j.name, j.address, ...L.customers(j.id).map((c) => c.name)].join(' ').toLowerCase();
     return hay.includes(needle);
   });
   const move = (id: string, status: JobStatus) => update((d) => ({ ...d, jobs: d.jobs.map((j) => (j.id === id ? { ...j, status } : j)) }));
@@ -99,35 +135,31 @@ export default function Jobs() {
       <PageHeader
         title="Jobs"
         actions={
-          <button type="button" className="btn" onClick={() => setCreating('Lead')}>
-            <Plus size={14} /> Job
-          </button>
+          <Button onClick={() => setCreating('Lead')}>
+            <Plus /> New job
+          </Button>
         }
       />
-      <div className="toolbar jobs-toolbar">
-        <div className="tb-row">
-          <div className="menu-wrap grow-phone">
-            <button type="button" className="btn view-btn" onClick={() => setViewMenu((v) => !v)}>
-              {view === 'kanban' ? 'Kanban by Status' : 'List of Jobs'} <ChevronDown size={14} />
-            </button>
-            {viewMenu && (
-              <div className="dropdown">
-                <button type="button" className={view === 'kanban' ? 'on' : ''} onClick={() => { setView('kanban'); setViewMenu(false); }}>Kanban by Status</button>
-                <button type="button" className={view === 'list' ? 'on' : ''} onClick={() => { setView('list'); setViewMenu(false); }}>List of Jobs</button>
-              </div>
-            )}
-          </div>
-          <button type="button" className={'btn icon-only' + (hideEmpty ? ' pressed' : '')} title={hideEmpty ? 'Show all statuses' : 'Hide empty statuses'} aria-label="Column settings" onClick={() => setHideEmpty((h) => !h)}>
-            <Settings size={14} />
-          </button>
-          <button type="button" className="btn icon-only sparkle-btn" title="New job" aria-label="New job" onClick={() => setCreating('Lead')}>
-            <Plus size={14} />
-          </button>
+      <div className="flex flex-col gap-2 px-4 pb-4 sm:flex-row sm:items-center sm:px-6">
+        <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
+          <TabsList>
+            <TabsTrigger value="kanban">
+              <Columns3 /> Board
+            </TabsTrigger>
+            <TabsTrigger value="list">
+              <List /> List
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs" className="bg-card pl-8" aria-label="Search jobs" />
         </div>
-        <label className="search-box">
-          <Search size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Jobs" />
-        </label>
+        {view === 'kanban' && (
+          <Button variant="outline" className={cn('sm:ml-auto', hideEmpty && 'bg-muted')} aria-pressed={hideEmpty} onClick={() => setHideEmpty((h) => !h)}>
+            {hideEmpty ? <Eye /> : <EyeOff />} {hideEmpty ? 'Show empty' : 'Hide empty'}
+          </Button>
+        )}
       </div>
 
       {view === 'kanban' ? (
@@ -135,25 +167,40 @@ export default function Jobs() {
           {columns.map((s) => {
             const list = jobs.filter((j) => j.status === s.name);
             const isCollapsed = collapsed[s.name];
+            const value = list.reduce((a, j) => a + j.total, 0);
             return (
               <div
                 key={s.name}
                 className={'k-col' + (over === s.name ? ' over' : '') + (isCollapsed ? ' collapsed' : '')}
-                onDragOver={(e) => { e.preventDefault(); setOver(s.name); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setOver(s.name);
+                }}
                 onDragLeave={() => setOver('')}
-                onDrop={(e) => { e.preventDefault(); setOver(''); move(e.dataTransfer.getData('text/plain'), s.name); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setOver('');
+                  move(e.dataTransfer.getData('text/plain'), s.name);
+                }}
               >
-                <div className="k-head" style={{ borderBottomColor: s.color, color: s.color }}>
-                  <button type="button" className="k-toggle" aria-label="Collapse column" onClick={() => setCollapsed((c) => ({ ...c, [s.name]: !c[s.name] }))}>
-                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronRight size={14} />}
+                <div className="k-head">
+                  <button
+                    type="button"
+                    className="k-toggle"
+                    aria-label={isCollapsed ? 'Expand column' : 'Collapse column'}
+                    onClick={() => setCollapsed((c) => ({ ...c, [s.name]: !c[s.name] }))}
+                  >
+                    <ChevronRight size={14} className={cn('transition-transform', !isCollapsed && 'rotate-90')} />
                   </button>
-                  <span className="k-title">{s.name}</span>
+                  <StatusDot status={s.name} />
+                  <span className="k-title truncate">{s.name}</span>
+                  {value > 0 && <span className="text-xs font-normal tabular-nums text-muted-foreground">{money(value)}</span>}
                   <span className="k-count">{list.length}</span>
                 </div>
                 {!isCollapsed && (
                   <div className="k-body">
                     {list.map((j) => (
-                      <JobCard key={j.id} job={j} color={s.color} onOpen={() => openJob(j)} />
+                      <JobCard key={j.id} job={j} onOpen={() => openJob(j)} />
                     ))}
                     {list.length === 0 && <div className="k-empty">Drop jobs here</div>}
                   </div>
@@ -163,13 +210,13 @@ export default function Jobs() {
           })}
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="grid-table">
+        <div className="table-wrap mx-4 mb-4 rounded-xl border bg-card sm:mx-6">
+          <table className="grid-table w-full">
             <thead>
               <tr>
                 <th>Job</th>
                 <th>Customer</th>
-                <th>Location</th>
+                <th>Address</th>
                 <th>Status</th>
                 <th className="num">Total</th>
               </tr>
@@ -177,11 +224,15 @@ export default function Jobs() {
             <tbody>
               {jobs.map((j) => (
                 <tr key={j.id} onClick={() => openJob(j)} className="clickable">
-                  <td>{j.name}</td>
-                  <td className="cyan">{L.account.get(j.accountId)?.name}</td>
-                  <td>{L.location.get(j.locationId)?.name}</td>
-                  <td><span className="status-dot" style={{ background: JOB_STATUSES.find((s) => s.name === j.status)?.color }} /> {j.status}</td>
-                  <td className="num">{j.total ? money(j.total) : ''}</td>
+                  <td className="font-medium text-foreground">{j.name}</td>
+                  <td className="text-muted-foreground">{L.customerName(j.id)}</td>
+                  <td className="text-muted-foreground">{j.address}</td>
+                  <td>
+                    <Badge variant="outline" className="font-medium">
+                      <StatusDot status={j.status} className="size-1.5" /> {j.status}
+                    </Badge>
+                  </td>
+                  <td className="num tabular-nums">{j.total ? money(j.total) : ''}</td>
                 </tr>
               ))}
             </tbody>

@@ -65,7 +65,7 @@ export default function Schedule() {
   const [creating, setCreating] = useState(false);
 
   const needle = q.trim().toLowerCase();
-  const jobs = db.jobs.filter((j) => db.tasks.some((t) => t.jobId === j.id) && (!needle || j.name.toLowerCase().includes(needle) || (L.account.get(j.accountId)?.name ?? '').toLowerCase().includes(needle)));
+  const jobs = db.jobs.filter((j) => db.tasks.some((t) => t.jobId === j.id) && (!needle || j.name.toLowerCase().includes(needle) || L.customerName(j.id).toLowerCase().includes(needle)));
 
   const span = useMemo(() => {
     const ts = db.tasks.filter((t) => jobs.some((j) => j.id === t.jobId));
@@ -173,7 +173,6 @@ export default function Schedule() {
           {jobs.map((j) => {
             const ts = jobTasks(j.id);
             const isOpen = open[j.id];
-            const loc = L.location.get(j.locationId);
             return (
               <div key={j.id}>
                 <div className="g-row g-job">
@@ -185,7 +184,7 @@ export default function Schedule() {
                   </button>
                   <span className="g-name">
                     <b>{j.name}</b>
-                    <span className="g-sub">{L.account.get(j.accountId)?.name} / {loc?.address}</span>
+                    <span className="g-sub">{[L.customerName(j.id), j.address].filter(Boolean).join(' / ')}</span>
                   </span>
                   <span className="g-tools">
                     <button type="button" title="Open job" aria-label="Open job" onClick={() => go(`/jobs?job=${j.id}`)}><Link2 size={12} /></button>

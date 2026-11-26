@@ -1,17 +1,25 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, type Db, type Account, type Contact, AVATAR_COLORS } from './data';
+import { seed, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { isLegacy, migrateLegacy } from './migrate';
 
-export const KEY = 'buildtrack-db-v3';
+export const KEY = 'buildtrack-db-v4';
+/** Where the old account/contact model was saved. Left untouched as a fallback after migrating. */
+const LEGACY_KEY = 'buildtrack-db-v3';
+
+/** Parses saved data or a backup file, converting the old account/contact model if needed. */
+export function parseDb(raw: string): Db {
+  const parsed = JSON.parse(raw) as Db & { messages?: unknown };
+  delete parsed.messages; // Drop legacy messages from browser saves and restored backups.
+  const db = isLegacy(parsed) ? migrateLegacy(parsed) : parsed;
+  if (!db.items) db.items = seed().items; // data saved before budgets existed
+  if (!db.activity) db.activity = seed().activity;
+  return db;
+}
 
 function load(): Db {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const db = JSON.parse(raw) as Db;
-      if (!db.items) db.items = seed().items; // data saved before budgets existed
-      if (!db.activity) db.activity = seed().activity;
-      return db;
-    }
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
+    if (raw) return parseDb(raw);
   } catch {
     /* ignore */
   }
@@ -67,7 +75,7 @@ export const uid = (p: string) => p + Math.random().toString(36).slice(2, 9);
 export const money = (n: number, cents = false) =>
   (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
 
-export const contactName = (c?: Contact) => (c ? `${c.firstName} ${c.lastName}`.trim() : '');
+export const personName = (p?: Pick<Person, 'firstName' | 'lastName'>) => (p ? `${p.firstName} ${p.lastName}`.trim() : '');
 
 export const initials = (name: string) => {
   const words = name.replace(/[^A-Za-z& ]/g, ' ').split(/\s+/).filter(Boolean);
@@ -82,16 +90,62 @@ export const colorFor = (s: string) => {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 };
 
-export function useLookups() {
+/** A person or an account, seen the same way wherever either can appear (job links, documents, to-dos). */
+export interface Party {
+  id: string;
+  kind: 'person' | 'account';
+  name: string;
+  color: string;
+  href: string;
+  person?: Person;
+  account?: Account;
+}
+
+export const partyHref = (kind: Party['kind'], id: string) => (kind === 'person' ? `/people?id=${id}` : `/accounts?id=${id}`);
+
+export function buildLookups(db: Db) {
+  const person = new Map(db.people.map((p) => [p.id, p] as const));
+  const account = new Map(db.accounts.map((a) => [a.id, a] as const));
+  const job = new Map(db.jobs.map((j) => [j.id, j] as const));
+  const team = new Map(db.team.map((t) => [t.id, t] as const));
+  const party = new Map<string, Party>();
+  for (const p of db.people) {
+    const name = personName(p);
+    party.set(p.id, { id: p.id, kind: 'person', name, color: p.color ?? colorFor(name), href: partyHref('person', p.id), person: p });
+  }
+  for (const a of db.accounts) party.set(a.id, { id: a.id, kind: 'account', name: a.name, color: a.color, href: partyHref('account', a.id), account: a });
+
+  const linksByJob = new Map<string, JobLink[]>();
+  const linksByParty = new Map<string, JobLink[]>();
+  for (const l of db.jobLinks) {
+    linksByJob.set(l.jobId, [...(linksByJob.get(l.jobId) ?? []), l]);
+    linksByParty.set(l.partyId, [...(linksByParty.get(l.partyId) ?? []), l]);
+  }
+  const membersOf = new Map<string, Membership[]>();
+  const accountsOf = new Map<string, Membership[]>();
+  for (const m of db.memberships) {
+    membersOf.set(m.accountId, [...(membersOf.get(m.accountId) ?? []), m]);
+    accountsOf.set(m.personId, [...(accountsOf.get(m.personId) ?? []), m]);
+  }
+
+  /** The job's customers: accounts first, then people, so a household or company reads as the customer. */
+  const customers = (jobId: string) =>
+    (linksByJob.get(jobId) ?? [])
+      .filter((l) => l.role === 'Customer')
+      .map((l) => party.get(l.partyId))
+      .filter((p): p is Party => !!p)
+      .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'account' ? -1 : 1));
+  /** One name to show for a job's customer, e.g. "Harper Household" or "Maya Harper". */
+  const customerName = (jobId: string) => customers(jobId)[0]?.name ?? '';
+
+  return { person, account, job, team, party, linksByJob, linksByParty, membersOf, accountsOf, customers, customerName };
+}
+
+export type Lookups = ReturnType<typeof buildLookups>;
+
+export function useLookups(): Lookups {
   const { db } = useStore();
-  return useMemo(() => {
-    const account = new Map(db.accounts.map((a) => [a.id, a] as const));
-    const contact = new Map(db.contacts.map((c) => [c.id, c] as const));
-    const job = new Map(db.jobs.map((j) => [j.id, j] as const));
-    const location = new Map(db.locations.map((l) => [l.id, l] as const));
-    const team = new Map(db.team.map((t) => [t.id, t] as const));
-    return { account, contact, job, location, team };
-  }, [db]);
+  return useMemo(() => buildLookups(db), [db]);
 }
 
 export function sameDayLabel(iso: string, now = new Date('2026-11-26T09:00:00')) {
@@ -105,7 +159,7 @@ export function sameDayLabel(iso: string, now = new Date('2026-11-26T09:00:00'))
 export const timeLabel = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-export type { Account, Contact };
+export type { Account, Person, Membership, JobLink };
 
 /** Cost and price of one budget line. */
 export const lineCost = (i: { quantity: number; unitCost: number }) => i.quantity * i.unitCost;

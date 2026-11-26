@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, Plus, Trash2, FileText, FolderPlus, Upload, Phone, Mail, MapPin, Calendar, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Trash2, FileText, FolderPlus, Upload, MapPin, Calendar } from 'lucide-react';
 import { PageHeader, Modal } from '../components/Layout';
-import { JobForm, TodoForm, Field } from '../components/Forms';
-import { ThreadCard } from '../components/Thread';
+import { JobForm, JobLinkForm, TodoForm, Field } from '../components/Forms';
+import { PartyLink, RoleBadge } from '../components/Party';
+import { Button } from '@/components/ui/button';
 import { TaskForm } from './Schedule';
 import { downloadCsv } from './Todos';
-import { useLookups, useStore, money, uid, contactName, lineCost, linePrice } from '../store';
-import { COST_TYPES, JOB_STATUSES, type Activity, type Db, type BudgetItem, type CostType, type Doc, type Job, type JobStatus, type Task } from '../data';
+import { useLookups, useStore, money, uid, lineCost, linePrice } from '../store';
+import { COST_TYPES, JOB_STATUSES, type JobLink, type Activity, type Db, type BudgetItem, type CostType, type Doc, type Job, type JobStatus, type Task } from '../data';
 
-const TABS = ['overview', 'budget', 'schedule', 'to-dos', 'messages', 'documents'] as const;
+const TABS = ['overview', 'budget', 'schedule', 'to-dos', 'documents'] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   overview: 'Overview',
   budget: 'Budget & Estimate',
   schedule: 'Schedule',
   'to-dos': 'To-Dos',
-  messages: 'Messages',
   documents: 'Documents',
 };
 
@@ -24,15 +24,16 @@ const STATUS_COLOR: Record<Doc['status'], string> = { Draft: '#2b7fff', Pending:
 
 /** An activity-feed entry for a document change. */
 function logDoc(d: Db, doc: Doc, what: string): Activity {
-  const acct = d.accounts.find((a) => a.id === doc.accountId);
+  const p = d.people.find((x) => x.id === doc.partyId);
+  const who = p ? `${p.firstName} ${p.lastName}`.trim() : d.accounts.find((a) => a.id === doc.partyId)?.name ?? '';
   const job = d.jobs.find((j) => j.id === doc.jobId);
   const me = d.team[0]?.name ?? 'You';
   return {
     id: uid('a'),
     date: new Date().toISOString().slice(0, 19),
-    accountId: doc.accountId,
+    partyId: doc.partyId,
     jobId: doc.jobId,
-    title: acct?.name ?? '',
+    title: who,
     doc: `${doc.kind} ${doc.number}`,
     amount: doc.amount,
     text: `${what} by ${me}${job ? ` on ${job.name}` : ''}`,
@@ -124,7 +125,9 @@ function Budget({ job }: { job: Job }) {
   const L = useLookups();
   const items = db.items.filter((i) => i.jobId === job.id);
   const groups = [...new Set(items.map((i) => i.group))];
-  const vendors = db.accounts.filter((a) => a.type === 'vendor');
+  // trades first, then every other account
+  const isTrade = (types: string[]) => types.some((t) => ['Vendor', 'Subcontractor', 'Supplier'].includes(t));
+  const vendors = [...db.accounts].sort((a, b) => Number(isTrade(b.types)) - Number(isTrade(a.types)) || a.name.localeCompare(b.name));
   const [newGroup, setNewGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [made, setMade] = useState('');
@@ -145,7 +148,7 @@ function Budget({ job }: { job: Job }) {
   const makeProposal = () => {
     const t = totals(items);
     const count = db.docs.filter((d) => d.jobId === job.id).length + 1;
-    const doc: Doc = { id: uid('d'), jobId: job.id, accountId: job.accountId, kind: 'Proposal', number: `${job.id.replace(/\D/g, '') || '1'}-${count}`, amount: Math.round(t.price), status: 'Pending' };
+    const doc: Doc = { id: uid('d'), jobId: job.id, partyId: L.customers(job.id)[0]?.id ?? '', kind: 'Proposal', number: `${job.id.replace(/\D/g, '') || '1'}-${count}`, amount: Math.round(t.price), status: 'Pending' };
     update((d) => ({ ...d, docs: [...d.docs, doc], activity: [...d.activity, logDoc(d, doc, 'Created')] }));
     setMade(`Proposal ${doc.number} for ${money(doc.amount)} was created. Find it under Documents.`);
   };
@@ -272,9 +275,12 @@ function Budget({ job }: { job: Job }) {
 function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
   const { db, update } = useStore();
   const L = useLookups();
-  const account = L.account.get(job.accountId);
-  const loc = L.location.get(job.locationId);
-  const contacts = db.contacts.filter((c) => c.accountId === job.accountId).sort((a, b) => Number(b.primary) - Number(a.primary));
+  const [editingLink, setEditingLink] = useState<JobLink | 'new' | null>(null);
+  // customers first, then everyone else; accounts before people within a role
+  const order = (r: string) => (r === 'Customer' ? 0 : 1);
+  const links = [...(L.linksByJob.get(job.id) ?? [])].sort(
+    (a, b) => order(a.role) - order(b.role) || a.role.localeCompare(b.role) || Number(L.person.has(a.partyId)) - Number(L.person.has(b.partyId)),
+  );
   const items = db.items.filter((i) => i.jobId === job.id);
   const t = totals(items);
   const todos = db.todos.filter((x) => x.jobId === job.id && !x.done);
@@ -295,7 +301,7 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
               {JOB_STATUSES.map((s) => <option key={s.name}>{s.name}</option>)}
             </select>
           </div>
-          <div><MapPin size={14} /> {loc?.address || <span className="muted">No address</span>}</div>
+          <div><MapPin size={14} /> {job.address || <span className="muted">No address</span>}</div>
           <div><Calendar size={14} /> {job.start} → {job.end}</div>
           <div><span className="muted j-lbl">Progress</span><span className="bar-track"><span className="bar-fill" style={{ width: `${progress}%`, background: '#51a2ff' }} /></span> {progress}%</div>
           <div><span className="muted j-lbl">Contract</span> {job.total ? money(job.total) : <span className="muted">Not signed yet</span>}</div>
@@ -304,22 +310,25 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
 
       <section className="card">
         <div className="card-head">
-          <h2>Customer</h2>
-          {account && <Link className="btn btn-sm" to={`/customers?id=${account.id}`}>Open account</Link>}
+          <h2>People on this job ({links.length})</h2>
+          <Button size="sm" variant="ghost" onClick={() => setEditingLink('new')}><Plus /> Add</Button>
         </div>
-        <div className="card-body">
-          <div className="cr-name">{account?.name}</div>
-          <div className="info-list j-acct">
-            {account?.phone && <div><Phone size={14} /> {account.phone}</div>}
-            {account?.email && <div><Mail size={14} /> {account.email}</div>}
-          </div>
-          {contacts.map((c) => (
-            <div key={c.id} className="list-row">
-              <span className="grow">{contactName(c)} {c.primary && <span className="tag">Primary</span>}</span>
-              <span className="muted ellipsis">{c.email || c.phone}</span>
-            </div>
-          ))}
+        <div className="p-2">
+          {links.length === 0 && <div className="wt-empty">Nobody linked yet. Add the customer and anyone else involved.</div>}
+          {links.map((l) => {
+            const p = L.party.get(l.partyId);
+            const detail = p?.person ? p.person.email || p.person.phone : p?.account?.phone || p?.account?.email;
+            return (
+              <div key={l.id} className="group flex min-h-11 items-center gap-3 rounded-lg px-3 py-1.5 hover:bg-muted/60">
+                <PartyLink id={l.partyId} size={26} />
+                <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">{detail}</span>
+                <RoleBadge role={l.role} className="ml-auto" />
+                <Button size="icon" variant="ghost" className="size-8 text-muted-foreground" aria-label="Edit role" onClick={() => setEditingLink(l)}><Pencil /></Button>
+              </div>
+            );
+          })}
         </div>
+        {editingLink && <JobLinkForm jobId={job.id} link={editingLink === 'new' ? undefined : editingLink} onClose={() => setEditingLink(null)} />}
       </section>
 
       <section className="card">
@@ -408,29 +417,7 @@ function TodosTab({ job }: { job: Job }) {
         </table>
         {todos.length === 0 && <div className="wt-empty">No to-dos for this job.</div>}
       </div>
-      {adding && <TodoForm presetAccountId={job.accountId} presetJobId={job.id} onClose={() => setAdding(false)} />}
-    </div>
-  );
-}
-
-function MessagesTab({ job }: { job: Job }) {
-  const { db } = useStore();
-  const threads: Record<string, string[]> = {};
-  const keys: string[] = [];
-  for (const m of db.messages.filter((x) => x.jobId === job.id).sort((a, b) => b.date.localeCompare(a.date))) {
-    if (!threads[m.topic]) {
-      threads[m.topic] = [];
-      keys.push(m.topic);
-    }
-    threads[m.topic].push(m.id);
-  }
-  return (
-    <div className="j-messages">
-      <div className="toolbar j-tab-bar">
-        <Link to="/messages" className="btn"><MessageCircle size={14} /> All messages</Link>
-      </div>
-      {keys.length === 0 && <div className="wt-empty">No messages about this job yet.</div>}
-      {keys.map((k) => <ThreadCard key={k} ids={threads[k].slice().reverse()} />)}
+      {adding && <TodoForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
     </div>
   );
 }
@@ -454,14 +441,13 @@ function DocumentsTab({ job }: { job: Job }) {
   return (
     <div className="table-wrap">
       <table className="grid-table j-table">
-        <thead><tr><th>Document</th><th>Account</th><th>Status</th><th className="num">Amount</th></tr></thead>
+        <thead><tr><th>Document</th><th>With</th><th>Status</th><th className="num">Amount</th></tr></thead>
         <tbody>
           {docs.map((d) => {
-            const a = L.account.get(d.accountId);
             return (
               <tr key={d.id}>
                 <td>{d.kind} {d.number}</td>
-                <td>{a && <Link className="cyan" to={`/${a.type === 'vendor' ? 'vendors' : 'customers'}?id=${a.id}`}>{a.name}</Link>}</td>
+                <td>{d.partyId && <PartyLink id={d.partyId} size={20} />}</td>
                 <td>
                   <select className="b-input" value={d.status} aria-label="Status" onChange={(e) => setStatus(d.id, e.target.value as Doc['status'])}>
                     {['Draft', 'Pending', 'Approved', 'Open', 'Paid'].map((s) => <option key={s}>{s}</option>)}
@@ -489,7 +475,7 @@ export default function JobDetail({ job }: { job: Job }) {
   return (
     <div className="page scroll job-page">
       <PageHeader
-        crumb={L.account.get(job.accountId)?.name ?? 'Job'}
+        crumb={L.customerName(job.id) || 'Job'}
         title={job.name}
         actions={
           <>
@@ -514,11 +500,10 @@ export default function JobDetail({ job }: { job: Job }) {
         {tab === 'budget' && <Budget job={job} />}
         {tab === 'schedule' && <ScheduleTab job={job} />}
         {tab === 'to-dos' && <TodosTab job={job} />}
-        {tab === 'messages' && <MessagesTab job={job} />}
         {tab === 'documents' && <DocumentsTab job={job} />}
       </div>
       {editing && <JobForm job={job} onClose={() => setEditing(false)} />}
-      {adding && <TodoForm presetAccountId={job.accountId} presetJobId={job.id} onClose={() => setAdding(false)} />}
+      {adding && <TodoForm presetPartyId={L.customers(job.id)[0]?.id} presetJobId={job.id} onClose={() => setAdding(false)} />}
     </div>
   );
 }

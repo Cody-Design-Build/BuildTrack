@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
-import { useLookups, useStore, money, KEY } from '../store';
+import { useLookups, useStore, money, parseDb, KEY } from '../store';
 import type { Db } from '../data';
 import { JOB_STATUSES } from '../data';
 
@@ -24,15 +24,15 @@ export function Documents() {
       <div className="table-wrap">
         <table className="grid-table">
           <thead>
-            <tr><th>Document</th><th>Account</th><th>Job</th><th>Status</th><th className="num">Amount</th></tr>
+            <tr><th>Document</th><th>With</th><th>Job</th><th>Status</th><th className="num">Amount</th></tr>
           </thead>
           <tbody>
             {docs.map((d) => {
-              const a = L.account.get(d.accountId);
+              const who = L.party.get(d.partyId);
               return (
                 <tr key={d.id}>
                   <td>{d.kind} {d.number}</td>
-                  <td>{a && <Link className="cyan" to={`/${a.type === 'vendor' ? 'vendors' : 'customers'}?id=${a.id}`}>{a.name}</Link>}</td>
+                  <td>{who && <Link className="cyan" to={who.href}>{who.name}</Link>}</td>
                   <td>{L.job.get(d.jobId)?.name}</td>
                   <td>{d.status}</td>
                   <td className="num">{d.amount ? money(d.amount) : ''}</td>
@@ -57,8 +57,8 @@ export function Reports() {
         <div className="stat-grid">
           <div className="card stat"><span className="stat-label">Active jobs</span><b>{active.length}</b></div>
           <div className="card stat"><span className="stat-label">Contract value</span><b>{money(active.reduce((s, j) => s + j.total, 0))}</b></div>
-          <div className="card stat"><span className="stat-label">Customer accounts</span><b>{db.accounts.filter((a) => a.type === 'customer').length}</b></div>
-          <div className="card stat"><span className="stat-label">Vendor accounts</span><b>{db.accounts.filter((a) => a.type === 'vendor').length}</b></div>
+          <div className="card stat"><span className="stat-label">People</span><b>{db.people.length}</b></div>
+          <div className="card stat"><span className="stat-label">Accounts</span><b>{db.accounts.length}</b></div>
         </div>
         <section className="card">
           <div className="card-head"><h2>Jobs by status</h2></div>
@@ -81,15 +81,15 @@ export function Reports() {
 }
 
 const TABLES: { key: keyof Db; label: string; what: string }[] = [
-  { key: 'accounts', label: 'accounts', what: 'Customer and vendor accounts (name, type, phone, email, address, trade, notes)' },
-  { key: 'contacts', label: 'contacts', what: 'People — each belongs to exactly one account (first/last name, role, email, phone, primary)' },
-  { key: 'locations', label: 'locations', what: 'Job sites, each tied to one customer account' },
-  { key: 'jobs', label: 'jobs', what: 'Jobs (name, customer account, location, status, contract total, dates)' },
+  { key: 'people', label: 'people', what: 'People (first/last name, email, phone, address, notes) — one record per real person' },
+  { key: 'accounts', label: 'accounts', what: 'Households, companies, vendors and other organisations (name, types, phone, email, address, trade, notes)' },
+  { key: 'memberships', label: 'account memberships', what: 'Which people belong to which accounts, with their title and whether they are the main contact' },
+  { key: 'jobLinks', label: 'job links', what: 'Which people and accounts are involved in each job, and their role (Customer, Architect, Subcontractor…)' },
+  { key: 'jobs', label: 'jobs', what: 'Jobs (name, site address, status, contract total, dates)' },
   { key: 'items', label: 'budget items', what: 'Budget / estimate lines per job (group, cost type, vendor, qty, unit cost, markup, spent)' },
   { key: 'docs', label: 'documents', what: 'Proposals, change orders, invoices, bids, purchase orders and bills' },
-  { key: 'todos', label: 'to-dos', what: 'To-dos with account, job, due date, type and assignees' },
+  { key: 'todos', label: 'to-dos', what: 'To-dos with the person or account involved, job, due date, type and assignees' },
   { key: 'tasks', label: 'schedule tasks', what: 'Schedule tasks per job (start, finish, % done)' },
-  { key: 'messages', label: 'messages', what: 'Messages between your team and account contacts' },
   { key: 'activity', label: 'activity', what: 'Document events shown in the Home feed' },
   { key: 'team', label: 'team', what: 'Your own team members' },
 ];
@@ -106,8 +106,8 @@ function DataCard() {
   };
   const restore = async (f: File) => {
     try {
-      const next = JSON.parse(await f.text()) as Db;
-      if (!Array.isArray(next.accounts) || !Array.isArray(next.jobs)) throw new Error('not a backup');
+      const next = parseDb(await f.text());
+      if (!Array.isArray(next.people) || !Array.isArray(next.accounts) || !Array.isArray(next.jobs)) throw new Error('not a backup');
       if (!confirm('Replace all current data with this backup?')) return;
       update(() => next);
       setNote('Backup restored.');

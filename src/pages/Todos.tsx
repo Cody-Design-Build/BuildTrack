@@ -113,7 +113,7 @@ export default function Todos() {
     if (view === 'open' && t.done) return false;
     if (view === 'done' && !t.done) return false;
     if (!needle) return true;
-    return [t.name, L.account.get(t.accountId)?.name, L.job.get(t.jobId)?.name, t.type].join(' ').toLowerCase().includes(needle);
+    return [t.name, L.party.get(t.partyId)?.name, L.job.get(t.jobId)?.name, t.type].join(' ').toLowerCase().includes(needle);
   });
   if (sort === 'due') rows.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
   const icsDownload = () => downloadIcs('to-dos.ics', db.todos.filter((t) => t.due && !t.done).map((t) => ({ title: t.name, date: t.due })));
@@ -177,7 +177,7 @@ export default function Todos() {
           className="btn icon-only tb-wide"
           title="Export to spreadsheet"
           aria-label="Export"
-          onClick={() => downloadCsv('to-dos.csv', [['Name', 'Account', 'Job', 'Due', 'Type', 'Done'], ...rows.map((t) => [t.name, L.account.get(t.accountId)?.name ?? '', L.job.get(t.jobId)?.name ?? '', t.due, t.type, t.done ? 'yes' : 'no'])])}
+          onClick={() => downloadCsv('to-dos.csv', [['Name', 'With', 'Job', 'Due', 'Type', 'Done'], ...rows.map((t) => [t.name, L.party.get(t.partyId)?.name ?? '', L.job.get(t.jobId)?.name ?? '', t.due, t.type, t.done ? 'yes' : 'no'])])}
         >
           <Upload size={14} />
         </button>
@@ -199,8 +199,8 @@ export default function Todos() {
             <tr>
               <th className="center">✓</th>
               <th>Name</th>
-              <th>Account</th>
-              <th>Location</th>
+              <th>With</th>
+              <th>Address</th>
               <th>Job</th>
               <th>Due</th>
               <th>Type</th>
@@ -209,9 +209,8 @@ export default function Todos() {
           </thead>
           <tbody>
             {rows.map((t) => {
-              const acct = L.account.get(t.accountId);
+              const who = L.party.get(t.partyId);
               const job = L.job.get(t.jobId);
-              const loc = job ? L.location.get(job.locationId) : undefined;
               return (
                 <tr key={t.id} className={t.done ? 'done' : ''}>
                   <td className="center">
@@ -221,15 +220,15 @@ export default function Todos() {
                   </td>
                   <td className="name-cell">
                     <div className="todo-meta">
-                      {[acct?.name, job?.name].filter(Boolean).join(' / ') || t.type || 'To-Do'}
+                      {[who?.name, job?.name].filter(Boolean).join(' / ') || t.type || 'To-Do'}
                     </div>
                     <input className="cell-input" value={t.name} onChange={(e) => setField(t.id, { name: e.target.value })} aria-label="Name" />
                     <button type="button" className="row-more" aria-label="Edit to-do" onClick={() => setEditing(t)}>
                       <EllipsisVertical size={14} />
                     </button>
                   </td>
-                  <td className="ellipsis">{acct && <Link className="cyan" to={`/${acct.type === 'vendor' ? 'vendors' : 'customers'}?id=${acct.id}`}>{acct.name}</Link>}</td>
-                  <td className="ellipsis cyan">{loc?.name}</td>
+                  <td className="ellipsis">{who && <Link className="cyan" to={who.href}>{who.name}</Link>}</td>
+                  <td className="ellipsis text-muted-foreground">{job?.address}</td>
                   <td className="ellipsis">{job && <Link className="cyan" to={`/jobs?job=${job.id}`}>{job.name}</Link>}</td>
                   <td>
                     <input className="cell-input" type="date" value={t.due} onChange={(e) => setField(t.id, { due: e.target.value })} aria-label="Due date" />
