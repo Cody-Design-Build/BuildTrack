@@ -26,13 +26,6 @@ export const INVOICE_NEXT: Record<InvoiceStatus, InvoiceStatus[]> = {
   Void: [],
 };
 
-export const INVOICE_ACTION: Record<InvoiceStatus, string> = {
-  Draft: 'Back to draft',
-  Sent: 'Mark as sent',
-  Paid: 'Mark as paid',
-  Void: 'Void',
-};
-
 export const invoiceLabel = (i: Pick<Invoice, 'number'>) => `Invoice ${i.number}`;
 export const isInvoiceEditable = (i: Pick<Invoice, 'status'>) => i.status === 'Draft';
 

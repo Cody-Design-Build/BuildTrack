@@ -6,8 +6,8 @@ A simple job-management web app for a design-build company with a Home dashboard
 
 A job has no single budget table. Instead, each **proposal** or **change order** is its own budget with its own line items and its own document. A job can have several (e.g. two alternate proposals and three change orders), and the job's contract is the sum of the approved ones.
 
-- **Draft** budgets are editable. **Mark as sent** locks a budget so it always matches what the customer saw; to change it, **Clone** it and send the copy. Sent budgets can be approved, declined or voided; approved ones can only be voided.
-- **Mark as approved** records who signed and when, and can attach the signed copy (PDF or photo). When one of several proposals on a job is signed, it offers to decline the others. A signed copy can also be attached, replaced or viewed later. Signed copies are kept in this browser's file storage (IndexedDB), not in Settings → backups.
+- Change status with the **status dropdown** next to the back link on a budget's page (statuses that aren't allowed yet are greyed out). **Draft** budgets are editable. Setting **Sent** locks a budget so it always matches what the customer saw; to change it, **Clone** it and send the copy. Sent budgets can be approved, declined or voided; approved ones can only be voided.
+- Setting **Approved** records who signed and when, and can attach the signed copy (PDF or photo). When one of several proposals on a job is signed, it offers to decline the others. A signed copy can also be attached, replaced or viewed later. Signed copies are kept in this browser's file storage (IndexedDB), not in Settings → backups.
 - Each budget page shows its own history: created, cloned, sent, approved, signed copy attached.
 - Lines can be negative, e.g. a credit for a design fee paid under another contract.
 - Every line has a **cost code**. Job costing is by cost code: expenses are recorded against a job and cost code, and linking an expense to a specific budget line is optional.
@@ -20,7 +20,7 @@ Budgets live on each job's **Budgets** tab and in the top-level **Budgets** page
 
 Invoices are progress bills against approved budgets (`src/invoices.ts`). A new invoice includes every approved proposal and change order on the job (you can untick any), and shows one section per budget. For each line, or a whole group at once, you enter the **percent complete to date**; the invoice bills the difference from what was billed before, and works out the amount due, billed to date and balance to finish. **Bill to 100%** finishes a budget in one click.
 
-- Draft invoices are editable. **Mark as sent** locks the invoice and freezes what had been billed before it, so its amounts never change afterwards. Sent invoices can be marked paid or voided; a voided invoice's amounts become billable again on the next draft.
+- Draft invoices are editable. Setting the status to **Sent** (same dropdown) locks the invoice and freezes what had been billed before it, so its amounts never change afterwards. Sent invoices can be marked paid or voided; a voided invoice's amounts become billable again on the next draft.
 - The invoice document shows every line or group totals only, with contract, previously billed, percent complete and this invoice, and prints or saves as a PDF like budgets.
 - Each job has an **Invoices** tab (contract, billed, paid, outstanding, left to bill) and the top-level **Invoices** page lists them all, with an Overdue filter.
 - Older invoice records from the documents list (no line items) are left as they are and still count on the Home page.

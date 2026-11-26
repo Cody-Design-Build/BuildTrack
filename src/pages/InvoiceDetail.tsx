@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, BadgeDollarSign, Lock, Printer, RotateCcw, Send, Trash2, CircleCheck } from 'lucide-react';
+import { ArrowLeft, Lock, Printer, RotateCcw, Trash2, CircleCheck } from 'lucide-react';
+import { StatusMenu } from '../components/StatusMenu';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { NumCell, TextCell } from '../components/Cells';
@@ -9,13 +10,12 @@ import { Segmented, useRememberedChoice } from '../components/DocLayout';
 import { History } from '../components/BudgetSigning';
 import { InvoiceDocument } from '../components/InvoiceDocument';
 import { useLookups, useStore, money } from '../store';
-import type { Invoice, InvoiceStatus } from '../data';
+import { INVOICE_STATUSES, type Invoice, type InvoiceStatus } from '../data';
 import { budgetLabel, linesByBudget } from '../budgets';
 import {
-  INVOICE_ACTION, INVOICE_NEXT, INVOICE_STATUS_COLOR, billableBudgets, deleteInvoice, editInvoice, invoiceLabel, invoiceTotals,
+  INVOICE_NEXT, INVOICE_STATUS_COLOR, billableBudgets, deleteInvoice, editInvoice, invoiceLabel, invoiceTotals,
   isInvoiceEditable, setInvoiceStatus, weightedPct, type InvoiceRow, type InvoiceSection,
 } from '../invoices';
-import { Pill } from './Budgets';
 
 type View = 'lines' | 'document' | 'details';
 const VIEWS: { id: View; label: string }[] = [
@@ -23,7 +23,12 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'document', label: 'Document' },
   { id: 'details', label: 'Details' },
 ];
-const ICON: Partial<Record<InvoiceStatus, typeof Send>> = { Sent: Send, Paid: BadgeDollarSign, Void: Ban };
+const STATUS_HINT: Record<InvoiceStatus, string> = {
+  Draft: 'Marking it sent locks it and freezes what was billed before it.',
+  Sent: "A sent invoice can't go back to draft. Void it and start a new one to change it.",
+  Paid: 'Paid is final.',
+  Void: 'Void is final. Its amounts can be billed again on a new invoice.',
+};
 const CONFIRM: Partial<Record<InvoiceStatus, string>> = {
   Sent: 'Sending locks this invoice so it matches what the customer received. Mark it as sent?',
   Void: 'Voiding cancels this invoice. Its amounts no longer count as billed, and later invoices will bill them again. Void it?',
@@ -96,14 +101,6 @@ export default function InvoiceDetail() {
         title={`${invoiceLabel(invoice)}${invoice.title ? ` · ${invoice.title}` : ''}`}
         actions={
           <>
-            {INVOICE_NEXT[invoice.status].map((s) => {
-              const Icon = ICON[s];
-              return (
-                <button key={s} type="button" className={'btn' + (s === 'Void' ? '' : ' primary')} onClick={() => move(s)}>
-                  {Icon && <Icon size={14} />} {INVOICE_ACTION[s]}
-                </button>
-              );
-            })}
             <button type="button" className="btn" onClick={() => window.print()}><Printer size={14} /> Print / PDF</button>
             {editable && <button type="button" className="btn" onClick={del}><Trash2 size={14} /> Delete</button>}
           </>
@@ -111,7 +108,7 @@ export default function InvoiceDetail() {
       />
       <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${invoice.jobId}&tab=invoices`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} invoices</Link>
-        <Pill label={invoice.status} color={INVOICE_STATUS_COLOR[invoice.status]} />
+        <StatusMenu value={invoice.status} statuses={INVOICE_STATUSES} allowed={INVOICE_NEXT[invoice.status]} colors={INVOICE_STATUS_COLOR} onSelect={move} hint={STATUS_HINT[invoice.status]} />
         {!editable && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Lock size={12} /> Locked{invoice.status === 'Paid' ? ' · paid' : invoice.status === 'Sent' ? ' · sent to the customer' : ''}</span>
         )}

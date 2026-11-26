@@ -22,14 +22,6 @@ export const NEXT_STATUSES: Record<BudgetStatus, BudgetStatus[]> = {
   Void: [],
 };
 
-export const STATUS_ACTION: Record<BudgetStatus, string> = {
-  Draft: 'Back to draft',
-  Sent: 'Mark as sent',
-  Approved: 'Mark as approved',
-  Declined: 'Mark as declined',
-  Void: 'Void',
-};
-
 export function totals(lines: Pick<BudgetLine, 'quantity' | 'unitCost' | 'markup'>[]) {
   const cost = lines.reduce((s, l) => s + lineCost(l), 0);
   const price = lines.reduce((s, l) => s + linePrice(l), 0);

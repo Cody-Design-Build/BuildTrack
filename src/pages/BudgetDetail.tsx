@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, FolderPlus, Lock, Plus, Send, Trash2, Upload, Check, X, Ban, Printer } from 'lucide-react';
+import { ArrowLeft, Copy, FolderPlus, Lock, Plus, Trash2, Upload, Printer } from 'lucide-react';
+import { StatusMenu } from '../components/StatusMenu';
 import { BudgetDocument } from '../components/BudgetDocument';
 import { Segmented, useRememberedChoice } from '../components/DocLayout';
 import { ApproveDialog, BudgetHistory, SignedCopyCard, SignedCopyViewer } from '../components/BudgetSigning';
@@ -10,11 +11,9 @@ import { Field } from '../components/Forms';
 import { NumCell, TextCell } from '../components/Cells';
 import { downloadCsv } from '../lib/downloads';
 import { useLookups, useStore, money, uid, lineCost, linePrice } from '../store';
-import { COST_TYPES, DEFAULT_DISPLAY, type Budget, type BudgetDetailLevel, type BudgetLine, type BudgetStatus, type CostType } from '../data';
-import { NEXT_STATUSES, STATUS_ACTION, budgetLabel, deleteBudget, editBudget, isEditable, pct, setBudgetStatus, totals } from '../budgets';
-import { StatusPill, useCloneBudget } from './Budgets';
-
-const STATUS_ICON: Partial<Record<BudgetStatus, typeof Send>> = { Sent: Send, Approved: Check, Declined: X, Void: Ban };
+import { BUDGET_STATUSES, COST_TYPES, DEFAULT_DISPLAY, type Budget, type BudgetDetailLevel, type BudgetLine, type BudgetStatus, type CostType } from '../data';
+import { BUDGET_STATUS_COLOR, NEXT_STATUSES, budgetLabel, deleteBudget, editBudget, isEditable, pct, setBudgetStatus, totals } from '../budgets';
+import { useCloneBudget } from './Budgets';
 
 const CONFIRM: Partial<Record<BudgetStatus, string>> = {
   Sent: 'Sending locks this budget so it matches what the customer sees. To change it later, clone it and send the copy. Mark it as sent?',
@@ -28,6 +27,13 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'details', label: 'Details' },
   { id: 'signed', label: 'Signed copy' },
 ];
+const STATUS_HINT: Record<BudgetStatus, string> = {
+  Draft: 'Marking it sent locks it, so it always matches what the customer saw.',
+  Sent: "A sent budget can't go back to draft. Clone it to make changes.",
+  Approved: 'A signed budget can only be voided. Clone it to make changes.',
+  Declined: 'Declined is final. Clone it to reuse the lines.',
+  Void: 'Void is final. Clone it to reuse the lines.',
+};
 const DETAIL_LABEL: Record<BudgetDetailLevel, string> = { lines: 'Every line priced', groups: 'Group totals only', total: 'One total for the whole scope' };
 
 export default function BudgetDetail() {
@@ -111,14 +117,6 @@ export default function BudgetDetail() {
         title={`${budgetLabel(budget)}${budget.title ? ` · ${budget.title}` : ''}`}
         actions={
           <>
-            {NEXT_STATUSES[budget.status].map((s) => {
-              const Icon = STATUS_ICON[s];
-              return (
-                <button key={s} type="button" className={'btn' + (s === 'Sent' || s === 'Approved' ? ' primary' : '')} onClick={() => move(s)}>
-                  {Icon && <Icon size={14} />} {STATUS_ACTION[s]}
-                </button>
-              );
-            })}
             <button type="button" className="btn" onClick={() => window.print()}><Printer size={14} /> Print / PDF</button>
             <button type="button" className="btn" onClick={() => clone(budget.id)}><Copy size={14} /> Clone</button>
             {editable && <button type="button" className="btn" onClick={del}><Trash2 size={14} /> Delete</button>}
@@ -127,7 +125,7 @@ export default function BudgetDetail() {
       />
       <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${budget.jobId}&tab=budget`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} budgets</Link>
-        <StatusPill status={budget.status} />
+        <StatusMenu value={budget.status} statuses={BUDGET_STATUSES} allowed={NEXT_STATUSES[budget.status]} colors={BUDGET_STATUS_COLOR} onSelect={move} hint={STATUS_HINT[budget.status]} />
         {!editable && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title="Sent and signed budgets can't be edited, so they always match what the customer saw.">
             <Lock size={12} /> Locked · clone to make changes

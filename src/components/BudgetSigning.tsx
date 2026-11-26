@@ -189,7 +189,7 @@ export function SignedCopyCard({ budget, onView }: { budget: Budget; onView: () 
         ) : (
           <p className="text-sm text-muted-foreground">
             {budget.status === 'Sent'
-              ? 'When the customer signs, click Mark as approved to record it and attach the signed copy. You can also attach a copy now.'
+              ? 'When the customer signs, set the status to Approved to record it and attach the signed copy. You can also attach a copy now.'
               : 'No signed copy attached. Attach the signed PDF or a photo of it.'}
           </p>
         )}
