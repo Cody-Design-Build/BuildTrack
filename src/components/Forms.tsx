@@ -50,7 +50,9 @@ export function removeParty(d: Db, id: string): Db {
     jobLinks: d.jobLinks.filter((l) => l.partyId !== id),
     docs: d.docs.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
     tasks: d.tasks.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    items: d.items.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
+    budgets: d.budgets.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
+    budgetLines: d.budgetLines.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
+    expenses: d.expenses.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
   };
 }
 

@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Maximize, RefreshCw, Plus, Settings, ArrowUpRight, FileText, Hammer, ChevronRight, Wrench, Receipt, Target, SquareCheck, type LucideIcon } from 'lucide-react';
 import { useLookups, useStore, money, sameDayLabel, timeLabel } from '../store';
+import { linesByBudget, totals } from '../budgets';
+import { invoiceLabel, invoiceTotals } from '../invoices';
 import { QuickAdd } from '../components/QuickAdd';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -136,9 +138,13 @@ export default function Home() {
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const activeCustomerJobs = db.jobs.filter((j) => ['Pre-Construction', 'In Progress', 'Punch List'].includes(j.status) && j.total > 0);
-  const openInvoices = db.docs.filter((d) => d.kind === 'Invoice' && d.status === 'Open');
+  const byBudget = linesByBudget(db);
+  const openInvoices = [
+    ...db.docs.filter((d) => d.kind === 'Invoice' && d.status === 'Open').map((d) => ({ id: d.id, partyId: d.partyId, label: `${d.kind} ${d.number}`, amount: d.amount, to: partyHref(d.partyId) })),
+    ...db.invoices.filter((i) => i.status === 'Sent').map((i) => ({ id: i.id, partyId: i.partyId, label: invoiceLabel(i), amount: invoiceTotals(db, i, byBudget).amount, to: `/invoices/${i.id}` })),
+  ];
   const leads = db.jobs.filter((j) => ['Lead', 'Estimating', 'Negotiating'].includes(j.status));
-  const custOrders = db.docs.filter((d) => (d.kind === 'Proposal' || d.kind === 'Change Order') && d.status === 'Pending');
+  const custOrders = db.budgets.filter((b) => b.status === 'Sent').map((b) => ({ ...b, amount: totals(byBudget.get(b.id) ?? []).price }));
   const vendorOrders = db.docs.filter((d) => (d.kind === 'Subcontractor Agreement' || d.kind === 'Purchase Order') && d.status === 'Pending');
   const draftBills = db.docs.filter((d) => d.kind === 'Bill' && d.status === 'Draft');
   const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -173,7 +179,7 @@ export default function Home() {
 
       <div className="mb-6 grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 sm:gap-4 xl:grid-cols-[repeat(4,minmax(0,1fr))]">
         <Stat label="Active contracts" value={sum(activeCustomerJobs.map((j) => j.total))} sub={`${activeCustomerJobs.length} jobs underway`} icon={Wrench} to="/jobs" />
-        <Stat label="Open invoices" value={sum(openInvoices.map((d) => d.amount))} sub={`${openInvoices.length} awaiting payment`} icon={Receipt} to="/documents" />
+        <Stat label="Open invoices" value={sum(openInvoices.map((d) => d.amount))} sub={`${openInvoices.length} awaiting payment`} icon={Receipt} to="/invoices" />
         <Stat label="Pipeline" value={sum(leads.map((j) => j.projectedCost))} sub={`${leads.length} leads & estimates`} icon={Target} to="/jobs" />
         <Stat label="My tasks" value={String(myTasks.length)} sub={myTasks.length ? 'open and assigned to you' : 'all caught up'} icon={SquareCheck} to="/tasks" />
       </div>
@@ -190,7 +196,7 @@ export default function Home() {
           <TableCard
             title="Open Customer Invoices"
             cols={['Customer', 'Document', 'Balance']}
-            rows={openInvoices.map((d) => ({ key: d.id, a: partyName(d.partyId), b: `${d.kind} ${d.number}`, c: money(d.amount), to: partyHref(d.partyId) }))}
+            rows={openInvoices.map((d) => ({ key: d.id, a: partyName(d.partyId), b: d.label, c: money(d.amount), to: d.to }))}
             total={sum(openInvoices.map((d) => d.amount))}
             empty="No open invoices"
           />
@@ -203,7 +209,7 @@ export default function Home() {
           <TableCard
             title="Pending Customer Orders"
             cols={['Customer', 'Document', 'Total']}
-            rows={custOrders.map((d) => ({ key: d.id, a: partyName(d.partyId), b: `${d.kind} ${d.number}`, c: money(d.amount), to: partyHref(d.partyId) }))}
+            rows={custOrders.map((d) => ({ key: d.id, a: partyName(d.partyId), b: `${d.kind} ${d.number}`, c: money(d.amount), to: `/budgets/${d.id}` }))}
             total={sum(custOrders.map((d) => d.amount))}
             empty="No pending customer orders"
           />

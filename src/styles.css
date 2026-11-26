@@ -2280,3 +2280,195 @@ body {
 .detail.narrow {
   max-width: 860px;
 }
+
+/* Budget lists: size columns to their content and scroll sideways on narrow screens. */
+.bt-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  background: var(--bg);
+}
+.bt-table td {
+  white-space: nowrap;
+}
+.bt-table td.bt-wrap {
+  white-space: normal;
+  min-width: 200px;
+}
+
+/* Budget page: editor and document side by side on wide screens, stacked otherwise. */
+.bt-split {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1400px) {
+  .bt-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 720px);
+    align-items: start;
+  }
+  .bt-split .bt-doc-col {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+}
+.bt-doc-col {
+  min-width: 0;
+  padding: 4px 4px 24px;
+}
+.b-input.bt-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* The customer document: a sheet of paper, always light, whatever the app theme. */
+.budget-doc {
+  --bd-ink: #1f2328;
+  --bd-muted: #6b7280;
+  --bd-rule: #e5e7eb;
+  position: relative;
+  max-width: 816px; /* 8.5in at 96dpi */
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px);
+  background: #fff;
+  color: var(--bd-ink);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.06);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  color-scheme: light;
+}
+.budget-doc .bd-muted { color: var(--bd-muted); }
+.budget-doc .bd-strong { font-weight: 600; }
+.budget-doc .bd-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bd-muted);
+  margin-bottom: 4px;
+}
+.budget-doc .bd-stamp {
+  position: absolute;
+  top: 28px;
+  right: -46px;
+  transform: rotate(35deg);
+  padding: 4px 56px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.budget-doc .bd-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--bd-ink);
+}
+.budget-doc .bd-company { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.budget-doc .bd-head-right { text-align: right; }
+.budget-doc .bd-kind { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
+.budget-doc .bd-meta { margin-left: auto; border-collapse: collapse; }
+.budget-doc .bd-meta th { font-weight: 500; color: var(--bd-muted); text-align: right; padding: 0 10px 0 0; }
+.budget-doc .bd-meta td { text-align: right; padding: 0; }
+.budget-doc .bd-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 20px 0;
+}
+.budget-doc .bd-title { font-size: 16px; font-weight: 700; margin: 4px 0 6px; }
+.budget-doc .bd-notes { white-space: pre-wrap; margin: 0 0 16px; }
+.budget-doc .bd-empty { padding: 24px 0; }
+.budget-doc .bd-lines { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.budget-doc .bd-lines th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bd-muted);
+  text-align: left;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bd-ink);
+}
+.budget-doc .bd-lines td { padding: 7px 0; border-bottom: 1px solid var(--bd-rule); vertical-align: top; }
+.budget-doc .bd-lines td + td, .budget-doc .bd-lines th + th { padding-left: 16px; }
+.budget-doc .bd-lines .bd-group td { font-weight: 700; padding-top: 14px; border-bottom-color: var(--bd-ink); }
+.budget-doc .bd-lines .bd-subtotal td { font-weight: 600; color: var(--bd-muted); border-bottom: none; padding-bottom: 4px; }
+.budget-doc .bd-lines .bd-group-only td { padding: 10px 0; }
+.budget-doc .bd-num { text-align: right !important; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.budget-doc .bd-nowrap { white-space: nowrap; }
+.budget-doc .bd-scope-group { margin: 10px 0; }
+.budget-doc .bd-scope ul { margin: 4px 0 0; padding-left: 18px; }
+.budget-doc .bd-scope li { margin: 2px 0; }
+.budget-doc .bd-totals { display: flex; justify-content: flex-end; margin-top: 16px; }
+.budget-doc .bd-totals table { border-collapse: collapse; min-width: 280px; }
+.budget-doc .bd-totals th { text-align: left; font-weight: 500; color: var(--bd-muted); padding: 4px 24px 4px 0; }
+.budget-doc .bd-totals td { text-align: right; padding: 4px 0; font-variant-numeric: tabular-nums; }
+.budget-doc .bd-totals .bd-grand th,
+.budget-doc .bd-totals .bd-grand td {
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+  border-top: 2px solid var(--bd-ink);
+  padding-top: 8px;
+}
+.budget-doc .bd-sign { margin-top: 40px; break-inside: avoid; }
+.budget-doc .bd-sign-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 28px 24px;
+  margin-top: 28px;
+}
+.budget-doc .bd-sign-line { height: 22px; border-bottom: 1px solid var(--bd-ink); font-size: 12px; }
+.budget-doc .bd-sign-cap { font-size: 11px; color: var(--bd-muted); margin-top: 4px; }
+@media (max-width: 560px) {
+  .budget-doc .bd-head, .budget-doc .bd-parties { display: block; }
+  .budget-doc .bd-head-right { text-align: left; margin-top: 12px; }
+  .budget-doc .bd-meta { margin-left: 0; }
+  .budget-doc .bd-meta th, .budget-doc .bd-meta td { text-align: left; }
+  .budget-doc .bd-parties > div + div { margin-top: 12px; }
+}
+
+/* Printing a budget prints only its document (portaled to <body>), at full page width. */
+.print-only { display: none; }
+@media print {
+  @page { size: letter; margin: 0.5in; }
+  body:has(> .print-only) > *:not(.print-only) { display: none !important; }
+  body:has(> .print-only) { background: #fff !important; }
+  .print-only { display: block; }
+  .print-only .budget-doc {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    font-size: 11pt;
+  }
+  .print-only .bd-lines tr { break-inside: avoid; }
+}
+.budget-doc .bd-approved {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid #16a34a;
+  background: #f0fdf4;
+  color: #14532d;
+  font-weight: 600;
+}
+.budget-doc .bd-stamp.bd-stamp-paid { background: #dcfce7; color: #14532d; }
+.budget-doc .bd-invoice td + td, .budget-doc .bd-invoice th + th { padding-left: 12px; }
+.budget-doc .bd-invoice th { white-space: nowrap; }
+.budget-doc .bd-keep { break-inside: avoid; }
+.budget-doc .bd-lines .bd-subgroup td {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bd-muted);
+  padding: 10px 0 4px;
+  border-bottom: none;
+}
