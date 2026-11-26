@@ -14,9 +14,13 @@ import Budgets from './pages/Budgets';
 import BudgetDetail from './pages/BudgetDetail';
 import Invoices from './pages/Invoices';
 import InvoiceDetail from './pages/InvoiceDetail';
-import { Documents, Reports, SettingsPage, Placeholder } from './pages/Other';
+import { Documents, Reports, Placeholder } from './pages/Other';
+import SettingsPage from './pages/Settings';
 import '@fontsource-variable/inter';
 import './index.css';
+import { initAppearance } from './appearance';
+
+initAppearance();
 
 function LegacyTasksRedirect() {
   const { search, hash } = useLocation();

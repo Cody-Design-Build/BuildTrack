@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" />
     <title>BuildTrack</title>
+    <script>
+      // Apply the saved theme before the first paint (see src/appearance.ts).
+      try {
+        var a = JSON.parse(localStorage.getItem('bt-appearance') || '{}');
+        var d = a.mode === 'dark' || (a.mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var r = document.documentElement;
+        r.dataset.theme = a.theme || 'buildtrack';
+        r.dataset.mode = d ? 'dark' : 'light';
+        if (d) r.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

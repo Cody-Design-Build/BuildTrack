@@ -1,0 +1,387 @@
+/* Colour themes.
+ *
+ * The root element (and any element that previews a theme) carries
+ * data-theme="<id>" and data-mode="light|dark". Each theme sets a small set of
+ * base colours for both modes; everything else is worked out from them below,
+ * so a new theme is just one more pair of blocks. The ids must match THEMES in
+ * src/appearance.ts.
+ *
+ * Every theme sets the same properties in both modes. A theme's light block
+ * (one attribute) would otherwise beat the shared dark defaults (also one
+ * attribute) because it comes later in the file.
+ */
+
+/* ---------- Worked out from the base colours, for every theme ---------- */
+:root,
+[data-theme] {
+  color-scheme: light;
+  --radius: 0.625rem;
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: color-mix(in oklch, var(--primary) 75%, var(--background));
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--success);
+  --chart-4: var(--warning);
+  --chart-5: color-mix(in oklch, var(--primary) 50%, var(--info));
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Tints used by the older hand-written styles */
+  --primary-soft: color-mix(in oklch, var(--primary) 12%, var(--card));
+  --info-soft: color-mix(in oklch, var(--info) 30%, var(--card));
+  --success-soft: color-mix(in oklch, var(--success) 14%, var(--card));
+  --success-strong: color-mix(in oklch, var(--success) 55%, var(--foreground));
+  --disabled: color-mix(in oklch, var(--foreground) 22%, var(--card));
+
+  /* The dark header band on the schedule's Gantt chart */
+  --gantt-head: color-mix(in oklch, var(--foreground) 88%, var(--card));
+  --gantt-head-fg: var(--card);
+  --gantt-head-rule: color-mix(in oklch, var(--card) 30%, var(--gantt-head));
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+
+[data-mode='dark'] {
+  color-scheme: dark;
+  --gantt-head: var(--muted);
+  --gantt-head-fg: var(--foreground);
+  --gantt-head-rule: var(--border-strong);
+  --info-soft: color-mix(in oklch, var(--info) 45%, var(--card));
+  --success-soft: color-mix(in oklch, var(--success) 16%, var(--card));
+  --success-strong: color-mix(in oklch, var(--success) 70%, var(--foreground));
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 4px 12px -2px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* ---------- BuildTrack (the original orange) ---------- */
+:root,
+[data-theme='buildtrack'] {
+  --background: oklch(0.985 0.002 75);
+  --foreground: oklch(0.21 0.006 285.885);
+  --text: oklch(0.37 0.013 285.805);
+  --card: oklch(1 0 0);
+  --sidebar: oklch(1 0 0);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --faint: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.954 0.012 60);
+  --primary: oklch(0.646 0.222 41.116);
+  --primary-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --border-strong: oklch(0.871 0.006 286.286);
+  --info: oklch(0.62 0.19 259.8);
+  --success: oklch(0.627 0.17 149.2);
+  --warning: oklch(0.769 0.165 70.08);
+}
+[data-theme='buildtrack'][data-mode='dark'] {
+  --background: oklch(0.165 0.004 285.9);
+  --foreground: oklch(0.965 0.003 75);
+  --text: oklch(0.87 0.005 286);
+  --card: oklch(0.205 0.005 285.9);
+  --sidebar: oklch(0.185 0.005 285.9);
+  --muted: oklch(0.265 0.006 286);
+  --muted-foreground: oklch(0.71 0.015 286);
+  --faint: oklch(0.55 0.014 286);
+  --accent: oklch(0.29 0.035 50);
+  --primary: oklch(0.705 0.191 47.604);
+  --primary-foreground: oklch(0.17 0.02 45);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.285 0.006 286);
+  --border-strong: oklch(0.37 0.008 286);
+  --info: oklch(0.707 0.165 254.6);
+  --success: oklch(0.765 0.177 152);
+  --warning: oklch(0.828 0.165 84.4);
+}
+
+/* ---------- Graphite (black and white) ---------- */
+[data-theme='graphite'] {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --text: #27272a;
+  --card: #ffffff;
+  --sidebar: #ffffff;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --faint: #a1a1aa;
+  --accent: #f4f4f5;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --info: #52525b;
+  --success: #16a34a;
+  --warning: #ca8a04;
+}
+[data-theme='graphite'][data-mode='dark'] {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --text: #e4e4e7;
+  --card: #111113;
+  --sidebar: #0c0c0e;
+  --muted: #1f1f23;
+  --muted-foreground: #a1a1aa;
+  --faint: #71717a;
+  --accent: #27272a;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --destructive: #f87171;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --info: #a1a1aa;
+  --success: #4ade80;
+  --warning: #facc15;
+}
+
+/* ---------- Nord ---------- */
+[data-theme='nord'] {
+  --background: #e5e9f0;
+  --foreground: #2e3440;
+  --text: #3b4252;
+  --card: #f5f7fa;
+  --sidebar: #eceff4;
+  --muted: #dde2ea;
+  --muted-foreground: #4c566a;
+  --faint: #8a93a5;
+  --accent: #d8dee9;
+  --primary: #5e81ac;
+  --primary-foreground: #eceff4;
+  --destructive: #bf616a;
+  --border: #d8dee9;
+  --border-strong: #c2cad8;
+  --info: #81a1c1;
+  --success: #6f9a55;
+  --warning: #d08770;
+}
+[data-theme='nord'][data-mode='dark'] {
+  --background: #2e3440;
+  --foreground: #eceff4;
+  --text: #e5e9f0;
+  --card: #3b4252;
+  --sidebar: #2b303b;
+  --muted: #434c5e;
+  --muted-foreground: #a7b1c2;
+  --faint: #7b8597;
+  --accent: #434c5e;
+  --primary: #88c0d0;
+  --primary-foreground: #2e3440;
+  --destructive: #bf616a;
+  --border: #434c5e;
+  --border-strong: #4c566a;
+  --info: #81a1c1;
+  --success: #a3be8c;
+  --warning: #ebcb8b;
+}
+
+/* ---------- Gruvbox ---------- */
+[data-theme='gruvbox'] {
+  --background: #f2e5bc;
+  --foreground: #282828;
+  --text: #3c3836;
+  --card: #fbf1c7;
+  --sidebar: #fbf1c7;
+  --muted: #ebdbb2;
+  --muted-foreground: #7c6f64;
+  --faint: #a89984;
+  --accent: #ebdbb2;
+  --primary: #af3a03;
+  --primary-foreground: #fbf1c7;
+  --destructive: #9d0006;
+  --border: #e3d4ad;
+  --border-strong: #bdae93;
+  --info: #076678;
+  --success: #79740e;
+  --warning: #b57614;
+}
+[data-theme='gruvbox'][data-mode='dark'] {
+  --background: #1d2021;
+  --foreground: #fbf1c7;
+  --text: #ebdbb2;
+  --card: #282828;
+  --sidebar: #1d2021;
+  --muted: #3c3836;
+  --muted-foreground: #a89984;
+  --faint: #7c6f64;
+  --accent: #3c3836;
+  --primary: #fe8019;
+  --primary-foreground: #1d2021;
+  --destructive: #fb4934;
+  --border: #3c3836;
+  --border-strong: #504945;
+  --info: #83a598;
+  --success: #b8bb26;
+  --warning: #fabd2f;
+}
+
+/* ---------- Catppuccin (Latte / Mocha) ---------- */
+[data-theme='catppuccin'] {
+  --background: #e6e9ef;
+  --foreground: #4c4f69;
+  --text: #5c5f77;
+  --card: #eff1f5;
+  --sidebar: #eff1f5;
+  --muted: #dce0e8;
+  --muted-foreground: #6c6f85;
+  --faint: #9ca0b0;
+  --accent: #dce0e8;
+  --primary: #8839ef;
+  --primary-foreground: #eff1f5;
+  --destructive: #d20f39;
+  --border: #ccd0da;
+  --border-strong: #bcc0cc;
+  --info: #1e66f5;
+  --success: #40a02b;
+  --warning: #df8e1d;
+}
+[data-theme='catppuccin'][data-mode='dark'] {
+  --background: #181825;
+  --foreground: #cdd6f4;
+  --text: #bac2de;
+  --card: #1e1e2e;
+  --sidebar: #181825;
+  --muted: #313244;
+  --muted-foreground: #a6adc8;
+  --faint: #6c7086;
+  --accent: #313244;
+  --primary: #cba6f7;
+  --primary-foreground: #1e1e2e;
+  --destructive: #f38ba8;
+  --border: #313244;
+  --border-strong: #45475a;
+  --info: #89b4fa;
+  --success: #a6e3a1;
+  --warning: #f9e2af;
+}
+
+/* ---------- Tokyo Night (Day / Night) ---------- */
+[data-theme='tokyo-night'] {
+  --background: #e1e2e7;
+  --foreground: #343b58;
+  --text: #40435a;
+  --card: #eef0f6;
+  --sidebar: #e9e9ed;
+  --muted: #d5d6db;
+  --muted-foreground: #6172b0;
+  --faint: #9699a3;
+  --accent: #d5d6db;
+  --primary: #2e7de9;
+  --primary-foreground: #ffffff;
+  --destructive: #f52a65;
+  --border: #c4c8da;
+  --border-strong: #a8aecb;
+  --info: #007197;
+  --success: #587539;
+  --warning: #8c6c3e;
+}
+[data-theme='tokyo-night'][data-mode='dark'] {
+  --background: #16161e;
+  --foreground: #c0caf5;
+  --text: #a9b1d6;
+  --card: #1a1b26;
+  --sidebar: #16161e;
+  --muted: #292e42;
+  --muted-foreground: #9aa5ce;
+  --faint: #565f89;
+  --accent: #292e42;
+  --primary: #7aa2f7;
+  --primary-foreground: #16161e;
+  --destructive: #f7768e;
+  --border: #292e42;
+  --border-strong: #3b4261;
+  --info: #7dcfff;
+  --success: #9ece6a;
+  --warning: #e0af68;
+}
+
+/* ---------- Rosé Pine (Dawn / Main) ---------- */
+[data-theme='rose-pine'] {
+  --background: #faf4ed;
+  --foreground: #575279;
+  --text: #575279;
+  --card: #fffaf3;
+  --sidebar: #fffaf3;
+  --muted: #f2e9e1;
+  --muted-foreground: #797593;
+  --faint: #9893a5;
+  --accent: #f2e9e1;
+  --primary: #d7827e;
+  --primary-foreground: #fffaf3;
+  --destructive: #b4637a;
+  --border: #dfdad9;
+  --border-strong: #cecacd;
+  --info: #56949f;
+  --success: #286983;
+  --warning: #ea9d34;
+}
+[data-theme='rose-pine'][data-mode='dark'] {
+  --background: #191724;
+  --foreground: #e0def4;
+  --text: #d5d2ea;
+  --card: #1f1d2e;
+  --sidebar: #191724;
+  --muted: #26233a;
+  --muted-foreground: #908caa;
+  --faint: #6e6a86;
+  --accent: #26233a;
+  --primary: #ebbcba;
+  --primary-foreground: #191724;
+  --destructive: #eb6f92;
+  --border: #26233a;
+  --border-strong: #403d52;
+  --info: #9ccfd8;
+  --success: #31748f;
+  --warning: #f6c177;
+}
+
+/* ---------- Solarized ---------- */
+[data-theme='solarized'] {
+  --background: #eee8d5;
+  --foreground: #073642;
+  --text: #586e75;
+  --card: #fdf6e3;
+  --sidebar: #fdf6e3;
+  --muted: #eee8d5;
+  --muted-foreground: #657b83;
+  --faint: #93a1a1;
+  --accent: #eee8d5;
+  --primary: #268bd2;
+  --primary-foreground: #fdf6e3;
+  --destructive: #dc322f;
+  --border: #e4ddc8;
+  --border-strong: #d3cbb7;
+  --info: #2aa198;
+  --success: #859900;
+  --warning: #b58900;
+}
+[data-theme='solarized'][data-mode='dark'] {
+  --background: #002b36;
+  --foreground: #eee8d5;
+  --text: #93a1a1;
+  --card: #073642;
+  --sidebar: #002b36;
+  --muted: #0d4552;
+  --muted-foreground: #839496;
+  --faint: #586e75;
+  --accent: #0d4552;
+  --primary: #268bd2;
+  --primary-foreground: #fdf6e3;
+  --destructive: #dc322f;
+  --border: #0d4552;
+  --border-strong: #335c67;
+  --info: #2aa198;
+  --success: #859900;
+  --warning: #b58900;
+}

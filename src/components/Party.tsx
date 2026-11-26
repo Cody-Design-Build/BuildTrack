@@ -33,12 +33,12 @@ export function PartyLink({ id, size = 22, className }: { id: string; size?: num
 
 const ROLE_STYLE: Record<string, string> = {
   Customer: 'bg-primary/10 text-primary border-primary/20',
-  Subcontractor: 'bg-sky-500/10 text-sky-700 border-sky-500/20',
-  Supplier: 'bg-sky-500/10 text-sky-700 border-sky-500/20',
-  Vendor: 'bg-sky-500/10 text-sky-700 border-sky-500/20',
-  Architect: 'bg-violet-500/10 text-violet-700 border-violet-500/20',
-  Designer: 'bg-violet-500/10 text-violet-700 border-violet-500/20',
-  Engineer: 'bg-violet-500/10 text-violet-700 border-violet-500/20',
+  Subcontractor: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
+  Supplier: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
+  Vendor: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
+  Architect: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
+  Designer: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
+  Engineer: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
 };
 
 /** A job role or account type, coloured by family (customers, trades, design). */

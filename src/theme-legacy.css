@@ -1,0 +1,64 @@
+/* Theme-aware colours for the older hand-written styles in styles.css.
+ *
+ * styles.css has a few colours written in directly (pale orange tints, light
+ * greys, the Gantt chart's blues). This file sits in a cascade layer just
+ * above it, so these rules replace those colours with theme tokens and work in
+ * dark mode. Once styles.css settles, these can be folded back into it.
+ */
+
+.btn.saved:disabled,
+.btn-group .btn:disabled,
+.g-tools {
+  color: var(--disabled);
+}
+
+.tag,
+.k-col.over,
+.chip.on {
+  background: var(--primary-soft);
+}
+
+/* Gantt chart */
+.g-headrow,
+.g-headrow span,
+.g-months {
+  color: var(--gantt-head-fg);
+}
+.g-headrow span {
+  border-color: var(--gantt-head-rule);
+}
+.g-months span {
+  border-left-color: var(--gantt-head-rule);
+}
+.g-lines span.week {
+  background: var(--faint);
+}
+[data-mode='dark'] .g-lines span.week {
+  background: var(--border-strong);
+}
+.g-jobbar,
+.g-bar {
+  background: var(--info-soft);
+}
+.g-prog {
+  background: var(--info);
+}
+
+.b-note {
+  background: var(--success-soft);
+  color: var(--success-strong);
+}
+
+[data-mode='dark'] .modal-backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+[data-mode='dark'] .modal {
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+  border: 1px solid var(--border);
+}
+
+/* The customer document stays on white paper in every theme; give it an
+   edge so it doesn't glow against a dark page. */
+[data-mode='dark'] .budget-doc {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.5);
+}

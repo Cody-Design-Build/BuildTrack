@@ -99,7 +99,7 @@ const TABLES: { key: keyof Db; label: string; what: string }[] = [
   { key: 'team', label: 'team', what: 'Your own team members' },
 ];
 
-function DataCard() {
+export function DataCard() {
   const { db, update } = useStore();
   const file = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState('');
@@ -150,43 +150,6 @@ function DataCard() {
         {note && <p className="form-note small">{note}</p>}
       </div>
     </section>
-  );
-}
-
-export function SettingsPage() {
-  const { db, update, reset } = useStore();
-  const [name, setName] = useState(db.companyName);
-  return (
-    <div className="page scroll">
-      <PageHeader title="Settings" />
-      <div className="detail narrow">
-        <section className="card">
-          <div className="card-head"><h2>Company</h2></div>
-          <div className="card-body">
-            <Field label="Company name">
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </Field>
-            <div className="row-end">
-              <button type="button" className="btn primary" onClick={() => update((d) => ({ ...d, companyName: name.trim() || d.companyName }))}>Save</button>
-            </div>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-head"><h2>Team</h2></div>
-          <div className="card-body">
-            {db.team.map((m) => <div key={m.id} className="list-row"><span className="grow">{m.name}</span><span className="muted">{m.initials}</span></div>)}
-          </div>
-        </section>
-        <DataCard />
-        <section className="card">
-          <div className="card-head"><h2>Start over</h2></div>
-          <div className="card-body">
-            <p className="form-note">Your data is saved in this browser. Resetting brings back the sample data.</p>
-            <button type="button" className="btn danger" onClick={() => confirm('Reset all data to the sample data?') && reset()}>Reset sample data</button>
-          </div>
-        </section>
-      </div>
-    </div>
   );
 }
 

@@ -34,6 +34,13 @@ npm run dev
 
 The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/components/ui/`) on Tailwind CSS v4. Theme colours live in `src/index.css`; the older hand-written styles in `src/styles.css` are loaded in a lower cascade layer, so Tailwind classes always win where they meet. Add more components with `npx shadcn@latest add <name>`.
 
+## Themes and dark mode
+
+**Settings → Appearance** picks a colour theme (BuildTrack, Graphite, Nord, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Solarized) and Light, Dark or System mode. The choice is saved per browser (`bt-appearance` in localStorage), not in the company data, and `index.html` applies it before the first paint. Customer documents (budgets, invoices, PDFs) always stay black on white.
+
+- Themes live in `src/themes.css`: each one sets a few base colours for light and dark, and the rest are worked out from them. To add one, add a pair of `[data-theme]` blocks there and an entry in `THEMES` in `src/appearance.ts`.
+- `src/theme-legacy.css` swaps the few colours written directly into `src/styles.css` for theme colours.
+
 ## Build
 
 ```

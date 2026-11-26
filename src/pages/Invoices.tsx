@@ -43,8 +43,8 @@ export function BillingCards({ job }: { job: Job }) {
   return (
     <div className="b-summary">
       <Stat label="Contract" value={money(b.contract)} sub="Approved proposals and change orders" />
-      <Stat label="Billed to date" value={money(b.billed)} bar={{ pct: pctOf(b.billed, b.contract), color: '#51a2ff' }} sub={`${Math.round(pctOf(b.billed, b.contract))}% of contract`} />
-      <Stat label="Received" value={money(b.received)} bar={{ pct: pctOf(b.received, b.billed), color: '#00c950' }} sub={`${Math.round(pctOf(b.received, b.billed))}% of billed`} />
+      <Stat label="Billed to date" value={money(b.billed)} bar={{ pct: pctOf(b.billed, b.contract), color: 'var(--info)' }} sub={`${Math.round(pctOf(b.billed, b.contract))}% of contract`} />
+      <Stat label="Received" value={money(b.received)} bar={{ pct: pctOf(b.received, b.billed), color: 'var(--success)' }} sub={`${Math.round(pctOf(b.received, b.billed))}% of billed`} />
       <Stat label="Outstanding" value={money(b.outstanding)} sub={b.overdue > 0 ? `${money(b.overdue)} overdue` : 'Billed, not yet received'} />
       <Stat label="Left to bill" value={money(b.left)} sub={b.drafts ? `${money(b.drafts)} in drafts` : `${Math.round(pctOf(b.left, b.contract))}% of contract`} />
     </div>

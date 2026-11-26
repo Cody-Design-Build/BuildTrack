@@ -248,7 +248,7 @@ export default function Home() {
                   to={`/tasks?id=${t.id}`}
                   className="group flex items-center gap-3 rounded-lg p-3 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                     <Hammer className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">

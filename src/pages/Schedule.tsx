@@ -42,7 +42,7 @@ export function ScheduleTable({ entries, showJob = false, onEdit }: {
               <td className="whitespace-nowrap">{entry.end || '—'}</td>
               <td>{crewNames(entry, team) || 'Unassigned'}</td>
               <td className="num">
-                <span className="bar-track j-mini"><span className="bar-fill" style={{ width: `${entry.progress}%`, background: '#51a2ff' }} /></span> {entry.progress}%
+                <span className="bar-track j-mini"><span className="bar-fill" style={{ width: `${entry.progress}%`, background: 'var(--info)' }} /></span> {entry.progress}%
               </td>
             </tr>
           ))}

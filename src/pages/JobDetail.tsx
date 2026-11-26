@@ -76,7 +76,7 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
           </div>
           <div><MapPin size={14} /> {job.address || <span className="muted">No address</span>}</div>
           <div><Calendar size={14} /> {job.start} → {job.end}</div>
-          <div><span className="muted j-lbl">Progress</span><span className="bar-track"><span className="bar-fill" style={{ width: `${progress}%`, background: '#51a2ff' }} /></span> {progress}%</div>
+          <div><span className="muted j-lbl">Progress</span><span className="bar-track"><span className="bar-fill" style={{ width: `${progress}%`, background: 'var(--info)' }} /></span> {progress}%</div>
           <div><span className="muted j-lbl">Contract</span> {job.total ? money(job.total) : <span className="muted">Not signed yet</span>}</div>
         </div>
       </section>
