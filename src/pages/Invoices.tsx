@@ -6,7 +6,7 @@ import { useLookups, useStore, money, uid } from '../store';
 import { type Invoice, type Job } from '../data';
 import { budgetLabel, linesByBudget } from '../budgets';
 import { STAGE_COLOR, billableBudgets, createInvoice, invoiceLabel, invoiceMoney, invoiceStage, jobBilling, type InvoiceStage } from '../invoices';
-import { PaymentsTable, fmtDate } from '../components/Payments';
+import { PaidOn, PaymentsTable, fmtDate } from '../components/Payments';
 import { Pill } from './Budgets';
 
 const STAGES: InvoiceStage[] = ['Draft', 'Sent', 'Partially paid', 'Overdue', 'Paid', 'Void'];
@@ -91,7 +91,7 @@ function InvoiceTable({ invoices, showJob }: { invoices: Invoice[]; showJob?: bo
                 {!showJob && <td className="whitespace-nowrap">{fmtDate(i.date)}</td>}
                 <td className={'whitespace-nowrap' + (stage === 'Overdue' ? ' font-medium text-destructive' : '')}>{fmtDate(i.due)}</td>
                 <td className="num">{money(m.amount, true)}</td>
-                <td className="num">{m.paid ? money(m.paid, true) : <span className="muted">—</span>}</td>
+                <td className="num">{m.paid ? <>{money(m.paid, true)}<PaidOn count={m.payments} last={m.lastPaid} /></> : <span className="muted">—</span>}</td>
                 <td className="num bold">{i.status === 'Sent' || i.status === 'Paid' ? money(m.balance, true) : <span className="muted">—</span>}</td>
               </tr>
             );

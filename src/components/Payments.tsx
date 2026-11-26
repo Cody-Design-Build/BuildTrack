@@ -11,6 +11,15 @@ import { deletePayment, invoiceLabel, invoiceMoney, recordPayment, todayYmd } fr
 
 export const fmtDate = (ymd: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
+/**
+ * When money came in, for a list row: "Nov 24, 2026", or "2 payments · last Nov 24, 2026".
+ * Shared so anything paid in installments (invoices now, vendor bills later) reads the same.
+ */
+export function PaidOn({ count, last }: { count: number; last: string }) {
+  if (!count) return null;
+  return <div className="text-xs text-muted-foreground">{count > 1 ? `${count} payments · last ` : ''}{fmtDate(last)}</div>;
+}
+
 /** Dialog for money received against one sent invoice. Defaults to the full balance. */
 export function PaymentForm({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
   const { db, update } = useStore();

@@ -9,7 +9,7 @@ import { NumCell, TextCell } from '../components/Cells';
 import { Segmented, useRememberedChoice } from '../components/DocLayout';
 import { History } from '../components/BudgetSigning';
 import { InvoiceDocument } from '../components/InvoiceDocument';
-import { PaymentForm, PaymentsTable } from '../components/Payments';
+import { PaymentForm, PaymentsTable, fmtDate } from '../components/Payments';
 import { useLookups, useStore, money } from '../store';
 import { INVOICE_STATUSES, type Invoice, type InvoiceStatus } from '../data';
 import { budgetLabel, linesByBudget } from '../budgets';
@@ -119,8 +119,13 @@ export default function InvoiceDetail() {
         <Link to={`/jobs?job=${invoice.jobId}&tab=invoices`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} invoices</Link>
         <StatusMenu value={invoice.status} statuses={INVOICE_STATUSES} allowed={allowed} colors={INVOICE_STATUS_COLOR} onSelect={move} hint={invoice.status === 'Sent' && payments.length ? 'It becomes Paid when payments cover it. Remove its payments before voiding it.' : STATUS_HINT[invoice.status]} />
         {stage !== invoice.status && <span className="text-xs font-medium" style={{ color: STAGE_COLOR[stage] }}>{stage}</span>}
+        {m.lastPaid && (
+          <span className="text-xs font-medium">
+            {invoice.status === 'Paid' ? `Paid in full ${fmtDate(m.lastPaid)}` : `Last payment ${fmtDate(m.lastPaid)}`}
+          </span>
+        )}
         {!editable && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Lock size={12} /> Locked{invoice.status === 'Paid' ? ' · paid' : invoice.status === 'Sent' ? ' · sent to the customer' : ''}</span>
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Lock size={12} /> Locked{invoice.status === 'Sent' ? ' · sent to the customer' : ''}</span>
         )}
         <span className="grow" />
         <Segmented label="View" options={VIEWS} value={view} onChange={setView} />

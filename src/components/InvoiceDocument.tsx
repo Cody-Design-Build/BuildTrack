@@ -3,7 +3,7 @@
 import { Fragment } from 'react';
 import { COMPANY_LICENSE, type Db, type Invoice } from '../data';
 import { budgetLabel } from '../budgets';
-import { invoiceMoney, invoiceTotals, weightedPct, type InvoiceRow } from '../invoices';
+import { invoiceMoney, invoicePayments, invoiceTotals, weightedPct, type InvoiceRow } from '../invoices';
 import { money, type Lookups } from '../store';
 
 const longDate = (ymd?: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '');
@@ -125,7 +125,9 @@ export function InvoiceDocument({ invoice, db, L }: { invoice: Invoice; db: Db; 
             <tr><th>Billed to date</th><td>{cents(t.toDate)}</td></tr>
             <tr><th>Balance to finish</th><td>{cents(t.remaining)}</td></tr>
             <tr><th>This invoice</th><td>{cents(t.amount)}</td></tr>
-            {m.paid > 0 && <tr><th>Payments received</th><td>−{cents(m.paid)}</td></tr>}
+            {invoicePayments(db, invoice.id).map((p) => (
+              <tr key={p.id}><th>Payment received {longDate(p.date)} <span className="bd-muted">· {p.method}{p.reference ? ` #${p.reference}` : ''}</span></th><td>−{cents(p.amount)}</td></tr>
+            ))}
             <tr className="bd-grand"><th>{m.balance < 0 ? 'Credit' : 'Balance due'}</th><td>{cents(Math.abs(m.paid > 0 || invoice.status === 'Paid' ? m.balance : t.amount))}</td></tr>
           </tbody>
         </table>

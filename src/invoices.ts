@@ -136,9 +136,11 @@ export const todayYmd = () => localIso().slice(0, 10);
 /** What an invoice bills, what has been paid on it, and what is still owed. */
 export function invoiceMoney(db: Db, inv: Invoice, byBudget = linesByBudget(db)) {
   const amount = invoiceTotals(db, inv, byBudget).amount;
-  const paid = round2(invoicePayments(db, inv.id).reduce((s, p) => s + p.amount, 0));
+  const pays = invoicePayments(db, inv.id);
+  const paid = round2(pays.reduce((s, p) => s + p.amount, 0));
   const balance = inv.status === 'Sent' || inv.status === 'Paid' ? round2(amount - paid) : 0;
-  return { amount, paid, balance };
+  // lastPaid: date (yyyy-mm-dd) of the most recent payment, '' if none
+  return { amount, paid, balance, payments: pays.length, lastPaid: pays.length ? pays[pays.length - 1].date : '' };
 }
 
 export type InvoiceStage = InvoiceStatus | 'Partially paid' | 'Overdue';
