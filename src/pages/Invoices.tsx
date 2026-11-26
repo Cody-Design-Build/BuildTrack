@@ -39,12 +39,12 @@ export function BillingCards({ job }: { job: Job }) {
   const billedPct = b.contract ? (b.billed / b.contract) * 100 : 0;
   return (
     <div className="b-summary">
-      <Stat label="Contract" value={money(b.contract)} sub="Approved proposals + change orders" />
+      <Stat label="Approved" value={money(b.contract)} sub="All signed proposals and change orders" />
       <div className="card stat">
         <span className="stat-label">Billed to date</span>
         <b>{money(b.billed)}</b>
         <span className="bar-track"><span className="bar-fill" style={{ width: `${Math.min(100, billedPct)}%`, background: '#51a2ff' }} /></span>
-        <span className="muted small-text">{Math.round(billedPct)}% of contract</span>
+        <span className="muted small-text">{Math.round(billedPct)}% of approved</span>
       </div>
       <Stat label="Paid" value={money(b.paid)} />
       <Stat label="Outstanding" value={money(b.outstanding)} sub="Sent, not yet paid" />

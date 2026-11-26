@@ -249,7 +249,8 @@ export function migrateBudgets(old: PreBudgetDb, now = new Date(Date.now() - new
       status: doc ? status(doc.status) : job.total > 0 ? 'Approved' : 'Draft',
       partyId: doc?.partyId || customerOf(old, job.id),
       notes: '',
-      created: now,
+      // the job's original scope: date it from the job's start, so change orders count it as earlier
+      created: job.start ? `${job.start}T00:00:00` : now,
       updated: now,
     };
     budgets.push(b);
@@ -268,9 +269,12 @@ export function migrateBudgets(old: PreBudgetDb, now = new Date(Date.now() - new
   // Proposal and change-order documents without a budget table keep their total as one line.
   for (const d of docs) {
     if (!BUDGET_DOC_KINDS.includes(d.kind) || used.has(d.id)) continue;
+    const start = old.jobs.find((j) => j.id === d.jobId)?.start;
     const b: Budget = {
       id: d.id, jobId: d.jobId, kind: d.kind as BudgetKind, number: d.number, title: '',
-      status: status(d.status), partyId: d.partyId, notes: '', created: now, updated: now,
+      status: status(d.status), partyId: d.partyId, notes: '',
+      // proposals date from the job's start (see above); change orders from when they were converted
+      created: d.kind === 'Proposal' && start ? `${start}T00:00:00` : now, updated: now,
     };
     budgets.push(b);
     budgetLines.push({

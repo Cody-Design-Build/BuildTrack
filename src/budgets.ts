@@ -39,7 +39,7 @@ export function linesByBudget(db: Db) {
   return m;
 }
 
-/** The job's money picture: approved contract (proposals + change orders), awaiting signature, and spent. */
+/** The job's money picture: everything approved (every signed proposal and change order), awaiting signature, and spent. */
 export function jobRollup(db: Db, jobId: string) {
   const byBudget = linesByBudget(db);
   const sum = (bs: Budget[]) => bs.reduce((s, b) => {
@@ -48,15 +48,10 @@ export function jobRollup(db: Db, jobId: string) {
   }, { cost: 0, price: 0 });
   const budgets = db.budgets.filter((b) => b.jobId === jobId);
   const approved = budgets.filter((b) => b.status === 'Approved');
-  const proposals = sum(approved.filter((b) => b.kind === 'Proposal'));
-  const changeOrders = sum(approved.filter((b) => b.kind === 'Change Order'));
   const pending = sum(budgets.filter((b) => b.status === 'Sent'));
   const spent = db.expenses.filter((e) => e.jobId === jobId).reduce((s, e) => s + e.amount, 0);
-  const contract = { cost: proposals.cost + changeOrders.cost, price: proposals.price + changeOrders.price };
   return {
-    proposals,
-    changeOrders,
-    contract,
+    contract: sum(approved), // the job's contract: all approved budgets together
     pending,
     pendingCount: budgets.filter((b) => b.status === 'Sent').length,
     draftCount: budgets.filter((b) => b.status === 'Draft').length,
@@ -197,19 +192,14 @@ export function deleteBudget(d: Db, id: string): Db {
 
 /** Edits a draft budget's own fields or lines; refuses anything locked. */
 /**
- * The contract before and after a change order: approved proposals plus approved change orders
- * created before this one. Gives a change-order document its "previous / this / new" summary.
+ * What was approved on the job before this budget: every approved proposal and change order
+ * created before it. Gives a change-order document its "previously approved / this / new" summary.
  */
-export function contractBefore(db: Db, b: Budget) {
+export function approvedBefore(db: Db, b: Budget) {
   const byBudget = linesByBudget(db);
-  const earlier = db.budgets.filter(
-    (x) => x.jobId === b.jobId && x.id !== b.id && x.status === 'Approved' && (x.kind === 'Proposal' || x.created < b.created),
-  );
-  const price = (xs: Budget[]) => xs.reduce((s, x) => s + totals(byBudget.get(x.id) ?? []).price, 0);
-  return {
-    original: price(earlier.filter((x) => x.kind === 'Proposal')),
-    previousChanges: price(earlier.filter((x) => x.kind === 'Change Order')),
-  };
+  return db.budgets
+    .filter((x) => x.jobId === b.jobId && x.id !== b.id && x.status === 'Approved' && x.created < b.created)
+    .reduce((s, x) => s + totals(byBudget.get(x.id) ?? []).price, 0);
 }
 
 export function editBudget(d: Db, id: string, fn: (b: Budget, lines: BudgetLine[]) => { budget?: Partial<Budget>; lines?: BudgetLine[] }): Db {

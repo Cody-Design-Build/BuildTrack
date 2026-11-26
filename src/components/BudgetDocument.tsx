@@ -1,7 +1,7 @@
 // The customer-facing document for a proposal or change order. It shows prices only (never
 // cost or markup), and is what gets printed or saved as a PDF.
 import { COMPANY_LICENSE, DEFAULT_DISPLAY, type Budget, type BudgetLine, type Db } from '../data';
-import { contractBefore, totals } from '../budgets';
+import { approvedBefore, totals } from '../budgets';
 import { linePrice, money, type Lookups } from '../store';
 
 const longDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '');
@@ -16,7 +16,7 @@ export function BudgetDocument({ budget, lines, db, L }: { budget: Budget; lines
   const groups = [...new Set(lines.map((l) => l.group))];
   const total = totals(lines).price;
   const isCO = budget.kind === 'Change Order';
-  const before = isCO ? contractBefore(db, budget) : null;
+  const before = isCO ? approvedBefore(db, budget) : null;
   const sentOn = budget.statusDates?.Sent;
   const approvedOn = budget.approval?.date ? `${budget.approval.date}T12:00:00` : budget.statusDates?.Approved ?? (budget.status === 'Approved' ? budget.updated : undefined);
   const stamp = budget.status === 'Draft' ? 'Draft' : budget.status === 'Void' ? 'Void' : budget.status === 'Declined' ? 'Declined' : '';
@@ -132,15 +132,14 @@ export function BudgetDocument({ budget, lines, db, L }: { budget: Budget; lines
       <section className="bd-totals">
         <table>
           <tbody>
-            {before && (
+            {before !== null && (
               <>
-                <tr><th>Original contract</th><td>{cents(before.original)}</td></tr>
-                <tr><th>Previous change orders</th><td>{cents(before.previousChanges)}</td></tr>
+                <tr><th>Previously approved</th><td>{cents(before)}</td></tr>
                 <tr><th>This change order</th><td>{cents(total)}</td></tr>
-                <tr className="bd-grand"><th>New contract total</th><td>{cents(before.original + before.previousChanges + total)}</td></tr>
+                <tr className="bd-grand"><th>New approved total</th><td>{cents(before + total)}</td></tr>
               </>
             )}
-            {!before && <tr className="bd-grand"><th>Total</th><td>{cents(total)}</td></tr>}
+            {before === null && <tr className="bd-grand"><th>Total</th><td>{cents(total)}</td></tr>}
           </tbody>
         </table>
       </section>
