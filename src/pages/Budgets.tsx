@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Copy, FilePlus2, FileText, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Copy, FilePlus2, FileText, Plus, Search } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PageHeader } from '../components/Layout';
 import { useLookups, useStore, money, uid } from '../store';
 import { BUDGET_KINDS, BUDGET_STATUSES, type Budget, type BudgetKind, type BudgetStatus, type Job } from '../data';
@@ -46,6 +47,34 @@ export function useCloneBudget() {
   };
 }
 
+const KIND_HINT: Record<BudgetKind, string> = {
+  Proposal: 'The main scope of work, or an option to price',
+  'Change Order': 'Added or changed work on an agreed job',
+};
+
+/** One "New" button that asks which kind of budget to start. Disabled until there is a job. */
+export function NewBudgetMenu({ jobId, label = 'New', primary = true }: { jobId: string; label?: string; primary?: boolean }) {
+  const newBudget = useNewBudget();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className={'btn' + (primary ? ' primary' : '')} disabled={!jobId}>
+        <Plus size={14} /> {label} <ChevronDown size={14} className="opacity-70" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        {BUDGET_KINDS.map((k) => (
+          <DropdownMenuItem key={k} className="items-start gap-3 py-2" onSelect={() => newBudget(jobId, k)}>
+            <FilePlus2 className="mt-0.5 size-4 text-muted-foreground" />
+            <span className="flex flex-col">
+              <span className="font-medium">{k}</span>
+              <span className="text-xs text-muted-foreground">{KIND_HINT[k]}</span>
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 type GroupBy = 'status' | 'kind' | 'job' | 'none';
 type SortKey = 'number' | 'title' | 'job' | 'customer' | 'status' | 'price' | 'updated';
 const GROUP_LABEL: Record<GroupBy, string> = { status: 'Status', kind: 'Type', job: 'Job', none: 'None' };
@@ -56,13 +85,14 @@ const STATUS_ORDER: BudgetStatus[] = ['Approved', 'Sent', 'Draft', 'Declined', '
  * A list of budgets that can be grouped (by status, type or job) and sorted. Group rows show
  * totals: grouped by status they add up the group, otherwise they show what's approved in it.
  */
-function BudgetList({ budgets, showJob, groups, storageKey, defaultSort, toolbar }: {
+function BudgetList({ budgets, showJob, groups, storageKey, defaultSort, toolbar, actions }: {
   budgets: Budget[];
   showJob?: boolean;
   groups: GroupBy[];
   storageKey: string;
   defaultSort: { key: SortKey; dir: 1 | -1 };
   toolbar?: ReactNode;
+  actions?: ReactNode; // right-hand end of the toolbar, after Group by
 }) {
   const { db } = useStore();
   const L = useLookups();
@@ -133,6 +163,7 @@ function BudgetList({ budgets, showJob, groups, storageKey, defaultSort, toolbar
             </select>
           </label>
         )}
+        {actions}
       </div>
       <div className="table-wrap">
         <table className="grid-table bt-table">
@@ -209,28 +240,29 @@ function BudgetList({ budgets, showJob, groups, storageKey, defaultSort, toolbar
 /** The Budgets tab on a job: its proposals and change orders, grouped by status. */
 export function JobBudgets({ job }: { job: Job }) {
   const { db } = useStore();
-  const newBudget = useNewBudget();
   const budgets = db.budgets.filter((b) => b.jobId === job.id);
-  const buttons = (
-    <>
-      <button type="button" className="btn primary" onClick={() => newBudget(job.id, 'Proposal')}><FilePlus2 size={14} /> New Proposal</button>
-      <button type="button" className="btn" onClick={() => newBudget(job.id, 'Change Order')}><FilePlus2 size={14} /> New Change Order</button>
-    </>
-  );
+  const byBudget = useMemo(() => linesByBudget(db), [db]);
   if (budgets.length === 0) {
     return (
       <div className="b-wrap">
-        <div className="toolbar b-toolbar">{buttons}</div>
         <div className="card b-empty">
           <p>No budgets yet. Start with a proposal: it holds its own line items and becomes the document you send the customer. Add change orders, or more proposals for separate work, the same way.</p>
-          <button type="button" className="btn primary" onClick={() => newBudget(job.id, 'Proposal')}><FilePlus2 size={14} /> Create proposal</button>
+          <NewBudgetMenu jobId={job.id} label="New budget" />
         </div>
       </div>
     );
   }
+  const approved = budgets.filter((b) => b.status === 'Approved').reduce((s, b) => s + totals(byBudget.get(b.id) ?? []).price, 0);
   return (
     <div className="b-wrap">
-      <BudgetList budgets={budgets} groups={['status', 'kind', 'none']} storageKey="buildtrack-job-budgets-group" defaultSort={{ key: 'number', dir: 1 }} toolbar={buttons} />
+      <BudgetList
+        budgets={budgets}
+        groups={['status', 'kind', 'none']}
+        storageKey="buildtrack-job-budgets-group"
+        defaultSort={{ key: 'number', dir: 1 }}
+        toolbar={<span className="muted small-text">{budgets.length} {budgets.length === 1 ? 'budget' : 'budgets'} · {money(approved)} approved</span>}
+        actions={<NewBudgetMenu jobId={job.id} />}
+      />
     </div>
   );
 }
@@ -239,7 +271,6 @@ export function JobBudgets({ job }: { job: Job }) {
 export default function Budgets() {
   const { db } = useStore();
   const L = useLookups();
-  const newBudget = useNewBudget();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<BudgetKind | ''>('');
   const [status, setStatus] = useState<BudgetStatus | ''>('');
@@ -267,8 +298,7 @@ export default function Budgets() {
               <option value="">Choose a job…</option>
               {db.jobs.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}
             </select>
-            <button type="button" className="btn" disabled={!newFor} onClick={() => newBudget(newFor, 'Change Order')}><FilePlus2 size={14} /> Change Order</button>
-            <button type="button" className="btn primary" disabled={!newFor} onClick={() => newBudget(newFor, 'Proposal')}><FilePlus2 size={14} /> Proposal</button>
+            <NewBudgetMenu jobId={newFor} label="New budget" />
           </>
         }
       />

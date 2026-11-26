@@ -2069,6 +2069,11 @@ body {
   padding: 0 0 12px;
 }
 
+/* every job tab gets the same gap under the tab bar */
+.job-page .detail {
+  padding-top: 20px;
+}
+
 .j-table {
   width: 100%;
   background: var(--bg);
@@ -2456,4 +2461,10 @@ body {
   color: var(--bd-muted);
   padding: 10px 0 4px;
   border-bottom: none;
+}
+
+/* A disabled primary button in a header group still needs to look disabled */
+.btn-group .btn.primary:disabled {
+  opacity: 0.5;
+  color: var(--primary-foreground);
 }
