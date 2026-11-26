@@ -1,3 +1,5 @@
+import { migrateBudgets, type LegacyBudgetItem, type PreBudgetDb } from './migrate';
+
 // The app's data model and sample data.
 //
 // PEOPLE are standalone records. ACCOUNTS are any organisation or household we deal with
@@ -81,9 +83,8 @@ export interface Job {
   progress: number; // 0..100
 }
 
+// Proposals and change orders are budgets (see Budget below), not documents.
 export type DocKind =
-  | 'Proposal'
-  | 'Change Order'
   | 'Invoice'
   | 'Bid Request'
   | 'Subcontractor Agreement'
@@ -131,19 +132,116 @@ export interface ScheduleEntry {
 export const COST_TYPES = ['Labor', 'Materials', 'Subcontractor', 'Other'] as const;
 export type CostType = (typeof COST_TYPES)[number];
 
-/** One line of a job's budget / estimate. */
-export interface BudgetItem {
+/** A job-costing bucket, e.g. "08 Plumbing". Budget lines and expenses both point at one. */
+export interface CostCode {
+  id: string;
+  number: string; // "08"
+  name: string; // "Plumbing"
+}
+
+export const BUDGET_KINDS = ['Proposal', 'Change Order'] as const;
+export type BudgetKind = (typeof BUDGET_KINDS)[number];
+
+/** Draft is editable. Sending locks it; approved, declined and void stay locked. */
+export const BUDGET_STATUSES = ['Draft', 'Sent', 'Approved', 'Declined', 'Void'] as const;
+export type BudgetStatus = (typeof BUDGET_STATUSES)[number];
+
+/** How much detail the customer sees on the document. */
+export type BudgetDetailLevel = 'lines' | 'groups' | 'total';
+export interface BudgetDisplay {
+  detail: BudgetDetailLevel; // every line priced, one price per group, or one total for the whole scope
+  quantities: boolean; // show quantity and unit next to each line
+}
+export const DEFAULT_DISPLAY: BudgetDisplay = { detail: 'lines', quantities: true };
+
+/** A file the user uploaded. The bytes live in the browser's file store (src/files.ts). */
+export interface StoredFile {
+  fileId: string;
+  name: string;
+  type: string;
+  size: number;
+  uploaded: string; // ISO datetime
+}
+
+/** Shown on documents. */
+export const COMPANY_LICENSE = '1118207';
+
+/**
+ * A priced set of line items for a job: a proposal or a change order. Each one is its own
+ * document with its own lines. A job can have any number of them, and the job's contract
+ * is the sum of the approved ones.
+ */
+export interface Budget {
   id: string;
   jobId: string;
-  group: string; // e.g. "Demolition", "Framing"
+  kind: BudgetKind;
+  number: string; // e.g. "12-3"
+  title: string; // e.g. "Kitchen remodel — Option B"
+  status: BudgetStatus;
+  partyId: string; // who it's addressed to, usually the job's customer
+  notes: string; // shown on the document, e.g. scope notes or terms
+  created: string; // ISO datetime
+  updated: string; // ISO datetime
+  clonedFromId?: string;
+  display?: BudgetDisplay; // missing means DEFAULT_DISPLAY
+  statusDates?: Partial<Record<BudgetStatus, string>>; // when it was sent, approved, …
+  approval?: { signedBy: string; date: string }; // who signed and when (yyyy-mm-dd)
+  signedCopy?: StoredFile; // the signed document, once uploaded
+}
+
+/** One line of a budget. Lines may be negative, e.g. a credit for a fee already paid. */
+export interface BudgetLine {
+  id: string;
+  budgetId: string;
+  group: string; // section heading on the document, e.g. "Demolition"
+  costCodeId: string;
   name: string;
+  description: string;
   costType: CostType;
   quantity: number;
   unit: string; // "ea", "hr", "sqft", "lump"
   unitCost: number;
   markup: number; // percent
   vendorId: string; // account doing or supplying the work, optional
-  actual: number; // money spent so far
+}
+
+export const INVOICE_STATUSES = ['Draft', 'Sent', 'Paid', 'Void'] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+/**
+ * A progress bill to the customer. It bills percentages of the lines of one or more approved
+ * budgets (e.g. the original proposal and two change orders). For each line it stores the
+ * percent complete TO DATE; what this invoice bills is that minus what earlier invoices billed.
+ */
+export interface Invoice {
+  id: string;
+  jobId: string;
+  number: string; // e.g. "12-2"
+  title: string;
+  status: InvoiceStatus;
+  partyId: string;
+  date: string; // yyyy-mm-dd, the invoice date
+  due: string; // yyyy-mm-dd
+  notes: string;
+  budgetIds: string[]; // approved budgets this invoice bills against, in order
+  progress: Record<string, number>; // budget line id → percent complete to date (0–100)
+  billedFrom?: Record<string, number>; // percent billed before this invoice, frozen when it was sent
+  detail: 'lines' | 'groups'; // how much the customer sees on the document
+  created: string; // ISO datetime
+  updated: string; // ISO datetime
+  statusDates?: Partial<Record<InvoiceStatus, string>>;
+}
+
+/** Money spent on a job. Job costing is by cost code; linking a budget line is optional. */
+export interface Expense {
+  id: string;
+  jobId: string;
+  costCodeId: string;
+  date: string; // yyyy-mm-dd
+  amount: number;
+  vendorId: string;
+  description: string;
+  budgetLineId?: string;
 }
 
 /** Something that happened to a document, shown in the Home activity feed. */
@@ -157,11 +255,17 @@ export interface Activity {
   amount: number;
   text: string; // e.g. "Marked as approved by Sam Ortiz"
   color: string; // icon colour
+  budgetId?: string; // set for budget events, so a budget can show its own history
+  invoiceId?: string; // likewise for invoices
 }
 
 export interface Db {
   activity: Activity[];
-  items: BudgetItem[];
+  costCodes: CostCode[];
+  budgets: Budget[];
+  budgetLines: BudgetLine[];
+  expenses: Expense[];
+  invoices: Invoice[];
   people: Person[];
   accounts: Account[];
   memberships: Membership[];
@@ -203,12 +307,14 @@ const mem = (personId: string, accountId: string, title = '', primary = false): 
 
 const link = (jobId: string, partyId: string, role: string): JobLink => ({ id: `l-${jobId}-${partyId}`, jobId, partyId, role });
 
-const bi = (id: string, jobId: string, group: string, name: string, costType: CostType, quantity: number, unit: string, unitCost: number, markup: number, vendorId: string, actual: number): BudgetItem => ({
+const bi = (id: string, jobId: string, group: string, name: string, costType: CostType, quantity: number, unit: string, unitCost: number, markup: number, vendorId: string, actual: number): LegacyBudgetItem => ({
   id, jobId, group, name, costType, quantity, unit, unitCost, markup, vendorId, actual,
 });
 
 export function seed(): Db {
-  return {
+  // Written in the old one-budget-per-job shape and converted, so the sample data and saved
+  // data go through the same migration.
+  const raw: PreBudgetDb = {
     companyName: 'Cody Design Build Inc.',
     activity: [
       { id: 'a1', date: '2026-11-25T15:28:00', partyId: 'c6', jobId: 'j8', title: 'Sam Ortiz', doc: 'Proposal 135-4', amount: 58460, text: 'Marked as approved by Sam Ortiz for Sam Ortiz at 538 Market St', color: '#00c950' },
@@ -371,7 +477,6 @@ export function seed(): Db {
     ],
     docs: [
       { id: 'd1', jobId: 'j9', partyId: 'c3', kind: 'Invoice', number: '142-1', amount: 4500, status: 'Open' },
-      { id: 'd2', jobId: 'j12', partyId: 'c1', kind: 'Change Order', number: '133-58', amount: 6772, status: 'Pending' },
       { id: 'd3', jobId: 'j5', partyId: 'c10', kind: 'Proposal', number: '144-1', amount: 14837, status: 'Pending' },
       { id: 'd4', jobId: 'j12', partyId: 'v2', kind: 'Subcontractor Agreement', number: '133-69', amount: 33000, status: 'Pending' },
       { id: 'd5', jobId: 'j12', partyId: 'v2', kind: 'Subcontractor Agreement', number: '133-68', amount: 17000, status: 'Pending' },
@@ -396,4 +501,67 @@ export function seed(): Db {
       { id: 'k6', jobId: 'j8', name: 'Fixtures', start: '2026-12-07', end: '2026-12-18', crewIds: ['u2'], progress: 0 },
     ],
   };
+  return withSampleInvoices(withSampleBudgets(migrateBudgets(raw, '2026-11-20T10:00:00')));
+}
+
+/** Sample progress invoices: a paid deposit, a sent progress bill and an empty draft. */
+function withSampleInvoices(db: Db): Db {
+  const linesOf = (budgetId: string) => db.budgetLines.filter((l) => l.budgetId === budgetId);
+  const pct = (budgetId: string, f: (l: BudgetLine) => number) => Object.fromEntries(linesOf(budgetId).map((l) => [l.id, f(l)]));
+  const inv = (p: Omit<Invoice, 'title' | 'notes' | 'detail' | 'updated'> & Partial<Invoice>): Invoice => ({ title: '', notes: '', detail: 'lines', updated: p.created, ...p });
+  // progress on 2243 Lincoln by mid-November: demo done, framing mostly done, PM a quarter
+  const lincoln = (l: BudgetLine) => ({ Demolition: 100, Framing: 60, 'Project Management': 25, Credits: 100 } as Record<string, number>)[l.group] ?? 10;
+  const invoices: Invoice[] = [
+    inv({ id: 'inv-j12-1', jobId: 'j12', number: '12-1', title: 'Deposit', status: 'Paid', partyId: 'c1', date: '2026-10-12', due: '2026-10-26', budgetIds: ['bud-j12'], progress: pct('bud-j12', () => 10), billedFrom: {}, created: '2026-10-12T09:00:00', statusDates: { Sent: '2026-10-12T09:30:00', Paid: '2026-10-20T15:00:00' }, detail: 'groups', notes: '10% deposit on the construction contract.' }),
+    inv({ id: 'inv-j12-2', jobId: 'j12', number: '12-2', title: 'Progress billing — November', status: 'Sent', partyId: 'c1', date: '2026-11-15', due: '2026-11-29', budgetIds: ['bud-j12', 'co-j12-1'], progress: { ...pct('bud-j12', lincoln), ...pct('co-j12-1', () => 50) }, billedFrom: pct('bud-j12', () => 10), created: '2026-11-15T09:00:00', statusDates: { Sent: '2026-11-15T10:00:00' } }),
+    inv({ id: 'inv-j12-3', jobId: 'j12', number: '12-3', status: 'Draft', partyId: 'c1', date: '2026-11-26', due: '2026-12-10', budgetIds: ['bud-j12', 'co-j12-1'], progress: {}, created: '2026-11-26T08:00:00' }),
+    inv({ id: 'inv-j8-1', jobId: 'j8', number: '8-1', title: 'Progress billing', status: 'Paid', partyId: 'c6', date: '2026-11-02', due: '2026-11-16', budgetIds: ['d9'], progress: pct('d9', (l) => (l.group === 'Demolition' ? 100 : 50)), billedFrom: {}, created: '2026-11-02T09:00:00', statusDates: { Sent: '2026-11-02T09:00:00', Paid: '2026-11-09T11:00:00' } }),
+  ];
+  return { ...db, invoices };
+}
+
+/** Extra sample budgets: change orders, a credit line, and two alternate proposals. */
+function withSampleBudgets(db: Db): Db {
+  const cc = (name: string) => db.costCodes.find((c) => c.name === name)?.id ?? '';
+  let n = 0;
+  const line = (budgetId: string, group: string, code: string, name: string, costType: CostType, quantity: number, unit: string, unitCost: number, markup: number, vendorId = '', description = ''): BudgetLine => ({
+    id: `sl${++n}`, budgetId, group, costCodeId: cc(code), name, description, costType, quantity, unit, unitCost, markup, vendorId,
+  });
+  const at = (date: string) => ({ created: `${date}T10:00:00`, updated: `${date}T10:00:00` });
+  const budgets: Budget[] = [
+    { id: 'co-j12-1', jobId: 'j12', kind: 'Change Order', number: '12-2', title: 'Pantry cabinets', status: 'Approved', partyId: 'c1', notes: 'Adds a full-height pantry wall next to the refrigerator.', ...at('2026-11-06') },
+    { id: 'co-j12-2', jobId: 'j12', kind: 'Change Order', number: '12-3', title: 'Heated bathroom floor and shower niches', status: 'Sent', partyId: 'c1', notes: '', ...at('2026-11-18') },
+    { id: 'co-j12-3', jobId: 'j12', kind: 'Change Order', number: '12-4', title: 'Garage outlet relocation', status: 'Draft', partyId: 'c1', notes: '', ...at('2026-11-25') },
+    { id: 'alt-j2-b', jobId: 'j2', kind: 'Proposal', number: '2-2', title: '697 Ridge - Remodel — Option B (custom cabinets)', status: 'Draft', partyId: 'c6', notes: 'Same scope as Option A with custom cabinetry and quartz counters.', clonedFromId: 'bud-j2', ...at('2026-11-24') },
+  ];
+  const lines: BudgetLine[] = [
+    line('co-j12-1', 'Cabinets & Finishes', 'Cabinets & Finishes', 'Pantry cabinets, full height', 'Materials', 1, 'lump', 8600, 18),
+    line('co-j12-1', 'Cabinets & Finishes', 'Cabinets & Finishes', 'Install pantry cabinets', 'Labor', 24, 'hr', 75, 25),
+    line('co-j12-2', 'Tile', 'Tile', 'Radiant floor heat mat & thermostat', 'Materials', 1, 'lump', 1450, 20),
+    line('co-j12-2', 'Electrical', 'Electrical', 'Dedicated circuit for floor heat', 'Subcontractor', 1, 'lump', 1200, 15, 'v4'),
+    line('co-j12-2', 'Tile', 'Tile', 'Two recessed shower niches', 'Labor', 16, 'hr', 70, 25),
+    line('co-j12-2', 'Tile', 'Tile', 'Tile labor adjustment', 'Subcontractor', 1, 'lump', 1960, 15, 'v1'),
+    line('co-j12-3', 'Electrical', 'Electrical', 'Move two garage outlets', 'Subcontractor', 1, 'lump', 650, 15, 'v4'),
+    // A credit on the original scope for a design fee already paid under another contract.
+    line('bud-j12', 'Credits', 'Design & Permits', 'Credit: design fee paid under design agreement', 'Other', 1, 'lump', -5000, 0, '', 'Applied toward the construction contract.'),
+    line('alt-j2-b', 'Demolition', 'Demolition', 'Selective demolition', 'Labor', 40, 'hr', 65, 25),
+    line('alt-j2-b', 'Kitchen', 'Kitchen', 'Custom cabinets', 'Materials', 1, 'lump', 26500, 20),
+    line('alt-j2-b', 'Kitchen', 'Kitchen', 'Quartz countertops', 'Subcontractor', 1, 'lump', 9800, 15),
+  ];
+  const out: Db = {
+    ...db,
+    budgets: [
+      ...db.budgets.map((b) => (b.id === 'bud-j2' ? { ...b, title: `${b.title} — Option A (stock cabinets)`, ...at('2026-11-22') } : b)),
+      ...budgets,
+    ],
+    budgetLines: [...db.budgetLines, ...lines],
+  };
+  // Signed jobs' contract totals come from their approved budgets.
+  const price = (l: BudgetLine) => l.quantity * l.unitCost * (1 + l.markup / 100);
+  out.jobs = out.jobs.map((j) => {
+    const approved = new Set(out.budgets.filter((b) => b.jobId === j.id && b.status === 'Approved').map((b) => b.id));
+    if (approved.size === 0) return j;
+    return { ...j, total: Math.round(out.budgetLines.filter((l) => approved.has(l.budgetId)).reduce((s, l) => s + price(l), 0)) };
+  });
+  return out;
 }

@@ -30,7 +30,8 @@ function AccountDetail({ account }: { account: Account }) {
   const viaPeople = members.flatMap((m) => (L.linksByParty.get(m.personId) ?? []).filter((l) => !linkedJobs.has(l.jobId)));
   const docs = db.docs.filter((d) => d.partyId === account.id);
   const tasks = db.tasks.filter((t) => t.partyId === account.id && !t.done);
-  const budgetLines = db.items.filter((i) => i.vendorId === account.id);
+  const budgetById = new Map(db.budgets.map((b) => [b.id, b] as const));
+  const budgetLines = db.budgetLines.filter((i) => i.vendorId === account.id);
 
   return (
     <div className="page scroll">
@@ -152,7 +153,9 @@ function AccountDetail({ account }: { account: Account }) {
                   <Row key={i.id}>
                     <Hammer className="size-4 shrink-0 text-muted-foreground" />
                     <span className="truncate text-sm text-foreground">{i.name}</span>
-                    <Link to={`/jobs?job=${i.jobId}&tab=budget`} className="truncate text-xs text-muted-foreground hover:text-primary">{L.job.get(i.jobId)?.name}</Link>
+                    <Link to={`/budgets/${i.budgetId}`} className="truncate text-xs text-muted-foreground hover:text-primary">
+                      {L.job.get(budgetById.get(i.budgetId)?.jobId ?? '')?.name} · {budgetById.get(i.budgetId)?.kind} {budgetById.get(i.budgetId)?.number}
+                    </Link>
                     <span className="ml-auto text-sm tabular-nums">{money(i.quantity * i.unitCost)}</span>
                   </Row>
                 ))}

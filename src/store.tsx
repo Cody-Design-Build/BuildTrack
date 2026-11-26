@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { seed, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
-import { isLegacy, migrateLegacy, migrateSchedule } from './migrate';
+import { pruneFiles } from './files';
+import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
-export const KEY = 'buildtrack-db-v5';
-const LEGACY_KEYS = ['buildtrack-db-v4', 'buildtrack-db-v3'];
+export const KEY = 'buildtrack-db-v6';
+const LEGACY_KEYS = ['buildtrack-db-v5', 'buildtrack-db-v4', 'buildtrack-db-v3'];
 
 /** Parses saved data or a backup file and migrates older records. */
 export function parseDb(raw: string): Db {
   const parsed = JSON.parse(raw) as (Db | ReturnType<typeof migrateLegacy>) & { messages?: unknown };
   delete parsed.messages; // Drop legacy messages from browser saves and restored backups.
-  const db = migrateSchedule(isLegacy(parsed) ? migrateLegacy(parsed) : parsed);
-  if (!db.items) db.items = seed().items; // data saved before budgets existed
+  const scheduled: unknown = migrateSchedule(isLegacy(parsed) ? migrateLegacy(parsed) : parsed);
+  const db = isBudgetDb(scheduled) ? scheduled : migrateBudgets(scheduled as PreBudgetDb);
+  if (!db.invoices) db.invoices = []; // saved before invoices existed
   if (!db.activity) db.activity = seed().activity;
   return db;
 }
@@ -50,6 +52,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [db]);
+  // Drop stored files nothing points at (replaced or removed signed copies). Only at start-up,
+  // because undo can bring back a reference during the session.
+  useEffect(() => {
+    const keep = new Set(hist.now.budgets.map((b) => b.signedCopy?.fileId).filter((x): x is string => !!x));
+    pruneFiles(keep).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const update = useCallback(
     (fn: (db: Db) => Db) => setHist((h) => ({ past: [...h.past.slice(-49), h.now], now: fn(h.now), future: [] })),
     [],
@@ -70,6 +79,12 @@ export function useStore(): Store {
   if (!s) throw new Error('StoreProvider missing');
   return s;
 }
+
+/** The local date and time as "yyyy-mm-ddThh:mm:ss" (no time zone), the format all stored dates use. */
+export const localIso = (d = new Date()) => {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
 
 export const uid = (p: string) => p + Math.random().toString(36).slice(2, 9);
 
