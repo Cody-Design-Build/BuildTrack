@@ -8,11 +8,18 @@ import { Placeholder } from './pages/Other';
 import SettingsPage from './pages/Settings';
 import '@fontsource-variable/inter';
 import './index.css';
+import '@fontsource-variable/jetbrains-mono';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
 import { initAppearance } from './appearance';
+import { registerThemePlugins } from './theming/registry';
 import { CloudGate } from './components/CloudGate';
 import { PLUGINS } from './plugins';
 import { installedPlugins, registerPlugins, setChoices, usePlugins } from './plugins/registry';
 
+registerThemePlugins(PLUGINS);
 initAppearance();
 registerPlugins(PLUGINS);
 

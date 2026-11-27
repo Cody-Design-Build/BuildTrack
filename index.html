@@ -10,6 +10,11 @@
       try {
         var a = JSON.parse(localStorage.getItem('bt-appearance') || '{}');
         var d = a.mode === 'dark' || (a.mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        // The current theme's CSS and font, cached by src/appearance.ts (themes are data in plugins).
+        var b = JSON.parse(localStorage.getItem('bt-theme-boot') || '{}');
+        if (b.only) d = b.only === 'dark';
+        if (b.css) { var s = document.createElement('style'); s.id = 'bt-theme-boot'; s.textContent = b.css; document.head.appendChild(s); }
+        if (b.font) document.documentElement.style.setProperty('--app-font', b.font);
         var r = document.documentElement;
         r.dataset.theme = a.theme || 'buildtrack';
         r.dataset.mode = d ? 'dark' : 'light';

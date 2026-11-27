@@ -8,6 +8,7 @@
 import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { Account, Db, Job } from '../data';
+import type { ThemeDefinition } from '../theming/types';
 
 export interface PluginNavItem {
   to: string;
@@ -86,6 +87,8 @@ export interface Plugin {
   jobTabs?: JobTab[];
   jobSummary?: JobSummary[];
   accountSections?: AccountSection[];
+  /** Colour themes (with an optional font) offered in Settings → Appearance. See README → Themes. */
+  themes?: ThemeDefinition[];
 
   /** costs/v1 entries for one job, or every job when jobId is left out. */
   costEntries?(db: Db, jobId?: string): CostEntry[];

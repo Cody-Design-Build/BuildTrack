@@ -81,6 +81,6 @@ BuildTrack is live: several people use the same data at once, and every change y
 
 ## Code notes
 
-- UI: shadcn/ui components in `src/components/ui/` on Tailwind v4. Theme colours are tokens in `src/themes.css`; never write fixed colours (use `var(--primary)`, `var(--info)`, `bg-muted` …) so dark mode and themes keep working.
+- UI: shadcn/ui components in `src/components/ui/` on Tailwind v4. Themes are data in theme plugins (`src/plugins/themes-*`, see `src/plugins/README.md` → Themes) turned into colour tokens by `src/theming/engine.ts`; to add or change a look, write a theme there. Never write fixed colours (use `var(--primary)`, `var(--info)`, `bg-muted` …) so dark mode and themes keep working.
 - The status corner (top right) shows version, build, environment and the database connection; it offers **Update** when a newer build is live. Bump `version` in `package.json` for notable releases.
 - Customer documents (budgets, invoices) always render black on white.

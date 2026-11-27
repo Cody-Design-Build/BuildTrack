@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Building2, Check, Database, Monitor, Moon, Palette, Puzzle, Sun, Users, type LucideIcon } from 'lucide-react';
 import { TeamSettings } from './TeamSettings';
@@ -7,7 +7,12 @@ import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useStore } from '../store';
 import { DataCard } from './Other';
-import { ACCENTS, CORNERS, THEMES, setAppearance, useAppearance, type Accent, type Corners, type Mode } from '../appearance';
+import { ACCENTS, CORNERS, setAppearance, useAppearance, useThemes, type Accent, type Corners, type FontChoice, type Mode } from '../appearance';
+import { FONTS, fontStack, modeFor } from '../theming/engine';
+import { omarchyTheme } from '../theming/omarchy';
+import { importTheme, isTheme, removeImportedTheme, type ThemeEntry } from '../theming/registry';
+import type { ThemeDefinition } from '../theming/types';
+import { usePlugins } from '../plugins/registry';
 import { cn } from '@/lib/utils';
 import { cloud, useCloudStatus } from '../cloud';
 import { signOut } from '../components/CloudGate';
@@ -148,20 +153,68 @@ const MODES: { id: Mode; label: string; icon: LucideIcon }[] = [
 ];
 
 function AppearanceSettings() {
-  const { theme, mode, accent, corners, resolved } = useAppearance();
+  const { theme, mode, accent, corners, font, resolved } = useAppearance();
+  const themes = useThemes();
+  const on = new Set(usePlugins().map((p) => p.id));
+  const current = themes.find((e) => e.theme.id === theme)?.theme;
+  const currentMode = current ? modeFor(current, resolved) : resolved;
+  const file = useRef<HTMLInputElement>(null);
+  const [note, setNote] = useState('');
+
+  // Group by where each theme comes from: built in, each theme pack, imported here.
+  const groups: { key: string; label: string; entries: ThemeEntry[] }[] = [];
+  for (const e of themes) {
+    if (e.plugin && !on.has(e.plugin.id) && e.theme.id !== theme) continue;
+    const key = e.plugin?.id ?? 'imported';
+    let g = groups.find((x) => x.key === key);
+    if (!g) groups.push((g = { key, label: e.plugin?.name ?? 'Imported into this browser', entries: [] }));
+    g.entries.push(e);
+  }
+
+  const importFile = async (f: File) => {
+    setNote('');
+    try {
+      const text = await f.text();
+      let def: ThemeDefinition;
+      if (text.trim().startsWith('{')) {
+        const parsed = JSON.parse(text);
+        if (!isTheme(parsed)) throw new Error('That file isn’t a BuildTrack theme.');
+        def = { ...parsed, id: parsed.id.startsWith('imported-') ? parsed.id : `imported-${parsed.id}` };
+      } else {
+        const fromName = f.name.replace(/\.toml$/i, '');
+        const name = (prompt('Name this theme', fromName === 'colors' ? '' : fromName) ?? '').trim();
+        if (!name) return;
+        def = omarchyTheme(text, `imported-${slug(name)}`, name);
+      }
+      importTheme(def);
+      setAppearance({ theme: def.id });
+      setNote(`Imported “${def.name}”.`);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'Couldn’t read that file.');
+    }
+  };
+
+  const download = () => {
+    if (!current) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(current, null, 2)], { type: 'application/json' }));
+    a.download = `${current.id}.buildtrack-theme.json`;
+    a.click();
+  };
+
   return (
     <>
-      <Card title="Mode" note="System follows your computer's light or dark setting.">
+      <Card title="Mode" note="System follows your computer's light or dark setting. Themes made for one mode only keep that mode.">
         <div className="grid grid-cols-3 gap-3">
           {MODES.map(({ id, label, icon: Icon }) => (
             <Choice key={id} selected={mode === id} onSelect={() => setAppearance({ mode: id })} label={label} icon={<Icon className="size-4" />}>
               {id === 'system' ? (
                 <div className="flex">
-                  <Preview theme={theme} accent={accent} mode="light" className="w-1/2 rounded-r-none border-r-0" />
-                  <Preview theme={theme} accent={accent} mode="dark" className="w-1/2 rounded-l-none border-l-0" />
+                  <Preview theme={theme} accent={accent} mode={current ? modeFor(current, 'light') : 'light'} className="w-1/2 rounded-r-none border-r-0" />
+                  <Preview theme={theme} accent={accent} mode={current ? modeFor(current, 'dark') : 'dark'} className="w-1/2 rounded-l-none border-l-0" />
                 </div>
               ) : (
-                <Preview theme={theme} accent={accent} mode={id} />
+                <Preview theme={theme} accent={accent} mode={current ? modeFor(current, id) : id} />
               )}
             </Choice>
           ))}
@@ -169,20 +222,74 @@ function AppearanceSettings() {
       </Card>
       <Card
         title="Theme"
-        note="Each theme has a light and a dark version. Budgets and invoices you send to customers always stay black on white."
+        note="Budgets and invoices you send to customers always stay black on white. Theme packs can be switched off in Settings → Plugins."
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {THEMES.map((t) => (
-            <Choice key={t.id} selected={theme === t.id} onSelect={() => setAppearance({ theme: t.id })} label={t.name} note={t.note}>
-              <Preview theme={t.id} accent={accent} mode={resolved} />
-            </Choice>
+        <div className="space-y-5">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{g.label}</div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {g.entries.map(({ theme: t }) => (
+                  <Choice key={t.id} selected={theme === t.id} onSelect={() => setAppearance({ theme: t.id })} label={t.name} note={themeNote(t)}>
+                    <Preview theme={t.id} accent={accent} mode={modeFor(t, resolved)} />
+                  </Choice>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
+          <input
+            ref={file}
+            type="file"
+            accept=".toml,.json,application/json,text/plain"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) void importFile(f);
+            }}
+          />
+          <button type="button" className="btn" onClick={() => file.current?.click()}>
+            Import theme…
+          </button>
+          <button type="button" className="btn" onClick={download} disabled={!current}>
+            Download this theme
+          </button>
+          {current?.id.startsWith('imported-') && (
+            <button type="button" className="btn danger" onClick={() => confirm(`Remove “${current.name}” from this browser?`) && (removeImportedTheme(current.id), setAppearance({ theme: 'buildtrack' }))}>
+              Remove “{current.name}”
+            </button>
+          )}
+        </div>
+        <p className="form-note small mt-2 text-muted-foreground">
+          Import an Omarchy <code>colors.toml</code> (from <code>~/.config/omarchy/themes/…</code>) or a downloaded BuildTrack theme. Imported themes stay in this
+          browser. To add a theme for everyone, ask an agent to add it to a theme plugin (see <code>src/plugins/README.md</code>).
+        </p>
+        {note && <p className="form-note small mt-1">{note}</p>}
       </Card>
       <Card title="Accent colour" note="Buttons, links and highlights. Each colour is drawn from the current theme's own palette, so it always fits.">
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((a) => (
-            <AccentSwatch key={a.id} id={a.id} name={a.name} theme={theme} mode={resolved} selected={accent === a.id} />
+            <AccentSwatch key={a.id} id={a.id} name={a.name} theme={theme} mode={currentMode} selected={accent === a.id} />
+          ))}
+        </div>
+      </Card>
+      <Card title="Font" note="The app's typeface. Customer documents keep the standard font.">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {FONT_OPTIONS.map((f) => (
+            <Choice
+              key={f.id}
+              selected={font === f.id}
+              onSelect={() => setAppearance({ font: f.id })}
+              label={f.id === 'theme' ? 'Theme’s font' : f.name}
+              note={f.id === 'theme' ? FONTS.find((x) => x.id === (current?.font ?? 'inter'))?.name : undefined}
+            >
+              <div className="flex h-16 flex-col justify-center rounded-md border bg-card px-3" style={{ fontFamily: fontStack(f.id === 'theme' ? current?.font : f.id) }}>
+                <span className="text-lg font-semibold leading-tight">Good morning</span>
+                <span className="text-sm tabular-nums text-muted-foreground">$1,672,957 · 12/04</span>
+              </div>
+            </Choice>
           ))}
         </div>
       </Card>
@@ -197,6 +304,15 @@ function AppearanceSettings() {
       </Card>
     </>
   );
+}
+
+const FONT_OPTIONS: { id: FontChoice; name: string }[] = [{ id: 'theme', name: 'Theme’s font' }, ...FONTS.map((f) => ({ id: f.id, name: f.name }))];
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme';
+
+function themeNote(t: ThemeDefinition) {
+  const only = t.light && t.dark ? '' : t.dark ? 'Dark only' : 'Light only';
+  return [t.note, only && !t.note?.toLowerCase().includes(only.split(' ')[0].toLowerCase()) ? only : ''].filter(Boolean).join(' · ') || undefined;
 }
 
 const CORNER_PX: Record<Corners, number> = { sharp: 2, standard: 6, round: 12 };
