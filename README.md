@@ -97,7 +97,8 @@ The Overview gives the money at a glance:
 - **Schedule**: every job and crew on a Gantt chart or a list, which you can export to your calendar.
 - **Tasks**: to-dos for the team, by type, due date and assignee, also exportable to your calendar.
 - **Contacts**: people and companies (households, architects, subs, suppliers), each linked to the jobs they're on, with their bids and bills.
-- **Themes**: light and dark mode in eight colour themes, with your own accent colour. Customer documents always print black on white.
+- **Your team**: invite people by email as owners, admins or members; everyone works on the same live data, sees changes as they're saved, and opens the same signed copies and attachments.
+- **Your look**: light and dark mode, the BuildTrack and Omarchy themes (or import your own), custom colours, accent, font and corners, saved presets, and a company theme everyone starts on. Customer documents always print black on white.
 
 <p align="center"><img src="docs/screenshots/dark.webp" alt="BuildTrack in a dark theme" width="900"></p>
 
@@ -130,6 +131,10 @@ BuildTrack is meant to be changed, by you or by an AI coding agent such as Claud
 The code is public under the AGPL. Running your own copy is possible ([Run BuildTrack for your team](docs/self-hosting.md)), but it isn't supported yet. A hosted version for other companies may come later.
 
 ## Try it
+
+**In your browser:** [demo.buildtrack.run](https://demo.buildtrack.run) runs BuildTrack on sample data, saved only in your browser. Nothing you do there is shared or sent anywhere.
+
+**On your computer:**
 
 ```
 npm install
