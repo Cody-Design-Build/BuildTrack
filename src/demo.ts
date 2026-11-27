@@ -7,3 +7,4 @@
 export const DEMO = import.meta.env.VITE_DEMO === '1' && !import.meta.env.VITE_SUPABASE_URL;
 
 export const REPO_URL = 'https://github.com/Cody-Design-Build/BuildTrack';
+export const SITE_URL = 'https://buildtrack.run';

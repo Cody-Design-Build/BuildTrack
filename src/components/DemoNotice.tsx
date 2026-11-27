@@ -1,8 +1,8 @@
 // A small floating card shown only in the public demo: says what the demo is and
 // offers to start over or get the code. Floating, so it never changes page layout.
 import { useState } from 'react';
-import { ExternalLink, RotateCcw, X } from 'lucide-react';
-import { DEMO, REPO_URL } from '../demo';
+import { ArrowLeft, ExternalLink, Github, RotateCcw, X } from 'lucide-react';
+import { DEMO, REPO_URL, SITE_URL } from '../demo';
 import { useStore } from '../store';
 
 const KEY = 'bt-demo-notice-hidden';
@@ -62,5 +62,23 @@ export function DemoNotice() {
         </button>
       </div>
     </aside>
+  );
+}
+
+/** Links back to the website and the code, at the top of every page in the demo. */
+export function DemoLinks() {
+  if (!DEMO) return null;
+  const link = 'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground';
+  return (
+    <nav aria-label="BuildTrack" className="flex items-center gap-1">
+      <a href={SITE_URL} className={link} title="Back to buildtrack.run">
+        <ArrowLeft className="size-4" />
+        <span className="hidden sm:inline">buildtrack.run</span>
+      </a>
+      <a href={REPO_URL} className={link} title="BuildTrack on GitHub">
+        <Github className="size-4" />
+        <span className="hidden sm:inline">GitHub</span>
+      </a>
+    </nav>
   );
 }
