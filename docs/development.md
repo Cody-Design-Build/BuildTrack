@@ -4,6 +4,8 @@ How to run, build and change BuildTrack. What each feature does is in [guide.md]
 
 ## Run it locally
 
+The team's full workflow (local, preview and live; branches and pull requests; database changes) is in [AGENTS.md](../AGENTS.md).
+
 ```
 npm install
 npm run dev
@@ -36,7 +38,7 @@ All data is sample data stored in your browser (localStorage). Use **Settings â†
 
 ## Where things live
 
-- **The app itself:** this folder. `src/` holds the code, and `npm run build` writes the finished site to `dist/`.
+- **The app itself:** this folder. `src/` holds the code: the kernel (store, shell, shared components) at the top level and every feature in `src/plugins/` (see [its README](../src/plugins/README.md)). `npm run build` writes the finished site to `dist/`.
 - **Your data:** your browser saves a local copy under `buildtrack-db-v6`. Older saves and restored backups are migrated automatically (`src/migrate.ts`). Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. Each job's old budget table becomes one proposal (attached to the job's existing proposal document if it had one), its "spent so far" amounts become expenses, and other proposal and change-order documents become budgets with a single line for their total. The previous `buildtrack-db-v5` copy is left in place. To export or restore a copy, go to **Settings â†’ Your data**.
 
 Legacy message records are removed when the app loads saved data or restores an older backup. Other records are retained.

@@ -63,3 +63,8 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
     </div>
   );
 }
+
+/** One line in the money card on a job's Overview tab (what plugins' jobSummary renders). */
+export function SummaryRow({ label, children, danger }: { label: string; children: ReactNode; danger?: boolean }) {
+  return <div className="j-row"><span>{label}</span><b className={danger ? 'text-destructive' : ''}>{children}</b></div>;
+}

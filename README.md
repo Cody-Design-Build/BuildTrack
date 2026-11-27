@@ -101,6 +101,12 @@ The Overview gives the money at a glance:
 
 <p align="center"><img src="docs/screenshots/dark.webp" alt="BuildTrack in a dark theme" width="900"></p>
 
+### Make it yours
+
+Every feature (budgets, bids, invoices, bills, job costing, the schedule, tasks) is a module. Turn off what you don't use in **Settings → Plugins**, and the menu, the job tabs and the pages go with it. Your data is kept for when you turn it back on.
+
+Don't like how a module works? Change that module or replace it, without touching the rest of BuildTrack. Modules share data through small, documented contracts. For example, job costing adds up cost entries from budgets, bids and bills, so a new job-costing module works with all of them. See [`src/plugins/README.md`](src/plugins/README.md).
+
 ## Built for how contractors actually work
 
 - **Email first, no portals.** Bid requests, proposals and invoices are documents you send the way you already do, and nobody needs an account to read them.
@@ -122,12 +128,9 @@ BuildTrack is meant to be changed, by you or by an AI coding agent such as Claud
 BuildTrack is under active development at Cody Design Build, where it runs with shared live data for the team (Google sign-in, changes appear on everyone's screen as they're saved). On the way:
 
 - shared files (signed copies and attachments) for the whole team;
-- modules you can switch on and off, or replace with your own;
 - a hosted version.
 
 ## Try it
-
-The full workflow (local, preview, live; branches and pull requests; database changes) is in **AGENTS.md**.
 
 ```
 npm install

@@ -2,12 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StatusCorner } from './StatusCorner';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  House, Wrench, SquareCheck, Calendar, FileText, Users, Building2, Book, Folder, ChartPie,
-  Settings, LogOut, PanelLeftClose, PanelLeftOpen, ReceiptText, Receipt, ClipboardList,
-  Search, Ellipsis, Menu, ChevronsUpDown, User, Calculator, type LucideIcon,
+  Settings, LogOut, PanelLeftClose, PanelLeftOpen, Search, Ellipsis, Menu, ChevronsUpDown, User, type LucideIcon,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { tone } from '../colors';
+import { usePlugins } from '../plugins/registry';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,39 +20,22 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const GROUPS: { label: string; items: NavItem[] }[] = [
-  {
-    label: 'Work',
-    items: [
-      { to: '/', label: 'Home', icon: House },
-      { to: '/jobs', label: 'Jobs', icon: Wrench },
-      { to: '/tasks', label: 'Tasks', icon: SquareCheck },
-      { to: '/schedule', label: 'Schedule', icon: Calendar },
-      { to: '/budgets', label: 'Budgets', icon: Calculator },
-      { to: '/bids', label: 'Bids', icon: ClipboardList },
-      { to: '/invoices', label: 'Invoices', icon: ReceiptText },
-      { to: '/bills', label: 'Bills', icon: Receipt },
-    ],
-  },
-  {
-    label: 'Records',
-    items: [
-      { to: '/documents', label: 'Documents', icon: FileText },
-      { to: '/people', label: 'People', icon: Users },
-      { to: '/accounts', label: 'Accounts', icon: Building2 },
-      { to: '/catalog', label: 'Catalog', icon: Book },
-      { to: '/files', label: 'Files', icon: Folder },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [{ to: '/reports', label: 'Reports', icon: ChartPie }],
-  },
-];
+const GROUP_LABELS = { work: 'Work', records: 'Records', insights: 'Insights' } as const;
+
+/** The menu: each plugin that's on adds its own entries. */
+function useNavGroups() {
+  const plugins = usePlugins();
+  const items = plugins.flatMap((p) => p.nav ?? []).sort((a, b) => a.order - b.order);
+  return (Object.keys(GROUP_LABELS) as (keyof typeof GROUP_LABELS)[])
+    .map((g) => ({ label: GROUP_LABELS[g], items: items.filter((i) => i.group === g) }))
+    .filter((g) => g.items.length > 0);
+}
 
 const LOWER: NavItem[] = [{ to: '/settings', label: 'Settings', icon: Settings }];
 
-export const NAV: NavItem[] = [...GROUPS.flatMap((g) => g.items), ...LOWER];
+function useNav(): NavItem[] {
+  return [...useNavGroups().flatMap((g) => g.items), ...LOWER];
+}
 
 export function Logo() {
   return (
@@ -143,13 +125,14 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
 }
 
 function SidebarBody({ collapsed, onCollapse }: { collapsed: boolean; onCollapse?: () => void }) {
+  const groups = useNavGroups();
   return (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-14 shrink-0 items-center border-b border-sidebar-border px-4', collapsed && 'justify-center px-0')}>
         {!collapsed && <Logo />}
       </div>
       <nav aria-label="Main" className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
-        {GROUPS.map((g) => (
+        {groups.map((g) => (
           <div key={g.label} className="mb-4">
             {collapsed ? (
               <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border first:hidden" />
@@ -241,8 +224,9 @@ function BottomTabs() {
   const [more, setMore] = useState(false);
   const loc = useLocation();
   useEffect(() => setMore(false), [loc.pathname]);
-  const primary = NAV.slice(0, 4);
-  const rest = NAV.slice(4).concat([{ to: '/profile', label: 'Profile', icon: User }]);
+  const nav = useNav();
+  const primary = nav.slice(0, 4);
+  const rest = nav.slice(4).concat([{ to: '/profile', label: 'Profile', icon: User }]);
   const tab = 'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors';
   return (
     <>

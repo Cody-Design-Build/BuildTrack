@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { filesInUse } from './plugins/registry';
 import { pruneFiles } from './files';
-import { invoiceTotals } from './invoices';
+import { invoiceTotals } from './plugins/invoices/invoices';
 import { useCloudSync } from './cloud';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
@@ -108,10 +109,8 @@ export function StoreProvider({ children, initial }: { children: ReactNode; init
   // Drop stored files nothing points at (replaced or removed signed copies). Only at start-up,
   // because undo can bring back a reference during the session.
   useEffect(() => {
-    const keep = new Set([
-      ...hist.now.budgets.map((b) => b.signedCopy?.fileId),
-      ...hist.now.bills.flatMap((b) => b.attachments.map((f) => f.fileId)),
-    ].filter((x): x is string => !!x));
+    // every installed plugin (on or off) says which stored files its records still use
+    const keep = new Set(filesInUse(hist.now).filter(Boolean));
     pruneFiles(keep).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -146,6 +145,9 @@ export const uid = (p: string) => p + Math.random().toString(36).slice(2, 9);
 
 export const money = (n: number, cents = false) =>
   (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+
+/** A percentage to one decimal place, or a dash when there isn't one (e.g. margin on $0). */
+export const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 10) / 10}%` : '—');
 
 export const personName = (p?: Pick<Person, 'firstName' | 'lastName'>) => (p ? `${p.firstName} ${p.lastName}`.trim() : '');
 

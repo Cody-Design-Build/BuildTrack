@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { ExternalLink, FileText, Image as ImageIcon, Paperclip, Trash2 } from 'lucide-react';
 import type { StoredFile } from '../data';
 import { fileSize, getFile } from '../files';
-import { storeUpload } from './BudgetSigning';
+import { storeUpload } from '../plugins/budgets/BudgetSigning';
 import { fmtDate } from './Payments';
 
 async function openFile(f: StoredFile) {

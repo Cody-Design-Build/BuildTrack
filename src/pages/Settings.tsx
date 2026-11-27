@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Check, Database, Monitor, Moon, Palette, Sun, type LucideIcon } from 'lucide-react';
+import { Building2, Check, Database, Monitor, Moon, Palette, Puzzle, Sun, type LucideIcon } from 'lucide-react';
+import { PluginSettings } from './PluginSettings';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useStore } from '../store';
@@ -13,6 +14,7 @@ import { signOut } from '../components/CloudGate';
 const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: 'general', label: 'General', icon: Building2 },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'plugins', label: 'Plugins', icon: Puzzle },
   { id: 'data', label: 'Data', icon: Database },
 ];
 
@@ -43,6 +45,7 @@ export default function SettingsPage() {
         <div className="min-w-0 max-w-3xl flex-1 space-y-4">
           {section === 'general' && <General />}
           {section === 'appearance' && <AppearanceSettings />}
+          {section === 'plugins' && <PluginSettings />}
           {section === 'data' && <Data />}
         </div>
       </div>

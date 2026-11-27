@@ -372,6 +372,12 @@ export interface Activity {
   bidPackageId?: string; // and for bid packages and their bids
 }
 
+/** Which plugins the company has turned off, and which it chose where several do the same job. */
+export interface PluginChoices {
+  off: string[];
+  roles: Record<string, string>; // role id → plugin id
+}
+
 export interface Db {
   activity: Activity[];
   costCodes: CostCode[];
@@ -393,6 +399,7 @@ export interface Db {
   tasks: Task[];
   scheduleEntries: ScheduleEntry[];
   companyName: string;
+  plugins?: PluginChoices; // missing means everything is on (company-wide, so it syncs)
 }
 
 export const AVATAR_COLORS = ['#c026d3', '#d97706', '#16a34a', '#e11d48', '#ea580c', '#0284c7', '#65a30d', '#7c3aed', '#0d9488'];
