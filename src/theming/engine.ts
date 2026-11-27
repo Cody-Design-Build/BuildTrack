@@ -102,7 +102,9 @@ export function themeCss(t: ThemeDefinition): string {
   const sel = `[data-theme='${id}']`;
   const light = t.light ?? t.dark!;
   const dark = t.dark ?? t.light!;
-  return [block(sel, light, !t.light), block(`${sel}[data-mode='dark']`, dark, !!t.dark || !t.light)].join('\n');
+  // `:root${sel}` outranks the plain `:root` defaults in themes.css whatever order the
+  // stylesheets load in (the dev server injects them after these).
+  return [block(`:root${sel}, ${sel}`, light, !t.light), block(`${sel}[data-mode='dark']`, dark, !!t.dark || !t.light)].join('\n');
 }
 
 // ---------- Fonts ----------

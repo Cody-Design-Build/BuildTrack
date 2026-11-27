@@ -19,7 +19,7 @@ The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/comp
 
 **Settings → Appearance** lets each person shape how BuildTrack looks:
 
-- **Theme**: a starting point. The BuildTrack themes (BuildTrack, Graphite, Nord, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Solarized; light and dark) and the Omarchy desktop themes. **Import theme** adds an Omarchy `colors.toml` or a downloaded BuildTrack theme (kept in that browser); **Download this theme** saves the current one, custom colours included, as JSON.
+- **Theme**: a starting point. The BuildTrack themes (BuildTrack, Graphite, Blueprint, Kraft, Hi-Vis, Sage, Walnut, Concrete; each light and dark) and six basic Omarchy desktop themes (three light, three dark). **Import theme** adds an Omarchy `colors.toml` or a downloaded BuildTrack theme (kept in that browser); **Download this theme** saves the current one, custom colours included, as JSON.
 - **Customize colours**: every colour (surfaces, text, borders, accent, status), per mode, with colour pickers or codes. Anything left alone follows the theme.
 - **Mode**, **Accent** (from the theme's palette), **Font** (theme's, Inter, System, IBM Plex Sans, JetBrains Mono), **Numbers in a monospaced font**, **Corners** (Sharp / Standard / Round or an exact size).
 - **Presets**: the whole look saved under a name, to switch back to.
@@ -30,7 +30,7 @@ Remembered in the browser (`bt-appearance`, `bt-presets`; `index.html` applies t
 How it works:
 
 - A theme is data (`ThemeDefinition` in `src/theming/types.ts`): a name, light and/or dark colours and an optional font. Only `background`, `foreground` and `primary` are required; `src/theming/engine.ts` works out the rest (cards, borders, text shades, hover, status and the ten category colours behind labels and Accent) and writes the `[data-theme]` CSS. A theme with one mode keeps it whatever mode is chosen.
-- The shipped themes are in `src/theming/packs/`. To add one for everyone, add a `defineTheme({...})` there. `scripts/import-omarchy-themes.mjs` regenerates the Omarchy pack; `src/theming/omarchy.ts` reads `colors.toml` (current and older formats).
+- The shipped themes are in `src/theming/packs/`. To add one for everyone, add a `defineTheme({...})` there. `scripts/import-omarchy-themes.mjs` regenerates the Omarchy pack (only the themes in its `KEEP` list); when you remove a shipped theme, map its id to the closest remaining one in `RETIRED_THEMES` (`src/theming/packs/index.ts`) so saved looks move over; `src/theming/omarchy.ts` reads `colors.toml` (current and older formats).
 - A person's look (`Look`) is a theme plus their changes; `src/appearance.ts` turns it into the CSS for `[data-theme='look']`. Everything else derives from the tokens in `src/themes.css`; `src/theme-legacy.css` maps the older hand-written styles onto them.
 
 ## Build

@@ -2,7 +2,8 @@
 //
 //   node scripts/import-omarchy-themes.mjs [/usr/share/omarchy/themes] [~/.config/omarchy/themes]
 //
-// Each folder with a colors.toml becomes one theme; later folders win on the same name.
+// Only the themes in KEEP are shipped (a few basic light and dark ones); people can import
+// any other colors.toml themselves. Later folders win on the same name.
 // The files are copied verbatim and read by src/theming/omarchy.ts at start-up, exactly
 // like Settings → Appearance → Import theme reads one.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -12,12 +13,14 @@ import { join } from 'node:path';
 const dirs = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['/usr/share/omarchy/themes', join(homedir(), '.config/omarchy/themes')];
+// Three light, three dark.
+const KEEP = ['catppuccin', 'catppuccin-latte', 'flexoki-light', 'gruvbox', 'rose-pine', 'tokyo-night'];
 const found = new Map();
 for (const dir of dirs) {
   if (!existsSync(dir)) continue;
   for (const name of readdirSync(dir)) {
     const file = join(dir, name, 'colors.toml');
-    if (existsSync(file)) found.set(name, readFileSync(file, 'utf8').trim());
+    if (KEEP.includes(name) && existsSync(file)) found.set(name, readFileSync(file, 'utf8').trim());
   }
 }
 const title = (s) => s.split('-').map((w) => (/^\d/.test(w) ? w : w[0].toUpperCase() + w.slice(1))).join(' ');
