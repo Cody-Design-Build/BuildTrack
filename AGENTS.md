@@ -43,6 +43,21 @@ If something goes wrong on the live site, roll back in Vercel (Deployments → t
 - Who can sign in: anyone with an @codydesignbuild.com Google account, plus addresses in the `allowed_emails` table (edit in the Supabase dashboard).
 - To start the live data over with fresh sample data: Settings → Data → Reset sample data while signed in to the live site.
 
+## Building features for the live app
+
+BuildTrack is live: several people use the same data at once, and every change you merge runs against data that already exists. New features must fit that.
+
+- **Store data as records in a `Db` list.** Every top-level array in `Db` syncs automatically (`src/cloud.ts`); each record needs a unique string `id` and must be plain JSON (no `Date` objects, functions, `Map`s or class instances; dates are ISO strings). Plain top-level values (like `companyName`) sync too.
+- **Change data only through `update()`** from `useStore()`, immutably: build new objects for the records you change and reuse the untouched ones. Sync compares records by reference first, so mutating in place means the change is never saved, and rebuilding every record re-saves everything.
+- **Keep records small and separate.** Two people editing different records never clash; two people editing the *same* record means the last save wins. So budget lines are their own records, not an array inside the budget. Follow that for anything people edit concurrently.
+- **Never assume a list exists or has the newest fields.** The live database and people's browsers hold data saved by older versions. A new list needs `seed()` sample records and a `parseDb()` upgrade step (see above); a new field on an existing record needs a sensible default wherever it's read (`x.field ?? default`), or an upgrade step that fills it in.
+- **Don't rename or remove lists or fields in one go.** Add the new one, migrate in `parseDb()`, and remove the old one in a later change, once nothing reads it.
+- **Settings per person or device** (layout, theme, last tab, filters) go in `localStorage` (see `src/appearance.ts`, `useRememberedChoice` in `src/components/DocLayout.tsx`), not in `Db`, or they change for everyone.
+- **Files** (signed copies, attachments) are still stored in each browser (`src/files.ts`, IndexedDB), so teammates can't see each other's. Don't build features that rely on shared files until they're moved to the Supabase `files` storage bucket (already created, team-only).
+- **Who did what:** every saved row records the signed-in user (`updated_by`) and time. Show "by whom" from the team list (`db.team`) rather than adding new user tables.
+- **Test both modes:** `npm run dev` (browser only, as previews run) and, when the change touches data loading or saving, `npm run dev:live` against the live database. Remember edits there are real.
+- **Anything for other companies or outside people** (multi-company accounts, client or subcontractor portals) changes the access rules: plan it with David first.
+
 ## Secrets
 
 - Never commit keys or passwords. `.env*.local` files are git-ignored; `.env.example` lists what exists.
