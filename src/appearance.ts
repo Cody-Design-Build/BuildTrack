@@ -5,7 +5,23 @@
 import { useSyncExternalStore } from 'react';
 
 export type Mode = 'light' | 'dark' | 'system';
-export type Appearance = { theme: string; mode: Mode };
+/** 'theme' keeps the theme's own accent; anything else is a slot from src/palette.css. */
+export type Accent = 'theme' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'gray';
+export type Appearance = { theme: string; mode: Mode; accent: Accent };
+
+export const ACCENTS: { id: Accent; name: string }[] = [
+  { id: 'theme', name: "Theme's own" },
+  { id: 'red', name: 'Red' },
+  { id: 'orange', name: 'Orange' },
+  { id: 'amber', name: 'Amber' },
+  { id: 'green', name: 'Green' },
+  { id: 'teal', name: 'Teal' },
+  { id: 'cyan', name: 'Cyan' },
+  { id: 'blue', name: 'Blue' },
+  { id: 'purple', name: 'Purple' },
+  { id: 'pink', name: 'Pink' },
+  { id: 'gray', name: 'Mono' },
+];
 
 // The ids must match the [data-theme] blocks in src/themes.css.
 export const THEMES: { id: string; name: string; note: string }[] = [
@@ -20,7 +36,7 @@ export const THEMES: { id: string; name: string; note: string }[] = [
 ];
 
 const KEY = 'bt-appearance';
-const DEFAULT: Appearance = { theme: 'buildtrack', mode: 'light' };
+const DEFAULT: Appearance = { theme: 'buildtrack', mode: 'light', accent: 'theme' };
 const dark = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 let current: Appearance = load();
@@ -32,6 +48,7 @@ function load(): Appearance {
     return {
       theme: THEMES.some((t) => t.id === a.theme) ? a.theme! : DEFAULT.theme,
       mode: a.mode === 'dark' || a.mode === 'system' || a.mode === 'light' ? a.mode : DEFAULT.mode,
+      accent: ACCENTS.some((x) => x.id === a.accent) ? a.accent! : DEFAULT.accent,
     };
   } catch {
     return DEFAULT;
@@ -47,6 +64,8 @@ function apply() {
   const mode = resolveMode(current.mode);
   root.dataset.theme = current.theme;
   root.dataset.mode = mode;
+  if (current.accent === 'theme') delete root.dataset.accent;
+  else root.dataset.accent = current.accent;
   root.classList.toggle('dark', mode === 'dark');
 }
 

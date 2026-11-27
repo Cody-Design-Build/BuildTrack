@@ -2,6 +2,7 @@
 // Statuses the record can't move to from where it is are shown but disabled, so the flow is visible.
 import { Check, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { tone } from '../colors';
 
 export function StatusMenu<T extends string>({
   value, statuses, allowed, colors, onSelect, hint,
@@ -13,13 +14,13 @@ export function StatusMenu<T extends string>({
   onSelect: (s: T) => void;
   hint?: string; // shown under the list, e.g. why earlier statuses are unavailable
 }) {
-  const c = colors[value];
+  const c = tone(colors[value]);
   return (
     // not modal, so a dialog opened from an item (e.g. Approve) gets focus cleanly
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full py-0.5 pl-2 pr-1.5 text-xs font-medium outline-none ring-offset-2 transition-shadow hover:ring-1 focus-visible:ring-2"
-        style={{ background: `${c}1f`, color: `color-mix(in srgb, ${c} 75%, var(--foreground))`, ['--tw-ring-color' as string]: c }}
+        style={{ background: `color-mix(in oklab, ${c} 15%, transparent)`, color: `color-mix(in oklab, ${c} 78%, var(--foreground))`, ['--tw-ring-color' as string]: c }}
         aria-label={`Status: ${value}. Change status`}
       >
         <span className="size-1.5 rounded-full" style={{ background: c }} />
@@ -32,7 +33,7 @@ export function StatusMenu<T extends string>({
           const current = s === value;
           return (
             <DropdownMenuItem key={s} disabled={!current && !allowed.includes(s)} onSelect={() => !current && onSelect(s)}>
-              <span className="size-2 rounded-full" style={{ background: colors[s] }} />
+              <span className="size-2 rounded-full" style={{ background: tone(colors[s]) }} />
               <span className="grow">{s}</span>
               {current && <Check className="size-4" />}
             </DropdownMenuItem>

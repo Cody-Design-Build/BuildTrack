@@ -8,12 +8,13 @@ import { useLookups, useStore, uid, localIso, sameDayLabel, timeLabel } from '..
 import type { Activity, Budget, StoredFile } from '../data';
 import { approveBudget, budgetLabel, openAlternates, setSignedCopy } from '../budgets';
 import { MAX_FILE_BYTES, fileSize, getFile, putFile } from '../files';
+import { tone } from '../colors';
 
 const ACCEPT = 'application/pdf,image/*';
 const today = () => localIso().slice(0, 10);
 
 /** Saves an uploaded file to the browser's file store and describes it for the data. */
-async function storeUpload(file: File): Promise<StoredFile> {
+export async function storeUpload(file: File): Promise<StoredFile> {
   if (file.size > MAX_FILE_BYTES) throw new Error(`That file is ${fileSize(file.size)}. The limit is ${fileSize(MAX_FILE_BYTES)}.`);
   const fileId = uid('f');
   await putFile(fileId, file);
@@ -230,7 +231,7 @@ export function History({ match, empty }: { match: (a: Activity) => boolean; emp
         <ol className="flex flex-col gap-2">
           {events.map((a) => (
             <li key={a.id} className="flex items-start gap-2.5 text-sm">
-              <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: a.color }} />
+              <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: tone(a.color) }} />
               <span className="grow">{a.text}</span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">{sameDayLabel(a.date, new Date())} · {timeLabel(a.date)}</span>
             </li>

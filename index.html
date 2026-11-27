@@ -13,6 +13,7 @@
         var r = document.documentElement;
         r.dataset.theme = a.theme || 'buildtrack';
         r.dataset.mode = d ? 'dark' : 'light';
+        if (a.accent && a.accent !== 'theme') r.dataset.accent = a.accent;
         if (d) r.classList.add('dark');
       } catch (e) {}
     </script>

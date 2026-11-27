@@ -193,7 +193,7 @@ svg {
 }
 
 .btn.primary:hover {
-  background: #c2410c;
+  background: color-mix(in oklab, var(--primary) 88%, var(--foreground));
 }
 
 .btn.danger {
@@ -649,7 +649,6 @@ svg {
 }
 
 .assignees {
-  height: 20px;
   align-items: center;
 }
 
@@ -717,12 +716,11 @@ svg {
 
 .assignees {
   display: inline-flex;
-  gap: 4px;
   vertical-align: middle;
 }
 
-.assignees .avatar {
-  font-size: 6px !important;
+.assignees .avatar + .avatar {
+  margin-left: 3px;
 }
 
 .acct-cell {

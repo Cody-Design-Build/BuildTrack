@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { tone } from '../colors';
 
 export function StatusDot({ status, className }: { status: JobStatus; className?: string }) {
-  return <span className={cn('size-2 shrink-0 rounded-full', className)} style={{ background: JOB_STATUSES.find((s) => s.name === status)?.color }} />;
+  return <span className={cn('size-2 shrink-0 rounded-full', className)} style={{ background: tone(JOB_STATUSES.find((s) => s.name === status)?.color) }} />;
 }
 
 function JobCard({ job, onOpen }: { job: Job; onOpen: () => void }) {

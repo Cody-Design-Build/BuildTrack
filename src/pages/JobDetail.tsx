@@ -9,16 +9,20 @@ import { ScheduleEntryForm, ScheduleTable } from './Schedule';
 import { useLookups, useStore, money, uid, localIso } from '../store';
 import { JobBudgets } from './Budgets';
 import { JobInvoices } from './Invoices';
+import { JobBills } from './Bills';
+import { jobPayables } from '../bills';
 import { jobBilling } from '../invoices';
 import { jobRollup, pct } from '../budgets';
 import { JOB_STATUSES, type JobLink, type Activity, type Db, type Doc, type Job, type JobStatus, type ScheduleEntry } from '../data';
+import { tint } from '../colors';
 
-const TABS = ['overview', 'budget', 'invoices', 'schedule', 'tasks', 'documents'] as const;
+const TABS = ['overview', 'budget', 'invoices', 'bills', 'schedule', 'tasks', 'documents'] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   overview: 'Overview',
   budget: 'Budgets',
   invoices: 'Invoices',
+  bills: 'Bills',
   schedule: 'Schedule',
   'tasks': 'Tasks',
   documents: 'Documents',
@@ -56,6 +60,7 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
   );
   const r = jobRollup(db, job.id);
   const billing = jobBilling(db, job.id);
+  const payables = jobPayables(db, job.id);
   const tasks = db.tasks.filter((x) => x.jobId === job.id && !x.done);
   const entries = db.scheduleEntries.filter((x) => x.jobId === job.id);
   const progress = entries.length ? Math.round(entries.reduce((s, x) => s + x.progress, 0) / entries.length) : job.progress;
@@ -115,6 +120,8 @@ function Overview({ job, go }: { job: Job; go: (t: Tab) => void }) {
           <div className="j-row"><span>Billed to date</span><b>{money(billing.billed)} <span className="muted">({pct(billing.contract ? (billing.billed / billing.contract) * 100 : NaN)} of contract)</span></b></div>
           <div className="j-row"><span>Received</span><b>{money(billing.received)}</b></div>
           <div className="j-row"><span>Outstanding</span><b className={billing.overdue > 0 ? 'text-destructive' : ''}>{money(billing.outstanding)}{billing.overdue > 0 && <span className="font-normal"> ({money(billing.overdue)} overdue)</span>}</b></div>
+          <div className="j-row"><span>Vendor bills</span><b>{money(payables.billed)} <span className="muted">({money(payables.paid)} paid)</span></b></div>
+          <div className="j-row"><span>Owed to vendors</span><b className={payables.overdue > 0 ? 'text-destructive' : ''}>{money(payables.owed)}{payables.overdue > 0 && <span className="font-normal"> ({money(payables.overdue)} overdue)</span>}</b></div>
           <div className="j-row"><span>Spent so far</span><b>{money(r.spent)}</b></div>
         </div>
       </section>
@@ -246,7 +253,7 @@ export default function JobDetail({ job }: { job: Job }) {
       />
       <div className="j-bar">
         <Link to="/jobs" className="back-link"><ArrowLeft size={14} /> All jobs</Link>
-        <span className="j-status-pill" style={{ background: status?.color }}>{job.status}</span>
+        <span className="j-status-pill tint" style={tint(status?.color)}>{job.status}</span>
       </div>
       <nav className="j-tabs" aria-label="Job sections">
         {TABS.map((t) => (
@@ -259,6 +266,7 @@ export default function JobDetail({ job }: { job: Job }) {
         {tab === 'overview' && <Overview job={job} go={go} />}
         {tab === 'budget' && <JobBudgets job={job} />}
         {tab === 'invoices' && <JobInvoices job={job} />}
+        {tab === 'bills' && <JobBills job={job} />}
         {tab === 'schedule' && <ScheduleTab job={job} />}
         {tab === 'tasks' && <TasksTab job={job} />}
         {tab === 'documents' && <DocumentsTab job={job} />}

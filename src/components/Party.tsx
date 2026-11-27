@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { tint } from '../colors';
 
 export function PartyAvatar({ party, size = 24 }: { party: Party; size?: number }) {
   return <Avatar text={initials(party.name)} color={party.color} size={size} square={party.kind === 'account'} />;
@@ -31,20 +32,21 @@ export function PartyLink({ id, size = 22, className }: { id: string; size?: num
   );
 }
 
-const ROLE_STYLE: Record<string, string> = {
-  Customer: 'bg-primary/10 text-primary border-primary/20',
-  Subcontractor: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
-  Supplier: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
-  Vendor: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300',
-  Architect: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
-  Designer: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
-  Engineer: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300',
+// Families: customers in the accent colour, trades in cyan, design in purple.
+const ROLE_COLOR: Record<string, string> = {
+  Customer: 'var(--primary)',
+  Subcontractor: 'var(--c-cyan)',
+  Supplier: 'var(--c-cyan)',
+  Vendor: 'var(--c-cyan)',
+  Architect: 'var(--c-purple)',
+  Designer: 'var(--c-purple)',
+  Engineer: 'var(--c-purple)',
 };
 
 /** A job role or account type, coloured by family (customers, trades, design). */
 export function RoleBadge({ role, className }: { role: string; className?: string }) {
   return (
-    <Badge variant="outline" className={cn('font-medium', ROLE_STYLE[role] ?? 'text-muted-foreground', className)}>
+    <Badge variant="outline" className={cn('font-medium', ROLE_COLOR[role] ? 'tint' : 'text-muted-foreground', className)} style={ROLE_COLOR[role] ? tint(ROLE_COLOR[role]) : undefined}>
       {role}
     </Badge>
   );

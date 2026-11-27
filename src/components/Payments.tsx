@@ -1,4 +1,5 @@
-// Recording and listing customer payments against invoices.
+// Recording and listing payments: money received against customer invoices, and money paid
+// out against vendor bills. Both use the same records, form and table.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
@@ -6,24 +7,29 @@ import { Modal } from './Layout';
 import { Field } from './Forms';
 import { Button } from '@/components/ui/button';
 import { useStore, money } from '../store';
-import { PAYMENT_METHODS, type Invoice, type Payment, type PaymentMethod } from '../data';
+import { PAYMENT_METHODS, type Bill, type Invoice, type Payment, type PaymentMethod } from '../data';
 import { deletePayment, invoiceLabel, invoiceMoney, recordPayment, todayYmd } from '../invoices';
+import { billLabel, billMoney, deleteBillPayment, recordBillPayment } from '../bills';
 
 export const fmtDate = (ymd: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
 /**
- * When money came in, for a list row: "Nov 24, 2026", or "2 payments · last Nov 24, 2026".
- * Shared so anything paid in installments (invoices now, vendor bills later) reads the same.
+ * When money moved, for a list row: "Nov 24, 2026", or "2 payments · last Nov 24, 2026".
+ * Shared so anything paid in installments (invoices and bills) reads the same.
  */
 export function PaidOn({ count, last }: { count: number; last: string }) {
   if (!count) return null;
   return <div className="text-xs text-muted-foreground">{count > 1 ? `${count} payments · last ` : ''}{fmtDate(last)}</div>;
 }
 
-/** Dialog for money received against one sent invoice. Defaults to the full balance. */
-export function PaymentForm({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+/**
+ * Dialog for a payment against one document: money received on a sent invoice, or money paid
+ * on an open bill. Defaults to the full balance.
+ */
+export function PaymentForm({ invoice, bill, onClose }: { invoice?: Invoice; bill?: Bill; onClose: () => void }) {
   const { db, update } = useStore();
-  const { amount: billed, paid, balance } = invoiceMoney(db, invoice);
+  const out = !!bill; // paying a vendor rather than being paid
+  const { amount: total, paid, balance } = bill ? billMoney(db, bill) : invoiceMoney(db, invoice!);
   const [date, setDate] = useState(todayYmd());
   const [amount, setAmount] = useState(balance > 0 ? balance.toFixed(2) : '');
   const [method, setMethod] = useState<PaymentMethod>('Check');
@@ -35,26 +41,31 @@ export function PaymentForm({ invoice, onClose }: { invoice: Invoice; onClose: (
 
   const save = () => {
     if (!valid) return;
-    update((d) => recordPayment(d, { invoiceId: invoice.id, date, amount: n, method, reference: reference.trim(), notes: notes.trim() }));
+    const p = { date, amount: n, method, reference: reference.trim(), notes: notes.trim() };
+    update((d) => (bill ? recordBillPayment(d, { ...p, billId: bill.id }) : recordPayment(d, { ...p, invoiceId: invoice!.id })));
     onClose();
   };
 
   return (
-    <Modal title={`Record payment · ${invoiceLabel(invoice)}`} onClose={onClose}>
+    <Modal title={`${out ? 'Pay' : 'Record payment'} · ${bill ? billLabel(bill) : invoiceLabel(invoice!)}`} onClose={onClose}>
       <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/60 p-3 text-sm">
-        <div><div className="text-xs text-muted-foreground">Invoice</div><b className="tabular-nums">{money(billed, true)}</b></div>
+        <div><div className="text-xs text-muted-foreground">{out ? 'Bill' : 'Invoice'}</div><b className="tabular-nums">{money(total, true)}</b></div>
         <div><div className="text-xs text-muted-foreground">Paid so far</div><b className="tabular-nums">{money(paid, true)}</b></div>
-        <div><div className="text-xs text-muted-foreground">Balance due</div><b className="tabular-nums">{money(balance, true)}</b></div>
+        <div><div className="text-xs text-muted-foreground">{out ? 'We owe' : 'Balance due'}</div><b className="tabular-nums">{money(balance, true)}</b></div>
       </div>
       <div className="field-row">
-        <Field label="Amount received">
+        <Field label={out ? 'Amount paid' : 'Amount received'}>
           <input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
         </Field>
-        <Field label="Date received">
+        <Field label={out ? 'Date paid' : 'Date received'}>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
       </div>
-      {over && <p className="-mt-2 text-xs text-destructive">That's {money(n - balance, true)} more than the balance due. The invoice will show a credit.</p>}
+      {over && (
+        <p className="-mt-2 text-xs text-destructive">
+          That's {money(n - balance, true)} more than {out ? 'we owe' : 'the balance due'}. The {out ? 'bill' : 'invoice'} will show a credit.
+        </p>
+      )}
       <div className="field-row">
         <Field label="Method">
           <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
@@ -71,18 +82,20 @@ export function PaymentForm({ invoice, onClose }: { invoice: Invoice; onClose: (
       <div className="row-end">
         <span style={{ flex: 1 }} />
         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-        <Button type="button" onClick={save} disabled={!valid}>Record {valid ? money(n, true) : 'payment'}</Button>
+        <Button type="button" onClick={save} disabled={!valid}>{out ? 'Pay' : 'Record'} {valid ? money(n, true) : 'payment'}</Button>
       </div>
     </Modal>
   );
 }
 
-/** A list of payments. With showInvoice, each row links to the invoice it paid. */
-export function PaymentsTable({ payments, showInvoice, empty = 'No payments recorded yet.' }: { payments: Payment[]; showInvoice?: boolean; empty?: string }) {
+/** A list of payments. With showDoc, each row links to the invoice or bill it was for. */
+export function PaymentsTable({ payments, showDoc, empty = 'No payments recorded yet.' }: { payments: Payment[]; showDoc?: boolean; empty?: string }) {
   const { db, update } = useStore();
   const remove = (p: Payment) => {
-    if (!window.confirm(`Remove the ${money(p.amount, true)} payment from ${fmtDate(p.date)}? If it had paid the invoice off, the invoice goes back to sent.`)) return;
-    update((d) => deletePayment(d, p.id));
+    const what = p.billId ? 'bill' : 'invoice';
+    const back = p.billId ? 'open' : 'sent';
+    if (!window.confirm(`Remove the ${money(p.amount, true)} payment from ${fmtDate(p.date)}? If it had paid the ${what} off, the ${what} goes back to ${back}.`)) return;
+    update((d) => (p.billId ? deleteBillPayment(d, p.id) : deletePayment(d, p.id)));
   };
   if (payments.length === 0) return <div className="wt-empty">{empty}</div>;
   return (
@@ -91,7 +104,7 @@ export function PaymentsTable({ payments, showInvoice, empty = 'No payments reco
         <thead>
           <tr>
             <th>Date</th>
-            {showInvoice && <th>Invoice</th>}
+            {showDoc && <th>For</th>}
             <th>Method</th>
             <th>Reference</th>
             <th>Notes</th>
@@ -101,11 +114,18 @@ export function PaymentsTable({ payments, showInvoice, empty = 'No payments reco
         </thead>
         <tbody>
           {payments.map((p) => {
-            const inv = db.invoices.find((i) => i.id === p.invoiceId);
+            const inv = p.invoiceId ? db.invoices.find((i) => i.id === p.invoiceId) : undefined;
+            const bill = p.billId ? db.bills.find((b) => b.id === p.billId) : undefined;
             return (
               <tr key={p.id}>
                 <td className="whitespace-nowrap">{fmtDate(p.date)}</td>
-                {showInvoice && <td className="whitespace-nowrap">{inv ? <Link to={`/invoices/${inv.id}`} className="text-primary hover:underline">{invoiceLabel(inv)}</Link> : '—'}</td>}
+                {showDoc && (
+                  <td className="whitespace-nowrap">
+                    {inv ? <Link to={`/invoices/${inv.id}`} className="text-primary hover:underline">{invoiceLabel(inv)}</Link>
+                      : bill ? <Link to={`/bills/${bill.id}`} className="text-primary hover:underline">{billLabel(bill)}</Link>
+                      : '—'}
+                  </td>
+                )}
                 <td>{p.method}</td>
                 <td className="text-muted-foreground">{p.reference || '—'}</td>
                 <td className="bt-wrap text-muted-foreground">{p.notes}</td>

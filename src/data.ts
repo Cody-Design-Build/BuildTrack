@@ -236,19 +236,55 @@ export const PAYMENT_METHODS = ['Check', 'ACH', 'Credit card', 'Cash', 'Wire', '
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /**
- * Money received from the customer against one invoice. An invoice can take any number of
- * payments; once they cover its amount it becomes Paid.
+ * Money moving against one document: received from a customer against an invoice (invoiceId),
+ * or paid out to a vendor against a bill (billId). Exactly one of the two is set. A document
+ * can take any number of payments; once they cover its amount it becomes Paid.
  */
 export interface Payment {
   id: string;
   jobId: string;
-  invoiceId: string;
-  date: string; // yyyy-mm-dd, when the money came in
+  invoiceId?: string; // money in
+  billId?: string; // money out
+  date: string; // yyyy-mm-dd, when the money came in or went out
   amount: number;
   method: PaymentMethod;
   reference: string; // check number, transaction id, …
   notes: string;
   created: string; // ISO datetime
+}
+
+export const BILL_STATUSES = ['Draft', 'Open', 'Paid', 'Void'] as const;
+export type BillStatus = (typeof BILL_STATUSES)[number];
+
+/** One charge on a vendor bill. The cost code is what job costing will total by. */
+export interface BillLine {
+  id: string;
+  description: string;
+  costCodeId: string;
+  amount: number;
+}
+
+/**
+ * A bill from a vendor or subcontractor that we owe on a job: entered from their invoice
+ * (or, later, created by awarding a bid). Draft while it's being checked, Open once it's
+ * approved to pay, Paid automatically when payments cover it.
+ */
+export interface Bill {
+  id: string;
+  jobId: string;
+  vendorId: string; // the account we owe
+  number: string; // our number, e.g. "12-3"
+  vendorRef: string; // the vendor's own invoice number
+  title: string;
+  status: BillStatus;
+  date: string; // yyyy-mm-dd, the date on the vendor's bill
+  due: string; // yyyy-mm-dd
+  lines: BillLine[];
+  notes: string;
+  attachments: StoredFile[]; // the vendor's invoice, lien release, …
+  created: string; // ISO datetime
+  updated: string; // ISO datetime
+  statusDates?: Partial<Record<BillStatus, string>>;
 }
 
 /** Money spent on a job. Job costing is by cost code; linking a budget line is optional. */
@@ -276,6 +312,7 @@ export interface Activity {
   color: string; // icon colour
   budgetId?: string; // set for budget events, so a budget can show its own history
   invoiceId?: string; // likewise for invoices (payments too, under the invoice they paid)
+  billId?: string; // and for vendor bills and the payments made on them
 }
 
 export interface Db {
@@ -286,6 +323,7 @@ export interface Db {
   expenses: Expense[];
   invoices: Invoice[];
   payments: Payment[];
+  bills: Bill[];
   people: Person[];
   accounts: Account[];
   memberships: Membership[];
@@ -559,7 +597,82 @@ export function seed(): Db {
     ],
   };
   const db = withSampleBudgets(migrateBudgets(raw, '2026-11-20T10:00:00'));
-  return { ...db, ...sampleBilling(db) };
+  const billing = { ...db, ...sampleBilling(db) };
+  const bills = samplePayables(billing);
+  return { ...billing, bills: bills.bills, payments: [...billing.payments, ...bills.payments] };
+}
+
+type SampleBill = {
+  n: number;
+  jobId: string;
+  vendorId: string;
+  ref: string;
+  title: string;
+  date: string;
+  terms: number; // days until due
+  lines: [code: string, description: string, amount: number][];
+  status: 'Draft' | 'Open';
+  pays?: [date: string, method: PaymentMethod, reference: string, amount: number | 'rest'][];
+  notes?: string;
+};
+
+/**
+ * Sample vendor bills: paid, partly paid, overdue, open and one draft still being checked.
+ * Exported so saved data from before bills existed can be given the same samples. Bills for
+ * jobs or vendors that aren't there are skipped.
+ */
+export function samplePayables(db: Pick<Db, 'jobs' | 'accounts' | 'costCodes'>): Pick<Db, 'bills' | 'payments'> {
+  const cc = (name: string) => db.costCodes.find((c) => c.name === name)?.id ?? '';
+  const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const samples: SampleBill[] = [
+    { n: 1, jobId: 'j12', vendorId: 'v4', ref: 'SE-2291', title: 'Rough electrical — progress 1', date: '2026-11-10', terms: 30, status: 'Open',
+      lines: [['Electrical', 'Rough-in: kitchen, primary suite and hall circuits', 7600], ['Electrical', 'Temporary power and panel prep', 800]],
+      pays: [['2026-11-20', 'Check', '5012', 4000]] },
+    { n: 2, jobId: 'j12', vendorId: 'v5', ref: 'VP-10477', title: 'Rough plumbing', date: '2026-11-18', terms: 30, status: 'Open',
+      lines: [['Plumbing', 'Rough plumbing: kitchen and two baths', 8650], ['Plumbing', 'Gas line relocation', 1200]] },
+    { n: 3, jobId: 'j12', vendorId: 'v3', ref: 'BD-3318', title: 'Drywall — hang and tape', date: '2026-11-25', terms: 30, status: 'Draft',
+      lines: [['Drywall', 'Hang, tape and finish, level 4', 11200]], notes: 'Check square footage against the plans before approving.' },
+    { n: 1, jobId: 'j8', vendorId: 'v1', ref: 'ST-5520', title: 'Bathroom tile installation', date: '2026-11-05', terms: 15, status: 'Open',
+      lines: [['Tile', 'Shower walls and niche', 4400], ['Tile', 'Floor tile with heated mat', 1800]],
+      pays: [['2026-11-19', 'Check', '5007', 'rest']] },
+    { n: 2, jobId: 'j8', vendorId: 'v5', ref: 'VP-10391', title: 'Fixture set and trim-out', date: '2026-10-28', terms: 15, status: 'Open',
+      lines: [['Plumbing', 'Set toilet, vanity and shower valve trim', 3150]] },
+    { n: 1, jobId: 'j9', vendorId: 'v3', ref: 'BD-3204', title: 'ADU drywall', date: '2026-10-20', terms: 30, status: 'Open',
+      lines: [['Drywall', 'Hang, tape and finish', 10900], ['Drywall', 'Moisture-resistant board, bath', 1700]],
+      pays: [['2026-10-30', 'ACH', 'ACH-7781', 6000], ['2026-11-15', 'ACH', 'ACH-7902', 'rest']] },
+    { n: 2, jobId: 'j9', vendorId: 'v4', ref: 'SE-2240', title: 'Electrical rough and panel', date: '2026-11-02', terms: 30, status: 'Open',
+      lines: [['Electrical', 'Rough wiring', 6200], ['Electrical', '100A subpanel', 1700]] },
+    { n: 1, jobId: 'j11', vendorId: 'v1', ref: 'ST-5388', title: 'Kitchen and bath tile', date: '2026-09-28', terms: 15, status: 'Open',
+      lines: [['Tile', 'Kitchen backsplash', 5300], ['Tile', 'Primary bath floor and shower', 13000]],
+      pays: [['2026-10-15', 'Check', '4988', 'rest']] },
+    { n: 2, jobId: 'j11', vendorId: 'v2', ref: 'FC-0912', title: 'Interior paint — 50% progress', date: '2026-11-01', terms: 30, status: 'Open',
+      lines: [['Painting', 'Interior walls and ceilings, first half', 14500]],
+      pays: [['2026-11-16', 'Check', '5004', 7250]] },
+  ];
+  const bills: Bill[] = [];
+  const payments: Payment[] = [];
+  for (const b of samples) {
+    if (!db.jobs.some((j) => j.id === b.jobId) || !db.accounts.some((a) => a.id === b.vendorId)) continue;
+    const id = `bill-${b.jobId}-${b.n}`;
+    const lines: BillLine[] = b.lines.map(([code, description, amount], i) => ({ id: `${id}-l${i + 1}`, description, costCodeId: cc(code), amount }));
+    const amount = r2(lines.reduce((s, l) => s + l.amount, 0));
+    let paid = 0;
+    for (const [i, [date, method, reference, amt]] of (b.pays ?? []).entries()) {
+      const a = amt === 'rest' ? r2(amount - paid) : amt;
+      paid = r2(paid + a);
+      payments.push({ id: `pay-${id}-${i + 1}`, jobId: b.jobId, billId: id, date, amount: a, method, reference, notes: '', created: `${date}T12:00:00` });
+    }
+    const isPaid = b.status === 'Open' && paid >= amount - 0.005;
+    const lastPay = b.pays?.[b.pays.length - 1]?.[0];
+    bills.push({
+      id, jobId: b.jobId, vendorId: b.vendorId, number: `${b.jobId.replace(/\D/g, '')}-${b.n}`, vendorRef: b.ref, title: b.title,
+      status: isPaid ? 'Paid' : b.status, date: b.date, due: addDays(b.date, b.terms), lines, notes: b.notes ?? '', attachments: [],
+      created: `${b.date}T15:00:00`, updated: `${lastPay ?? b.date}T15:00:00`,
+      statusDates: b.status === 'Open' ? { Open: `${b.date}T16:00:00`, ...(isPaid && lastPay ? { Paid: `${lastPay}T12:00:00` } : {}) } : undefined,
+    });
+  }
+  return { bills, payments };
 }
 
 type SampleStep = {

@@ -7,6 +7,7 @@ import { useLookups, useStore, money, uid } from '../store';
 import { BUDGET_KINDS, BUDGET_STATUSES, type Budget, type BudgetKind, type BudgetStatus, type Job } from '../data';
 import { useRememberedChoice } from '../components/DocLayout';
 import { BUDGET_STATUS_COLOR, budgetLabel, cloneBudget, createBudget, linesByBudget, pct, totals } from '../budgets';
+import { tone } from '../colors';
 
 export const StatusPill = ({ status }: { status: BudgetStatus }) => <Pill label={status} color={BUDGET_STATUS_COLOR[status]} />;
 
@@ -15,9 +16,9 @@ export function Pill({ label, color: c }: { label: string; color: string }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ background: `${c}1f`, color: `color-mix(in srgb, ${c} 75%, var(--foreground))` }}
+      style={{ background: `color-mix(in oklab, ${tone(c)} 15%, transparent)`, color: `color-mix(in oklab, ${tone(c)} 78%, var(--foreground))` }}
     >
-      <span className="size-1.5 rounded-full" style={{ background: c }} />
+      <span className="size-1.5 rounded-full" style={{ background: tone(c) }} />
       {label}
     </span>
   );

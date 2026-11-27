@@ -53,6 +53,8 @@ export function removeParty(d: Db, id: string): Db {
     budgets: d.budgets.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
     budgetLines: d.budgetLines.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
     expenses: d.expenses.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
+    // bills are financial records: keep them, just without the vendor
+    bills: d.bills.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
   };
 }
 

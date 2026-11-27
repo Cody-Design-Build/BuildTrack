@@ -9,6 +9,8 @@
 @import './theme-legacy.css' layer(legacy-theme);
 /* Colour themes and dark mode (see src/appearance.ts). */
 @import './themes.css';
+/* Category colours per theme, the accent override and tinted labels. */
+@import './palette.css';
 
 @custom-variant dark (&:is(.dark *));
 

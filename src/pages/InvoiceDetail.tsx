@@ -17,6 +17,7 @@ import {
   INVOICE_NEXT, INVOICE_STATUS_COLOR, STAGE_COLOR, billableBudgets, deleteInvoice, editInvoice, invoiceLabel, invoiceMoney, invoicePayments,
   invoiceStage, invoiceTotals, isInvoiceEditable, setInvoiceStatus, weightedPct, type InvoiceRow, type InvoiceSection,
 } from '../invoices';
+import { tone } from '../colors';
 
 type View = 'lines' | 'document' | 'details';
 const VIEWS: { id: View; label: string }[] = [
@@ -118,7 +119,7 @@ export default function InvoiceDetail() {
       <div className="j-bar flex-wrap">
         <Link to={`/jobs?job=${invoice.jobId}&tab=invoices`} className="back-link"><ArrowLeft size={14} /> {job?.name ?? 'Job'} invoices</Link>
         <StatusMenu value={invoice.status} statuses={INVOICE_STATUSES} allowed={allowed} colors={INVOICE_STATUS_COLOR} onSelect={move} hint={invoice.status === 'Sent' && payments.length ? 'It becomes Paid when payments cover it. Remove its payments before voiding it.' : STATUS_HINT[invoice.status]} />
-        {stage !== invoice.status && <span className="text-xs font-medium" style={{ color: STAGE_COLOR[stage] }}>{stage}</span>}
+        {stage !== invoice.status && <span className="text-xs font-medium" style={{ color: tone(STAGE_COLOR[stage]) }}>{stage}</span>}
         {m.lastPaid && (
           <span className="text-xs font-medium">
             {invoice.status === 'Paid' ? `Paid in full ${fmtDate(m.lastPaid)}` : `Last payment ${fmtDate(m.lastPaid)}`}

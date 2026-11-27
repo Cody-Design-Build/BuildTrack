@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, sampleBilling, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { seed, sampleBilling, samplePayables, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
 import { pruneFiles } from './files';
 import { invoiceTotals } from './invoices';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
@@ -15,6 +15,7 @@ export function parseDb(raw: string): Db {
   const db = isBudgetDb(scheduled) ? scheduled : migrateBudgets(scheduled as PreBudgetDb);
   if (!db.invoices) db.invoices = []; // saved before invoices existed
   if (!db.payments) addPayments(db);
+  if (!db.bills) addBills(db);
   if (!db.activity) db.activity = seed().activity;
   return db;
 }
@@ -35,6 +36,15 @@ function addPayments(db: Db) {
       method: 'Other', reference: '', notes: 'Recorded before payments were tracked', created: `${date}T12:00:00`,
     });
   }
+}
+
+// Saved before vendor bills existed. Sample data gets the sample bills (they only attach to the
+// sample jobs and vendors, so they're skipped for anything else); real data just starts empty.
+function addBills(db: Db) {
+  const isSample = ['v1', 'v3', 'v4', 'v5'].every((id) => db.accounts.some((a) => a.id === id)) && db.jobs.some((j) => j.id === 'j12');
+  const sample = isSample ? samplePayables(db) : { bills: [], payments: [] };
+  db.bills = sample.bills;
+  db.payments = [...db.payments, ...sample.payments];
 }
 
 function load(): Db {
@@ -75,7 +85,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Drop stored files nothing points at (replaced or removed signed copies). Only at start-up,
   // because undo can bring back a reference during the session.
   useEffect(() => {
-    const keep = new Set(hist.now.budgets.map((b) => b.signedCopy?.fileId).filter((x): x is string => !!x));
+    const keep = new Set([
+      ...hist.now.budgets.map((b) => b.signedCopy?.fileId),
+      ...hist.now.bills.flatMap((b) => b.attachments.map((f) => f.fileId)),
+    ].filter((x): x is string => !!x));
     pruneFiles(keep).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

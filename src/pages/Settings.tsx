@@ -5,7 +5,7 @@ import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useStore } from '../store';
 import { DataCard } from './Other';
-import { THEMES, setAppearance, useAppearance, type Mode } from '../appearance';
+import { ACCENTS, THEMES, setAppearance, useAppearance, type Accent, type Mode } from '../appearance';
 import { cn } from '@/lib/utils';
 
 const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
@@ -110,7 +110,7 @@ const MODES: { id: Mode; label: string; icon: LucideIcon }[] = [
 ];
 
 function AppearanceSettings() {
-  const { theme, mode, resolved } = useAppearance();
+  const { theme, mode, accent, resolved } = useAppearance();
   return (
     <>
       <Card title="Mode" note="System follows your computer's light or dark setting.">
@@ -119,11 +119,11 @@ function AppearanceSettings() {
             <Choice key={id} selected={mode === id} onSelect={() => setAppearance({ mode: id })} label={label} icon={<Icon className="size-4" />}>
               {id === 'system' ? (
                 <div className="flex">
-                  <Preview theme={theme} mode="light" className="w-1/2 rounded-r-none border-r-0" />
-                  <Preview theme={theme} mode="dark" className="w-1/2 rounded-l-none border-l-0" />
+                  <Preview theme={theme} accent={accent} mode="light" className="w-1/2 rounded-r-none border-r-0" />
+                  <Preview theme={theme} accent={accent} mode="dark" className="w-1/2 rounded-l-none border-l-0" />
                 </div>
               ) : (
-                <Preview theme={theme} mode={id} />
+                <Preview theme={theme} accent={accent} mode={id} />
               )}
             </Choice>
           ))}
@@ -136,8 +136,15 @@ function AppearanceSettings() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {THEMES.map((t) => (
             <Choice key={t.id} selected={theme === t.id} onSelect={() => setAppearance({ theme: t.id })} label={t.name} note={t.note}>
-              <Preview theme={t.id} mode={resolved} />
+              <Preview theme={t.id} accent={accent} mode={resolved} />
             </Choice>
+          ))}
+        </div>
+      </Card>
+      <Card title="Accent colour" note="Buttons, links and highlights. Each colour is drawn from the current theme's own palette, so it always fits.">
+        <div className="flex flex-wrap gap-2">
+          {ACCENTS.map((a) => (
+            <AccentSwatch key={a.id} id={a.id} name={a.name} theme={theme} mode={resolved} selected={accent === a.id} />
           ))}
         </div>
       </Card>
@@ -183,12 +190,34 @@ function Choice({
   );
 }
 
-/** A tiny sketch of the app, drawn in the given theme and mode. */
-function Preview({ theme, mode, className }: { theme: string; mode: 'light' | 'dark'; className?: string }) {
+function AccentSwatch({ id, name, theme, mode, selected }: { id: Accent; name: string; theme: string; mode: 'light' | 'dark'; selected: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={() => setAppearance({ accent: id })}
+      aria-pressed={selected}
+      title={name}
+      className={cn(
+        'flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition-colors hover:border-foreground/30',
+        selected && 'border-primary ring-2 ring-primary/25 hover:border-primary',
+      )}
+    >
+      {/* drawn inside its own theme scope so "Theme's own" shows the theme's accent, not the chosen one */}
+      <span data-theme={theme} data-mode={mode} data-accent={id === 'theme' ? undefined : id} className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        {selected && <Check className="size-3.5" />}
+      </span>
+      {name}
+    </button>
+  );
+}
+
+/** A tiny sketch of the app, drawn in the given theme, mode and accent. */
+function Preview({ theme, mode, accent = 'theme', className }: { theme: string; mode: 'light' | 'dark'; accent?: Accent; className?: string }) {
   return (
     <div
       data-theme={theme}
       data-mode={mode}
+      data-accent={accent === 'theme' ? undefined : accent}
       aria-hidden
       className={cn('flex h-24 overflow-hidden rounded-md border bg-background text-foreground', className)}
     >

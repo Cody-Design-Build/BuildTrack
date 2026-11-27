@@ -170,7 +170,7 @@ export function jobBilling(db: Db, jobId: string, today = todayYmd()) {
     received += m.paid;
     if (i.status === 'Sent' && i.due && i.due < today) overdue += m.balance;
   }
-  const payments = db.payments.filter((p) => p.jobId === jobId).sort((a, b) => b.date.localeCompare(a.date) || b.created.localeCompare(a.created));
+  const payments = db.payments.filter((p) => p.jobId === jobId && p.invoiceId).sort((a, b) => b.date.localeCompare(a.date) || b.created.localeCompare(a.created));
   return {
     contract,
     billed: round2(billed),
@@ -279,7 +279,7 @@ function settle(d: Db, invoiceId: string, paidOn: string): Db {
 }
 
 /** Records money received against a sent invoice; the invoice turns Paid when it's covered. */
-export function recordPayment(d: Db, p: Omit<Payment, 'id' | 'jobId' | 'created'> & { id?: string }): Db {
+export function recordPayment(d: Db, p: Omit<Payment, 'id' | 'jobId' | 'created' | 'billId'> & { invoiceId: string; id?: string }): Db {
   const inv = d.invoices.find((x) => x.id === p.invoiceId);
   if (!inv || inv.status !== 'Sent' || !(p.amount > 0)) return d;
   const payment: Payment = { ...p, id: p.id ?? uid('pay'), jobId: inv.jobId, amount: round2(p.amount), created: localIso() };
@@ -290,7 +290,7 @@ export function recordPayment(d: Db, p: Omit<Payment, 'id' | 'jobId' | 'created'
 /** Removes a payment (e.g. a bounced check); a paid invoice goes back to Sent. */
 export function deletePayment(d: Db, paymentId: string): Db {
   const p = d.payments.find((x) => x.id === paymentId);
-  if (!p) return d;
+  if (!p?.invoiceId) return d;
   const inv = d.invoices.find((x) => x.id === p.invoiceId);
   const out = { ...d, payments: d.payments.filter((x) => x.id !== paymentId) };
   if (!inv) return out;

@@ -23,12 +23,12 @@
   --secondary-foreground: var(--foreground);
   --accent-foreground: var(--foreground);
   --input: var(--border);
-  --ring: color-mix(in oklch, var(--primary) 75%, var(--background));
+  --ring: color-mix(in oklab, var(--primary) 75%, var(--background));
   --chart-1: var(--primary);
   --chart-2: var(--info);
   --chart-3: var(--success);
   --chart-4: var(--warning);
-  --chart-5: color-mix(in oklch, var(--primary) 50%, var(--info));
+  --chart-5: color-mix(in oklab, var(--primary) 50%, var(--info));
   --sidebar-foreground: var(--text);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -38,16 +38,16 @@
   --sidebar-ring: var(--ring);
 
   /* Tints used by the older hand-written styles */
-  --primary-soft: color-mix(in oklch, var(--primary) 12%, var(--card));
-  --info-soft: color-mix(in oklch, var(--info) 30%, var(--card));
-  --success-soft: color-mix(in oklch, var(--success) 14%, var(--card));
-  --success-strong: color-mix(in oklch, var(--success) 55%, var(--foreground));
-  --disabled: color-mix(in oklch, var(--foreground) 22%, var(--card));
+  --primary-soft: color-mix(in oklab, var(--primary) 12%, var(--card));
+  --info-soft: color-mix(in oklab, var(--info) 30%, var(--card));
+  --success-soft: color-mix(in oklab, var(--success) 14%, var(--card));
+  --success-strong: color-mix(in oklab, var(--success) 55%, var(--foreground));
+  --disabled: color-mix(in oklab, var(--foreground) 22%, var(--card));
 
   /* The dark header band on the schedule's Gantt chart */
-  --gantt-head: color-mix(in oklch, var(--foreground) 88%, var(--card));
+  --gantt-head: color-mix(in oklab, var(--foreground) 88%, var(--card));
   --gantt-head-fg: var(--card);
-  --gantt-head-rule: color-mix(in oklch, var(--card) 30%, var(--gantt-head));
+  --gantt-head-rule: color-mix(in oklab, var(--card) 30%, var(--gantt-head));
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   --shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
@@ -58,9 +58,9 @@
   --gantt-head: var(--muted);
   --gantt-head-fg: var(--foreground);
   --gantt-head-rule: var(--border-strong);
-  --info-soft: color-mix(in oklch, var(--info) 45%, var(--card));
-  --success-soft: color-mix(in oklch, var(--success) 16%, var(--card));
-  --success-strong: color-mix(in oklch, var(--success) 70%, var(--foreground));
+  --info-soft: color-mix(in oklab, var(--info) 45%, var(--card));
+  --success-soft: color-mix(in oklab, var(--success) 16%, var(--card));
+  --success-strong: color-mix(in oklab, var(--success) 70%, var(--foreground));
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow: 0 4px 12px -2px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.3);
 }
@@ -77,14 +77,14 @@
   --muted-foreground: oklch(0.552 0.016 285.938);
   --faint: oklch(0.705 0.015 286.067);
   --accent: oklch(0.954 0.012 60);
-  --primary: oklch(0.646 0.222 41.116);
+  --primary: oklch(0.64 0.175 44);
   --primary-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.57 0.19 25);
   --border: oklch(0.92 0.004 286.32);
   --border-strong: oklch(0.871 0.006 286.286);
-  --info: oklch(0.62 0.19 259.8);
-  --success: oklch(0.627 0.17 149.2);
-  --warning: oklch(0.769 0.165 70.08);
+  --info: oklch(0.58 0.13 258);
+  --success: oklch(0.6 0.12 152);
+  --warning: oklch(0.72 0.13 75);
 }
 [data-theme='buildtrack'][data-mode='dark'] {
   --background: oklch(0.165 0.004 285.9);
@@ -96,14 +96,14 @@
   --muted-foreground: oklch(0.71 0.015 286);
   --faint: oklch(0.55 0.014 286);
   --accent: oklch(0.29 0.035 50);
-  --primary: oklch(0.705 0.191 47.604);
+  --primary: oklch(0.72 0.15 50);
   --primary-foreground: oklch(0.17 0.02 45);
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: oklch(0.7 0.15 22);
   --border: oklch(0.285 0.006 286);
   --border-strong: oklch(0.37 0.008 286);
-  --info: oklch(0.707 0.165 254.6);
-  --success: oklch(0.765 0.177 152);
-  --warning: oklch(0.828 0.165 84.4);
+  --info: oklch(0.72 0.11 258);
+  --success: oklch(0.75 0.12 152);
+  --warning: oklch(0.8 0.12 82);
 }
 
 /* ---------- Graphite (black and white) ---------- */

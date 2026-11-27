@@ -12,6 +12,7 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { tint } from '../colors';
 
 function greeting() {
   const h = new Date().getHours();
@@ -248,7 +249,7 @@ export default function Home() {
                   to={`/tasks?id=${t.id}`}
                   className="group flex items-center gap-3 rounded-lg p-3 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <span className="tint flex size-9 shrink-0 items-center justify-center rounded-lg" style={tint('var(--c-blue)')}>
                     <Hammer className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -297,8 +298,8 @@ export default function Home() {
                       >
                         {!last && <span className="absolute left-[15px] top-8 bottom-0 w-px bg-border" aria-hidden="true" />}
                         <span
-                          className="relative flex size-8 shrink-0 items-center justify-center rounded-full ring-4 ring-card"
-                          style={{ background: `color-mix(in oklch, ${f.color} 14%, transparent)`, color: f.color }}
+                          className="tint relative flex size-8 shrink-0 items-center justify-center rounded-full ring-4 ring-card"
+                          style={tint(f.color)}
                         >
                           <FileText className="size-4" />
                         </span>

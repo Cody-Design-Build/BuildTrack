@@ -38,10 +38,10 @@
 }
 .g-jobbar,
 .g-bar {
-  background: var(--info-soft);
+  background: color-mix(in oklab, var(--c-blue) 30%, var(--card));
 }
 .g-prog {
-  background: var(--info);
+  background: color-mix(in oklab, var(--c-blue) 80%, var(--card));
 }
 
 .b-note {

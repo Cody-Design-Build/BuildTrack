@@ -5,6 +5,7 @@ import { Field } from '../components/Forms';
 import { useLookups, useStore, money, parseDb, KEY } from '../store';
 import type { Db } from '../data';
 import { JOB_STATUSES } from '../data';
+import { tone } from '../colors';
 
 export function Documents() {
   const { db } = useStore();
@@ -68,7 +69,7 @@ export function Reports() {
               return (
                 <div key={s.name} className="bar-row">
                   <span className="bar-label">{s.name}</span>
-                  <span className="bar-track"><span className="bar-fill" style={{ width: `${(n / Math.max(1, db.jobs.length)) * 100}%`, background: s.color }} /></span>
+                  <span className="bar-track"><span className="bar-fill" style={{ width: `${(n / Math.max(1, db.jobs.length)) * 100}%`, background: tone(s.color) }} /></span>
                   <span className="bar-n">{n}</span>
                 </div>
               );
@@ -91,7 +92,8 @@ const TABLES: { key: keyof Db; label: string; what: string }[] = [
   { key: 'costCodes', label: 'cost codes', what: 'Job-costing codes that budget lines and expenses are recorded against' },
   { key: 'expenses', label: 'expenses', what: 'Money spent per job and cost code, optionally linked to a budget line' },
   { key: 'invoices', label: 'invoices', what: 'Progress invoices per job: which approved budgets they bill, percent complete to date per line, status and dates' },
-  { key: 'payments', label: 'payments', what: 'Money received against invoices (date, amount, method, check or reference number, notes)' },
+  { key: 'bills', label: 'bills', what: 'Bills from vendors and subcontractors per job: their invoice number, dates, charges by cost code, status and attachments' },
+  { key: 'payments', label: 'payments', what: 'Money received against invoices and paid out against bills (date, amount, method, check or reference number, notes)' },
   { key: 'docs', label: 'documents', what: 'Invoices, bids, subcontractor agreements, purchase orders and bills' },
   { key: 'tasks', label: 'tasks', what: 'Tasks with the person or account involved, job, due date, type and assignees' },
   { key: 'scheduleEntries', label: 'schedule entries', what: 'Scheduled work by job, start and finish dates, crew and progress' },

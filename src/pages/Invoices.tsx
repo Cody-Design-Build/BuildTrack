@@ -128,7 +128,7 @@ export function JobInvoices({ job }: { job: Job }) {
             <span className="grow" />
             <span className="muted small-text">Record a payment from the invoice it pays.</span>
           </div>
-          <PaymentsTable payments={payments} showInvoice />
+          <PaymentsTable payments={payments} showDoc />
         </>
       )}
     </div>

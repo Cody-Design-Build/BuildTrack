@@ -7,6 +7,7 @@ import { TaskForm, Field } from '../components/Forms';
 import { useLookups, useStore } from '../store';
 import { downloadCsv, downloadIcs } from '../lib/downloads';
 import type { Task } from '../data';
+import { tint, tone } from '../colors';
 
 const VIEWS = {
   mine: 'My Incomplete Tasks',
@@ -16,7 +17,8 @@ const VIEWS = {
 } as const;
 type View = keyof typeof VIEWS;
 
-const TYPE_COLORS = ['#ff0000', '#2563eb', '#16a34a', '#9333ea', '#ea580c', '#0d9488'];
+// Mapped onto the theme's palette by tone() / tint() when shown.
+const TYPE_COLORS = ['#dc2626', '#2563eb', '#16a34a', '#9333ea', '#ea580c', '#0d9488', '#ca8a04', '#c026d3'];
 
 function typeColor(types: string[], t: string) {
   const i = types.indexOf(t);
@@ -33,7 +35,7 @@ function TypesModal({ onClose }: { onClose: () => void }) {
       {types.map((t) => (
         <Field key={t} label="">
           <div className="type-edit">
-            <span className="type-pill" style={{ background: typeColor(types, t) }}>&nbsp;</span>
+            <span className="type-pill" style={{ background: tone(typeColor(types, t)) }}>&nbsp;</span>
             <input value={draft[t] ?? ''} onChange={(e) => setDraft((d) => ({ ...d, [t]: e.target.value }))} />
           </div>
         </Field>
@@ -211,12 +213,12 @@ export default function Tasks() {
                   <td>
                     <input className="cell-input" type="date" value={t.due} onChange={(e) => setField(t.id, { due: e.target.value })} aria-label="Due date" />
                   </td>
-                  <td>{t.type && <span className="type-pill" style={{ background: typeColor(allTypes, t.type) }}>{t.type}</span>}</td>
+                  <td>{t.type && <span className="type-pill tint" style={tint(typeColor(allTypes, t.type))}>{t.type}</span>}</td>
                   <td className="center">
                     <span className="assignees">
                       {t.assignees.map((a) => {
                         const m = L.team.get(a);
-                        return m ? <Avatar key={a} text={m.initials} color={m.color} size={16} /> : null;
+                        return m ? <Avatar key={a} text={m.initials} color={m.color} size={26} title={m.name} /> : null;
                       })}
                     </span>
                   </td>

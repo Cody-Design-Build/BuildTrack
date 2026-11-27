@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   House, Wrench, SquareCheck, Calendar, FileText, Users, Building2, Book, Folder, ChartPie,
-  Settings, LogOut, PanelLeftClose, PanelLeftOpen, ReceiptText, Bell,
+  Settings, LogOut, PanelLeftClose, PanelLeftOpen, ReceiptText, Receipt,
   Search, Ellipsis, Menu, ChevronsUpDown, User, Calculator, type LucideIcon,
 } from 'lucide-react';
 import { useStore } from '../store';
+import { tone } from '../colors';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +30,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/schedule', label: 'Schedule', icon: Calendar },
       { to: '/budgets', label: 'Budgets', icon: Calculator },
       { to: '/invoices', label: 'Invoices', icon: ReceiptText },
+      { to: '/bills', label: 'Bills', icon: Receipt },
     ],
   },
   {
@@ -186,32 +188,11 @@ function SidebarBody({ collapsed, onCollapse }: { collapsed: boolean; onCollapse
   );
 }
 
-function IconLink({ to, label, children, badge }: { to: string; label: string; children: ReactNode; badge?: number }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" asChild className="relative text-muted-foreground hover:text-foreground">
-          <Link to={to} aria-label={label}>
-            {children}
-            {!!badge && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-background">
-                {badge}
-              </span>
-            )}
-          </Link>
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { db } = useStore();
   const nav = useNavigate();
   const [q, setQ] = useState('');
   const input = useRef<HTMLInputElement>(null);
-  const openTasks = db.tasks.filter((t) => !t.done && t.assignees.includes(db.team[0]?.id)).length;
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -249,14 +230,6 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           ⌘K
         </kbd>
       </form>
-      <div className="ml-auto flex items-center gap-0.5">
-        <IconLink to="/documents" label="Documents">
-          <ReceiptText className="size-5" />
-        </IconLink>
-        <IconLink to="/tasks" label={`My tasks (${openTasks} open)`} badge={openTasks}>
-          <Bell className="size-5" />
-        </IconLink>
-      </div>
     </header>
   );
 }
@@ -401,11 +374,16 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
   );
 }
 
-export function Avatar({ text, color, size = 24, square }: { text: string; color: string; size?: number; square?: boolean }) {
+/** Initials on a round (or, for accounts, square) badge in the theme's version of `color`. */
+export function Avatar({ text, color, size = 24, square, title }: { text: string; color: string; size?: number; square?: boolean; title?: string }) {
+  // initials stay legible on small badges: never below 10px
+  const fontSize = Math.max(10, Math.round(size * (text.length > 2 ? 0.34 : 0.42)));
   return (
     <span
       className={cn('avatar', square && '!rounded-md')}
-      style={{ background: color, width: size, height: size, fontSize: Math.round(text.length > 2 ? size * 0.3 : size * 0.4) }}
+      title={title}
+      aria-label={title}
+      style={{ background: tone(color), color: 'var(--avatar-fg)', width: size, height: size, fontSize }}
     >
       {text}
     </span>

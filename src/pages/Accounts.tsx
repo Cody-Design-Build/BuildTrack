@@ -6,6 +6,8 @@ import { AccountForm, JobForm, JobLinkForm, MembershipForm, TaskForm } from '../
 import { PartyAvatar, PartyLink, RoleBadge } from '../components/Party';
 import { BackLink, Empty, InfoLine, Row, SearchInput, Section } from '../components/Detail';
 import { StatusDot } from './Jobs';
+import { BillTable, NewBillDialog, isVendor } from './Bills';
+import { payables } from '../bills';
 import { useLookups, useStore, money, personName } from '../store';
 import type { Account, JobLink, Membership } from '../data';
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,9 @@ function AccountDetail({ account }: { account: Account }) {
   const tasks = db.tasks.filter((t) => t.partyId === account.id && !t.done);
   const budgetById = new Map(db.budgets.map((b) => [b.id, b] as const));
   const budgetLines = db.budgetLines.filter((i) => i.vendorId === account.id);
+  const bills = db.bills.filter((b) => b.vendorId === account.id).sort((a, b) => b.date.localeCompare(a.date));
+  const owed = payables(db, bills);
+  const [newBill, setNewBill] = useState(false);
 
   return (
     <div className="page scroll">
@@ -147,6 +152,21 @@ function AccountDetail({ account }: { account: Account }) {
               </Section>
             </div>
 
+            {(bills.length > 0 || isVendor(account)) && (
+              <Section
+                title="Bills"
+                count={bills.length}
+                action={
+                  <span className="flex items-center gap-3">
+                    {owed.owed > 0 && <span className={'text-sm ' + (owed.overdue > 0 ? 'text-destructive' : 'text-muted-foreground')}>{money(owed.owed)} owed{owed.overdue > 0 && ` · ${money(owed.overdue)} overdue`}</span>}
+                    <Button size="sm" variant="ghost" onClick={() => setNewBill(true)}><Plus /> New bill</Button>
+                  </span>
+                }
+              >
+                {bills.length === 0 ? <Empty>No bills from {account.name} yet.</Empty> : <BillTable bills={bills} showVendor={false} />}
+              </Section>
+            )}
+
             {budgetLines.length > 0 && (
               <Section title="Budget lines" count={budgetLines.length}>
                 {budgetLines.map((i) => (
@@ -169,6 +189,7 @@ function AccountDetail({ account }: { account: Account }) {
       {jobLink && <JobLinkForm partyId={account.id} link={jobLink === 'new' ? undefined : jobLink} onClose={() => setJobLink(null)} />}
       {newJob && <JobForm presetCustomerId={account.id} onClose={() => setNewJob(false)} />}
       {newTask && <TaskForm presetPartyId={account.id} onClose={() => setNewTask(false)} />}
+      {newBill && <NewBillDialog vendorId={account.id} onClose={() => setNewBill(false)} />}
     </div>
   );
 }

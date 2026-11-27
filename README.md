@@ -1,6 +1,6 @@
 # BuildTrack
 
-A simple job-management web app for a design-build company with a Home dashboard, Jobs, Tasks, a job and crew Schedule, Budgets, Invoices, and a small CRM of People and Accounts. People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
+A simple job-management web app for a design-build company with a Home dashboard, Jobs, Tasks, a job and crew Schedule, Budgets, Invoices, vendor Bills, and a small CRM of People and Accounts. People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
 
 ## Budgets
 
@@ -24,6 +24,15 @@ Invoices are progress bills against approved budgets (`src/invoices.ts`). A new 
 - The invoice document shows every line or group totals only, with contract, previously billed, percent complete and this invoice, and prints or saves as a PDF like budgets.
 - Each job has an **Invoices** tab (contract, billed, paid, outstanding, left to bill) and the top-level **Invoices** page lists them all, with an Overdue filter.
 - Older invoice records from the documents list (no line items) are left as they are and still count on the Home page.
+
+## Bills
+
+Bills are what we owe vendors and subcontractors on a job (`src/bills.ts`). Each one is entered from the vendor's invoice: their invoice number, dates, and one or more charges, each with a **cost code** so job costing can total what each part of the job cost. Files such as the vendor's invoice or a lien release can be attached.
+
+- A bill starts as **Draft** while it's checked, then **Approve to pay** makes it **Open** and locks the amounts. An open bill can go back to draft or be voided until a payment is made on it.
+- **Record payment** logs each payment (date, amount, method, check or reference number). The bill turns **Paid** automatically when payments cover it, and reopens if a payment is removed. Lists show when it was paid, and an open bill past its due date shows as **Overdue**.
+- Payments made on bills share the payments table with payments received on invoices (`billId` instead of `invoiceId`).
+- The **Bills** page lists every bill (owed, overdue, due this week, paid this month, drafts to review); each job has a **Bills** tab and each vendor's account page lists its bills. A bill prints or saves as a PDF record of what was paid.
 
 ## Develop
 
