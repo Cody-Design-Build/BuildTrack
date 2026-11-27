@@ -256,7 +256,8 @@
     "email": {
       // Allow/disallow the email provider. When false, users can't sign up or sign in with email.
       // To block new signups only, set enable_signup = false under [auth] instead.
-      "enabled": true,
+      // Off: BuildTrack signs in with Google only (no email/password accounts).
+      "enabled": false,
       // If enabled, a user will be required to confirm any email change on both the old, and new email
       // addresses. If disabled, only the new email is required to confirm.
       "double_confirm_changes": true,
