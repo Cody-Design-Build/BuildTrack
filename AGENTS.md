@@ -6,7 +6,7 @@ Read this before changing anything. It's the process every person and agent foll
 
 | | What it's for | Data | How it updates |
 |---|---|---|---|
-| **Local** | Quick changes on your own machine | This browser's own copy (sample data), no sign-in | `npm run dev` (http://localhost:5173), or `npm run build` and the preview on http://127.0.0.1:4173 |
+| **Local** | Quick changes on your own machine | This browser's own copy (sample data), no sign-in | `npm run dev` (http://localhost:5173). There's no need to rebuild the 4173 preview after merges. |
 | **Preview** | Checking a change before it goes live | Sample data in the viewer's browser, never the live database | Vercel builds every pull request and comments a link on it |
 | **Demo** | Anyone trying BuildTrack from buildtrack.run | Sample data in the visitor's own browser; `VITE_DEMO=1`, no Supabase settings (`src/demo.ts`) | Vercel project `buildtrack-demo` deploys `main` to https://demo.buildtrack.run |
 | **Live** | The team's real app | The `buildtrack` Supabase project (CDB Team org), Google sign-in for @codydesignbuild.com | Vercel deploys `main` automatically |
@@ -28,10 +28,10 @@ Local and Preview never touch live data. Only `npm run dev:live` connects your m
    ```
 4. **Open a pull request** (`git push -u origin <task>` then `gh pr create`). GitHub runs the type check and build; Vercel posts a preview link.
 5. **Merging:**
-   - Small fixes: the agent may merge once the checks pass and David has said OK in the conversation.
-   - Anything touching the database (`supabase/`), sign-in, or money calculations (budgets, invoices, bills, payments, job costing): David merges.
-   - Merge with "Squash and merge". Merging to `main` is a release: Vercel deploys it to the live site within a minute or two.
-6. **Clean up**: `git worktree remove ../BuildTrack-<task>` and delete the branch.
+   - **Agents merge their own pull requests** as soon as the checks pass: open it with `gh pr create`, then `gh pr merge --auto --squash` so GitHub merges it the moment the type check, build and database tests pass. No need to wait for David's OK. GitHub deletes the branch after merging.
+   - **Exception: changes to the live database or Supabase settings** (`supabase/migrations/` or `supabase/config.jsonc`). The live app depends on them, so David runs `npm run db:push -- --yes` / `supabase config push --yes` first; only then merge. Don't set auto-merge on these.
+   - Merging to `main` is a release: Vercel deploys it to the live site within a minute or two. Check it went out (the status corner shows the commit), and roll back in Vercel if something's wrong.
+6. **Clean up**: `git worktree remove ../BuildTrack-<task>` and `git branch -D <task>` (GitHub already deleted the remote branch).
 
 If something goes wrong on the live site, roll back in Vercel (Deployments → the previous one → Promote) and fix forward in a new pull request.
 
