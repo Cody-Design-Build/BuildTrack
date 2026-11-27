@@ -1,74 +1,69 @@
-import { StrictMode } from 'react';
+import { StrictMode, useLayoutEffect, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { StoreProvider } from './store';
+import { BrowserRouter, Link, Route, Routes, matchPath, useLocation } from 'react-router-dom';
+import { StoreProvider, useStore } from './store';
 import { Shell } from './components/Layout';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import Home from './pages/Home';
-import Jobs from './pages/Jobs';
-import Tasks from './pages/Tasks';
-import Schedule from './pages/Schedule';
-import Accounts from './pages/Accounts';
-import People from './pages/People';
-import Budgets from './pages/Budgets';
-import BudgetDetail from './pages/BudgetDetail';
-import Invoices from './pages/Invoices';
-import InvoiceDetail from './pages/InvoiceDetail';
-import Bills from './pages/Bills';
-import BillDetail from './pages/BillDetail';
-import Bids from './pages/Bids';
-import BidPackageDetail from './pages/BidPackageDetail';
-import { Documents, Reports, Placeholder } from './pages/Other';
+import { Placeholder } from './pages/Other';
 import SettingsPage from './pages/Settings';
 import '@fontsource-variable/inter';
 import './index.css';
 import { initAppearance } from './appearance';
 import { CloudGate } from './components/CloudGate';
+import { PLUGINS } from './plugins';
+import { installedPlugins, registerPlugins, setChoices, usePlugins } from './plugins/registry';
 
 initAppearance();
+registerPlugins(PLUGINS);
 
-function LegacyTasksRedirect() {
-  const { search, hash } = useLocation();
-  return <Navigate to={{ pathname: '/tasks', search, hash }} replace />;
+/** Keeps the plugin registry on the company's saved choices (they sync like any other data). */
+function PluginChoicesSync({ children }: { children: ReactNode }) {
+  const { db } = useStore();
+  useLayoutEffect(() => setChoices(db.plugins), [db.plugins]);
+  return children;
+}
+
+function NotFound() {
+  const { pathname } = useLocation();
+  const owner = installedPlugins().find((p) => p.routes?.some((r) => matchPath(r.path, pathname)));
+  if (owner)
+    return (
+      <Placeholder
+        title={owner.name}
+        text={<>The {owner.name} plugin is turned off. Turn it on in <Link to="/settings?section=plugins" className="underline">Settings → Plugins</Link>.</>}
+      />
+    );
+  return <Placeholder title="Not found" text="That page doesn't exist." />;
+}
+
+/** Pages come from the plugins that are on; settings and the profile are part of the app itself. */
+function AppRoutes() {
+  const plugins = usePlugins();
+  return (
+    <Routes>
+      {plugins.flatMap((p) => p.routes ?? []).map(({ path, component: Page }) => (
+        <Route key={path} path={path} element={<Page />} />
+      ))}
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/profile" element={<Placeholder title="Profile" text="Your name, photo and notification preferences." />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <CloudGate>{(initial) => (
     <StoreProvider initial={initial}>
+      <PluginChoicesSync>
       <BrowserRouter>
         <TooltipProvider delayDuration={300}>
         <Shell>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/to-dos" element={<LegacyTasksRedirect />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/budgets" element={<Budgets />} />
-            <Route path="/budgets/:id" element={<BudgetDetail />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/invoices/:id" element={<InvoiceDetail />} />
-            <Route path="/bids" element={<Bids />} />
-            <Route path="/bids/:id" element={<BidPackageDetail />} />
-            <Route path="/bills" element={<Bills />} />
-            <Route path="/bills/:id" element={<BillDetail />} />
-            <Route path="/people" element={<People />} />
-            <Route path="/accounts" element={<Accounts />} />
-            {/* old addresses from the customer/vendor pages */}
-            <Route path="/customers" element={<Navigate to="/accounts?type=Customer" replace />} />
-            <Route path="/vendors" element={<Navigate to="/accounts?type=Vendor" replace />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/catalog" element={<Placeholder title="Catalog" text="Your saved cost items and assemblies will live here." />} />
-            <Route path="/files" element={<Placeholder title="Files" text="Photos, plans and uploads for your jobs will live here." />} />
-            <Route path="/profile" element={<Placeholder title="Profile" text="Your name, photo and notification preferences." />} />
-            <Route path="*" element={<Placeholder title="Not found" text="That page doesn't exist." />} />
-          </Routes>
+          <AppRoutes />
         </Shell>
         </TooltipProvider>
       </BrowserRouter>
+      </PluginChoicesSync>
     </StoreProvider>
     )}</CloudGate>
   </StrictMode>,

@@ -8,8 +8,8 @@ import { Field } from './Forms';
 import { Button } from '@/components/ui/button';
 import { useStore, money } from '../store';
 import { PAYMENT_METHODS, type Bill, type Invoice, type Payment, type PaymentMethod } from '../data';
-import { deletePayment, invoiceLabel, invoiceMoney, recordPayment, todayYmd } from '../invoices';
-import { billLabel, billMoney, deleteBillPayment, recordBillPayment } from '../bills';
+import { deletePayment, invoiceLabel, invoiceMoney, recordPayment, todayYmd } from '../plugins/invoices/invoices';
+import { billLabel, billMoney, deleteBillPayment, recordBillPayment } from '../plugins/bills/bills';
 
 export const fmtDate = (ymd: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 

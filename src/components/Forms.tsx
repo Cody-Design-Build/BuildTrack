@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { partyRemoved } from '../plugins/registry';
 import { Modal } from './Layout';
 import { PartyPicker } from './Party';
 import { useStore, useLookups, uid, personName, colorFor } from '../store';
@@ -42,22 +43,16 @@ export function newPerson(name: string, extra: Partial<Person> = {}): Person {
 
 /** Removes a person or account and everything that pointed at it. */
 export function removeParty(d: Db, id: string): Db {
-  return {
+  const kept: Db = {
     ...d,
     people: d.people.filter((p) => p.id !== id),
     accounts: d.accounts.filter((a) => a.id !== id),
     memberships: d.memberships.filter((m) => m.personId !== id && m.accountId !== id),
     jobLinks: d.jobLinks.filter((l) => l.partyId !== id),
     docs: d.docs.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    tasks: d.tasks.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    budgets: d.budgets.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    budgetLines: d.budgetLines.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
-    expenses: d.expenses.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
-    // bills are financial records: keep them, just without the vendor
-    bills: d.bills.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
-    // drop their invites, but keep an awarded bid (it backs a commitment and bills)
-    bids: d.bids.filter((x) => x.vendorId !== id || x.status === 'Awarded').map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
   };
+  // each plugin tidies its own records (tasks, budgets, bills, bids…)
+  return partyRemoved(kept, id);
 }
 
 /** A role box that suggests the usual roles but accepts anything typed. */

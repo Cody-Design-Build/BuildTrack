@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
@@ -157,7 +157,7 @@ export function DataCard() {
   );
 }
 
-export function Placeholder({ title, text }: { title: string; text: string }) {
+export function Placeholder({ title, text }: { title: string; text: ReactNode }) {
   return (
     <div className="page scroll">
       <PageHeader title={title} />
