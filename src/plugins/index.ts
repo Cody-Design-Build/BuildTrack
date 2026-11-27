@@ -13,7 +13,5 @@ import invoices from './invoices';
 import bills from './bills';
 import expenses from './expenses';
 import costing from './costing';
-import themesBuiltin from './themes-builtin';
-import themesOmarchy from './themes-omarchy';
 
-export const PLUGINS: Plugin[] = [home, jobs, contacts, records, tasks, schedule, budgets, bids, invoices, bills, expenses, costing, themesBuiltin, themesOmarchy];
+export const PLUGINS: Plugin[] = [home, jobs, contacts, records, tasks, schedule, budgets, bids, invoices, bills, expenses, costing];

@@ -53,7 +53,7 @@ BuildTrack is live: several people use the same data at once, and every change y
 - **Keep records small and separate.** Two people editing different records never clash; two people editing the *same* record means the last save wins. So budget lines are their own records, not an array inside the budget. Follow that for anything people edit concurrently.
 - **Never assume a list exists or has the newest fields.** The live database and people's browsers hold data saved by older versions. A new list needs `seed()` sample records and a `parseDb()` upgrade step (see above); a new field on an existing record needs a sensible default wherever it's read (`x.field ?? default`), or an upgrade step that fills it in.
 - **Don't rename or remove lists or fields in one go.** Add the new one, migrate in `parseDb()`, and remove the old one in a later change, once nothing reads it.
-- **Settings per person or device** (layout, theme, last tab, filters) go in `localStorage` (see `src/appearance.ts`, `useRememberedChoice` in `src/components/DocLayout.tsx`), not in `Db`, or they change for everyone.
+- **Settings per person or device** (layout, last tab, filters) go in `localStorage` (see `src/appearance.ts`, `useRememberedChoice` in `src/components/DocLayout.tsx`), not in `Db`, or they change for everyone.
 - **Files** (signed copies, attachments) go through `src/files.ts`: `putFile()` stores the bytes in the team-only Supabase `files` bucket (when connected) and caches them in this browser's IndexedDB; `getFile()` reads the cache, then the bucket. Records keep only a `StoredFile` (id, name, type, size). A plugin whose records hold files must list their ids in `filesInUse`, or this browser's cached copies are cleaned up at start-up. The bucket itself is never pruned automatically.
 - **Who did what:** every saved row records the signed-in user (`updated_by`) and time. Show "by whom" from the team list (`db.team`) rather than adding new user tables.
 - **Test both modes:** `npm run dev` (browser only, as previews run) and, when the change touches data loading or saving, `npm run dev:live` against the live database. Remember edits there are real.
@@ -81,6 +81,6 @@ BuildTrack is live: several people use the same data at once, and every change y
 
 ## Code notes
 
-- UI: shadcn/ui components in `src/components/ui/` on Tailwind v4. Themes are data in theme plugins (`src/plugins/themes-*`, see `src/plugins/README.md` → Themes) turned into colour tokens by `src/theming/engine.ts`; to add or change a look, write a theme there. Never write fixed colours (use `var(--primary)`, `var(--info)`, `bg-muted` …) so dark mode and themes keep working.
+- UI: shadcn/ui components in `src/components/ui/` on Tailwind v4. Themes are data (`src/theming/packs/`, format in `src/theming/types.ts`, explained in `docs/development.md` → Appearance) turned into colour tokens by `src/theming/engine.ts`; people customise on top in Settings → Appearance. Never write fixed colours (use `var(--primary)`, `var(--info)`, `bg-muted` …) so dark mode and themes keep working.
 - The status corner (top right) shows version, build, environment and the database connection; it offers **Update** when a newer build is live. Bump `version` in `package.json` for notable releases.
 - Customer documents (budgets, invoices) always render black on white.

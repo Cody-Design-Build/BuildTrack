@@ -14,12 +14,11 @@ import '@fontsource/ibm-plex-sans/500.css';
 import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-sans/700.css';
 import { initAppearance } from './appearance';
-import { registerThemePlugins } from './theming/registry';
+import { AppearanceSync } from './components/AppearanceSync';
 import { CloudGate } from './components/CloudGate';
 import { PLUGINS } from './plugins';
 import { installedPlugins, registerPlugins, setChoices, usePlugins } from './plugins/registry';
 
-registerThemePlugins(PLUGINS);
 initAppearance();
 registerPlugins(PLUGINS);
 
@@ -65,6 +64,7 @@ createRoot(document.getElementById('root')!).render(
       <PluginChoicesSync>
       <BrowserRouter>
         <TooltipProvider delayDuration={300}>
+        <AppearanceSync />
         <Shell>
           <AppRoutes />
         </Shell>

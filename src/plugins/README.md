@@ -19,7 +19,6 @@ each live in a folder here, and each folder has an `index.tsx` that describes th
 | `jobTabs`         | Tabs on a job page (`id` is what appears in `?tab=`)                    |
 | `jobSummary`      | Rows in the Money card on a job's Overview (render `<SummaryRow>`)      |
 | `accountSections` | Sections on a company's page                                            |
-| `themes`          | Colour themes (and a suggested font) for Settings → Appearance           |
 | `costEntries`     | Its share of the **costs/v1** contract (below)                          |
 | `filesInUse`      | Stored files its records still use, so they aren't cleaned up           |
 | `removeParty`     | Tidy its records when a person or company is deleted                    |
@@ -68,48 +67,3 @@ To change a plugin without keeping the original, edit its folder directly.
 - Plugins are built into the app. Installing one without rebuilding, and limiting what a
   third-party plugin can see, come later with the hosted version.
 
-## Themes
-
-A theme is data, not CSS: a name, colours for light and/or dark mode, and optionally a font.
-Add themes from any plugin with `themes: [...]`; the engine (`src/theming/engine.ts`) turns
-them into the CSS the whole app is styled with, and they appear in Settings → Appearance.
-Built-in themes live in `themes-builtin`, the Omarchy desktop themes in `themes-omarchy`.
-
-```ts
-import { definePlugin } from '../sdk';
-import { defineTheme } from '../../theming/types';
-
-export default definePlugin({
-  id: 'acme.themes',
-  name: 'Acme brand',
-  description: 'Our colours.',
-  themes: [
-    defineTheme({
-      id: 'acme-brand',
-      name: 'Acme',
-      note: 'Navy and safety orange',
-      light: { background: '#f7f8fa', foreground: '#0f1b2d', primary: '#ff6b1a' },
-      dark: { background: '#0f1b2d', foreground: '#e8edf5', primary: '#ff8a3d' },
-      font: 'plex', // 'inter' | 'system' | 'plex' | 'jetbrains-mono'
-    }),
-  ],
-});
-```
-
-- **Only `background`, `foreground` and `primary` are required.** Everything else (cards,
-  sidebar, borders, muted and faint text, hover tint, text on buttons, status colours and
-  the ten category colours behind labels and the Accent choice) is worked out from them.
-  Give any of them (`ThemeColors` in `src/theming/types.ts`) to take control.
-- **One mode is fine.** A theme with only `dark` stays dark whichever mode is chosen.
-- **Colours** can be any CSS colour (`#hex`, `oklch()`, `rgb()`). Keep text readable: aim
-  for clear contrast between `foreground` and `background`, and between `primary` and the
-  page.
-- **Customer documents** (proposals, invoices, bills) always stay black on white in the
-  standard font, whatever the theme.
-- **Omarchy:** `scripts/import-omarchy-themes.mjs` regenerates the Omarchy pack from
-  Omarchy's theme folders; `src/theming/omarchy.ts` reads a `colors.toml` (both the current
-  named-colour format and the older `color0`–`color15` one). The same reader powers
-  Settings → Appearance → Import theme.
-- **Try a theme without code:** in Settings → Appearance, *Download this theme* saves the
-  current theme as JSON; edit it and *Import theme* to see it (kept in that browser). When
-  it's right, add it to a theme plugin so everyone gets it.

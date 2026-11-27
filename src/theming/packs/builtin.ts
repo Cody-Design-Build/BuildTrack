@@ -1,5 +1,5 @@
 // The built-in themes, converted unchanged from the hand-written CSS they replaced.
-import { defineTheme } from '../../theming/types';
+import { defineTheme } from '../types';
 
 export const BUILTIN_THEMES = [
   defineTheme({

@@ -13,12 +13,23 @@ npm run dev
 
 The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/components/ui/`) on Tailwind CSS v4. Theme colours live in `src/index.css`; the older hand-written styles in `src/styles.css` are loaded in a lower cascade layer, so Tailwind classes always win where they meet. Add more components with `npx shadcn@latest add <name>`.
 
-## Themes and dark mode
+## Appearance: themes, colours, fonts and presets
 
-**Settings → Appearance** picks a colour theme (BuildTrack, Graphite, Nord, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Solarized) and Light, Dark or System mode. The choice is saved per browser (`bt-appearance` in localStorage), not in the company data, and `index.html` applies it before the first paint. Customer documents (budgets, invoices, PDFs) always stay black on white.
+**Settings → Appearance** lets each person shape how BuildTrack looks:
 
-- Themes live in `src/themes.css`: each one sets a few base colours for light and dark, and the rest are worked out from them. To add one, add a pair of `[data-theme]` blocks there and an entry in `THEMES` in `src/appearance.ts`.
-- `src/theme-legacy.css` swaps the few colours written directly into `src/styles.css` for theme colours.
+- **Theme**: a starting point. The BuildTrack themes (BuildTrack, Graphite, Nord, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Solarized; light and dark) and the Omarchy desktop themes. **Import theme** adds an Omarchy `colors.toml` or a downloaded BuildTrack theme (kept in that browser); **Download this theme** saves the current one, custom colours included, as JSON.
+- **Customize colours**: every colour (surfaces, text, borders, accent, status), per mode, with colour pickers or codes. Anything left alone follows the theme.
+- **Mode**, **Accent** (from the theme's palette), **Font** (theme's, Inter, System, IBM Plex Sans, JetBrains Mono), **Numbers in a monospaced font**, **Corners** (Sharp / Standard / Round or an exact size).
+- **Presets**: the whole look saved under a name, to switch back to.
+- **Company theme**: an owner or admin can make their look the company's; people start on it until they change their own.
+
+Remembered in the browser (`bt-appearance`, `bt-presets`; `index.html` applies the look before the first paint) and, on shared data, in the person's `preferences` record, so it follows them between devices (`src/components/AppearanceSync.tsx`). The company theme is `companyLook` in the company data. Customer documents (budgets, invoices, PDFs) always stay black on white in the standard font.
+
+How it works:
+
+- A theme is data (`ThemeDefinition` in `src/theming/types.ts`): a name, light and/or dark colours and an optional font. Only `background`, `foreground` and `primary` are required; `src/theming/engine.ts` works out the rest (cards, borders, text shades, hover, status and the ten category colours behind labels and Accent) and writes the `[data-theme]` CSS. A theme with one mode keeps it whatever mode is chosen.
+- The shipped themes are in `src/theming/packs/`. To add one for everyone, add a `defineTheme({...})` there. `scripts/import-omarchy-themes.mjs` regenerates the Omarchy pack; `src/theming/omarchy.ts` reads `colors.toml` (current and older formats).
+- A person's look (`Look`) is a theme plus their changes; `src/appearance.ts` turns it into the CSS for `[data-theme='look']`. Everything else derives from the tokens in `src/themes.css`; `src/theme-legacy.css` maps the older hand-written styles onto them.
 
 ## Build
 

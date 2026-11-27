@@ -8,18 +8,21 @@
     <script>
       // Apply the saved theme before the first paint (see src/appearance.ts).
       try {
-        var a = JSON.parse(localStorage.getItem('bt-appearance') || '{}');
-        var d = a.mode === 'dark' || (a.mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-        // The current theme's CSS and font, cached by src/appearance.ts (themes are data in plugins).
+        // The saved look and the current theme's cached CSS (see src/appearance.ts).
+        var saved = JSON.parse(localStorage.getItem('bt-appearance') || '{}');
+        var a = saved.look || saved;
         var b = JSON.parse(localStorage.getItem('bt-theme-boot') || '{}');
+        var d = a.mode === 'dark' || (a.mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         if (b.only) d = b.only === 'dark';
-        if (b.css) { var s = document.createElement('style'); s.id = 'bt-theme-boot'; s.textContent = b.css; document.head.appendChild(s); }
-        if (b.font) document.documentElement.style.setProperty('--app-font', b.font);
         var r = document.documentElement;
-        r.dataset.theme = a.theme || 'buildtrack';
+        if (b.css) { var s = document.createElement('style'); s.id = 'bt-theme-boot'; s.textContent = b.css; document.head.appendChild(s); }
+        r.dataset.theme = b.theme || a.theme || 'buildtrack';
         r.dataset.mode = d ? 'dark' : 'light';
         if (a.accent && a.accent !== 'theme') r.dataset.accent = a.accent;
         if (a.corners === 'sharp' || a.corners === 'round') r.dataset.corners = a.corners;
+        if (typeof b.radius === 'number') r.style.setProperty('--radius', b.radius + 'px');
+        if (a.numbers === 'mono') r.dataset.numbers = 'mono';
+        if (b.font) r.style.setProperty('--app-font', b.font);
         if (d) r.classList.add('dark');
       } catch (e) {}
     </script>

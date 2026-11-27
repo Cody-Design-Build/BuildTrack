@@ -63,3 +63,43 @@ export interface ThemeDefinition {
 }
 
 export const defineTheme = (t: ThemeDefinition): ThemeDefinition => t;
+
+// ---------- A person's whole look (Settings → Appearance) ----------
+
+export type Mode = 'light' | 'dark' | 'system';
+/** 'theme' keeps the theme's own accent; anything else is one of its category colours. */
+export type Accent = 'theme' | PaletteSlot;
+export type Corners = 'sharp' | 'standard' | 'round';
+/** 'theme' uses the font the theme suggests (Inter when it suggests none). */
+export type FontChoice = 'theme' | FontId;
+/** The colours a person changed on top of their theme, per mode. */
+export type ColorKey = Exclude<keyof ThemeColors, 'palette'>;
+export type ColorOverrides = Partial<Record<ColorKey, string>>;
+
+export interface Look {
+  /** The theme it starts from. */
+  theme: string;
+  mode: Mode;
+  accent: Accent;
+  corners: Corners;
+  /** Exact corner size in px; overrides `corners` when set. */
+  radius?: number;
+  font: FontChoice;
+  /** Money and other numbers in a monospaced font, so columns line up. */
+  numbers?: 'proportional' | 'mono';
+  colors?: { light?: ColorOverrides; dark?: ColorOverrides };
+}
+
+export interface Preset {
+  id: string;
+  name: string;
+  look: Look;
+}
+
+/** A person's saved look and presets, kept with the company data so they follow them between devices. */
+export interface Preferences {
+  id: string; // the team member's id
+  look: Look;
+  presets: Preset[];
+  updated: string; // ISO time of the last change
+}

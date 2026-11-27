@@ -23,7 +23,6 @@ function adds(p: Plugin): string[] {
   if (p.jobSummary?.length) out.push('rows on the job Overview');
   if (p.accountSections?.length) out.push(plural(p.accountSections.length, 'section') + ' on company pages');
   if (p.costEntries) out.push('costs for job costing');
-  if (p.themes?.length) out.push(plural(p.themes.length, 'theme') + ' in Appearance');
   return out;
 }
 
