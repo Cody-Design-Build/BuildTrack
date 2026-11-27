@@ -7,7 +7,7 @@ import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useStore } from '../store';
 import { DataCard } from './Other';
-import { ACCENTS, THEMES, setAppearance, useAppearance, type Accent, type Mode } from '../appearance';
+import { ACCENTS, CORNERS, THEMES, setAppearance, useAppearance, type Accent, type Corners, type Mode } from '../appearance';
 import { cn } from '@/lib/utils';
 import { cloud, useCloudStatus } from '../cloud';
 import { signOut } from '../components/CloudGate';
@@ -148,7 +148,7 @@ const MODES: { id: Mode; label: string; icon: LucideIcon }[] = [
 ];
 
 function AppearanceSettings() {
-  const { theme, mode, accent, resolved } = useAppearance();
+  const { theme, mode, accent, corners, resolved } = useAppearance();
   return (
     <>
       <Card title="Mode" note="System follows your computer's light or dark setting.">
@@ -186,7 +186,29 @@ function AppearanceSettings() {
           ))}
         </div>
       </Card>
+      <Card title="Corners" note="How rounded cards, buttons and fields are. Badges and avatars stay round.">
+        <div className="grid grid-cols-3 gap-3">
+          {CORNERS.map((c) => (
+            <Choice key={c.id} selected={corners === c.id} onSelect={() => setAppearance({ corners: c.id })} label={c.name} note={c.note}>
+              <CornerSample corners={c.id} />
+            </Choice>
+          ))}
+        </div>
+      </Card>
     </>
+  );
+}
+
+const CORNER_PX: Record<Corners, number> = { sharp: 2, standard: 6, round: 12 };
+
+/** A card with a button and a field, drawn at the given corner size. */
+function CornerSample({ corners }: { corners: Corners }) {
+  const r = CORNER_PX[corners];
+  return (
+    <div aria-hidden className="flex h-20 flex-col justify-center gap-2 border bg-card p-3" style={{ borderRadius: r }}>
+      <div className="h-5 w-3/4 border bg-background" style={{ borderRadius: Math.max(0, r - 2) }} />
+      <div className="h-5 w-16 bg-primary" style={{ borderRadius: Math.max(0, r - 2) }} />
+    </div>
   );
 }
 
