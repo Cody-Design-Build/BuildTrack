@@ -8,7 +8,8 @@ import {
 import { meOf, useStore } from '../store';
 import { tone } from '../colors';
 import { usePlugins } from '../plugins/registry';
-import { currentCompany, myCompanies, switchCompany } from '../cloud';
+import { cloud, currentCompany, myCompanies, switchCompany } from '../cloud';
+import { signOut } from './CloudGate';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -128,10 +129,14 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         <DropdownMenuItem onSelect={() => nav('/settings')}>
           <Settings /> Settings
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => alert('Signed out (demo).')}>
-          <LogOut /> Sign out
-        </DropdownMenuItem>
+        {cloud && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => void signOut()}>
+              <LogOut /> Sign out
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
