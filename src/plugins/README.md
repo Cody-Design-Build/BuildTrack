@@ -66,3 +66,4 @@ To change a plugin without keeping the original, edit its folder directly.
   creates bills). Those are listed in `requires`.
 - Plugins are built into the app. Installing one without rebuilding, and limiting what a
   third-party plugin can see, come later with the hosted version.
+

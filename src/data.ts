@@ -1,4 +1,5 @@
 import { migrateBudgets, type LegacyBudgetItem, type PreBudgetDb } from './migrate';
+import type { Look, Preferences } from './theming/types';
 
 // The app's data model and sample data.
 //
@@ -400,6 +401,10 @@ export interface Db {
   /** Contractor's licence number, shown on documents when set (Settings → General). */
   companyLicense?: string;
   plugins?: PluginChoices; // missing means everything is on (company-wide, so it syncs)
+  /** Each person's saved look and presets (Settings → Appearance), so they follow them between devices. */
+  preferences?: Preferences[];
+  /** The company theme: the look people start with until they change their own. */
+  companyLook?: Look;
 }
 
 export const AVATAR_COLORS = ['#c026d3', '#d97706', '#16a34a', '#e11d48', '#ea580c', '#0284c7', '#65a30d', '#7c3aed', '#0d9488'];
