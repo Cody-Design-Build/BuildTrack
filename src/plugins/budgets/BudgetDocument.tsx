@@ -1,6 +1,6 @@
 // The customer-facing document for a proposal or change order. It shows prices only (never
 // cost or markup), and is what gets printed or saved as a PDF.
-import { COMPANY_LICENSE, DEFAULT_DISPLAY, type Budget, type BudgetLine, type Db } from '../../data';
+import { DEFAULT_DISPLAY, type Budget, type BudgetLine, type Db } from '../../data';
 import { approvedBefore, totals } from './budgets';
 import { linePrice, money, type Lookups } from '../../store';
 
@@ -28,7 +28,7 @@ export function BudgetDocument({ budget, lines, db, L }: { budget: Budget; lines
       <header className="bd-head">
         <div>
           <div className="bd-company">{db.companyName}</div>
-          <div className="bd-muted">License #{COMPANY_LICENSE}</div>
+          {db.companyLicense && <div className="bd-muted">License #{db.companyLicense}</div>}
         </div>
         <div className="bd-head-right">
           <div className="bd-kind">{budget.kind}</div>

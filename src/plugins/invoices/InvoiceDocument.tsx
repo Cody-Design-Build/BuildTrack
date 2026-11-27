@@ -1,7 +1,7 @@
 // The customer-facing progress invoice: one section per budget billed (the original proposal,
 // each change order), showing what was billed before, percent complete and what is due now.
 import { Fragment } from 'react';
-import { COMPANY_LICENSE, type Db, type Invoice } from '../../data';
+import { type Db, type Invoice } from '../../data';
 import { budgetLabel } from '../budgets/budgets';
 import { invoiceMoney, invoicePayments, invoiceTotals, weightedPct, type InvoiceRow } from './invoices';
 import { money, type Lookups } from '../../store';
@@ -43,7 +43,7 @@ export function InvoiceDocument({ invoice, db, L }: { invoice: Invoice; db: Db; 
       <header className="bd-head">
         <div>
           <div className="bd-company">{db.companyName}</div>
-          <div className="bd-muted">License #{COMPANY_LICENSE}</div>
+          {db.companyLicense && <div className="bd-muted">License #{db.companyLicense}</div>}
         </div>
         <div className="bd-head-right">
           <div className="bd-kind">Invoice</div>

@@ -1,6 +1,6 @@
 // The bid package as subs see it: the scope, the items to price (never our budget numbers), the
 // files that come with it and when bids are due. Prints or saves as a PDF to attach to the email.
-import { COMPANY_LICENSE, type BidPackage, type Db } from '../../data';
+import { type BidPackage, type Db } from '../../data';
 import { packageLabel } from './bids';
 import type { Lookups } from '../../store';
 
@@ -17,7 +17,7 @@ export function BidPackageDocument({ pkg, db, L, vendorName }: { pkg: BidPackage
       <header className="bd-head">
         <div>
           <div className="bd-company">{db.companyName}</div>
-          <div className="bd-muted">License #{COMPANY_LICENSE}</div>
+          {db.companyLicense && <div className="bd-muted">License #{db.companyLicense}</div>}
         </div>
         <div className="bd-head-right">
           <div className="bd-kind">Bid request</div>

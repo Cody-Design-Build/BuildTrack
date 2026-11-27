@@ -157,7 +157,7 @@ export default function Home() {
     <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 pt-6 sm:px-6">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">{db.companyName} · Lic# 1118207</p>
+          <p className="text-sm text-muted-foreground">{db.companyName}{db.companyLicense ? ` · Lic# ${db.companyLicense}` : ''}</p>
           <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
             {greeting()}, {me?.name.split(' ')[0] ?? 'there'}
           </h1>
