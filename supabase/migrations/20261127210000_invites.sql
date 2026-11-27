@@ -11,17 +11,19 @@
 -- Membership is now the only way into a company: the allowed domain and email
 -- lists (and joining automatically by domain) are removed.
 
--- 1. Everyone the allowed lists let in today becomes a named member of that company.
+-- 1. Everyone the allowed lists let in today (with a confirmed email) becomes a named
+--    member of that company.
 --    In each company, the first person to have signed in is its owner.
 insert into public.company_members (company_id, user_id, role)
 select c.id, u.id,
        case when row_number() over (partition by c.id order by u.created_at) = 1 then 'owner' else 'member' end
 from public.companies c
 cross join auth.users u
-where exists (select 1 from public.allowed_domains d
-              where d.company_id = c.id and d.domain = lower(split_part(u.email, '@', 2)))
-   or exists (select 1 from public.allowed_emails e
-              where e.company_id = c.id and e.email = lower(u.email))
+where u.email_confirmed_at is not null  -- only addresses someone has proved they own
+  and (exists (select 1 from public.allowed_domains d
+               where d.company_id = c.id and d.domain = lower(split_part(u.email, '@', 2)))
+    or exists (select 1 from public.allowed_emails e
+               where e.company_id = c.id and e.email = lower(u.email)))
 on conflict do nothing;
 
 -- 2. Access is membership only.
@@ -227,7 +229,7 @@ $$;
 revoke all on function public.my_email(), public.is_company_admin(uuid), public.accept_invites(),
   public.invite_member(uuid, text, text), public.cancel_invite(uuid, text), public.invite_owner(text, text),
   public.company_team(uuid), public.set_member_role(uuid, uuid, text), public.rename_company(uuid, text)
-  from public, anon;
+  from public, anon, authenticated;  -- Supabase grants new functions to anon and authenticated by default
 grant execute on function public.my_email(), public.is_company_admin(uuid), public.accept_invites(),
   public.invite_member(uuid, text, text), public.cancel_invite(uuid, text),
   public.company_team(uuid), public.set_member_role(uuid, uuid, text), public.rename_company(uuid, text)

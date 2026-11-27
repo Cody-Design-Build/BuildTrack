@@ -16,3 +16,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      # Access rules: every migration on PGlite, then who can see and do what.
+      - run: npm run test:db

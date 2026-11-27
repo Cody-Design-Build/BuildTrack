@@ -83,9 +83,11 @@ language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.companies c where public.is_company_member(c.id));
 $$;
 
-revoke all on function public.sole_company_id() from public, anon;
-revoke all on function public.is_company_member(uuid) from public, anon;
-revoke all on function public.my_company_id() from public, anon;
+revoke all on function public.sole_company_id() from public, anon, authenticated;
+revoke all on function public.is_company_member(uuid) from public, anon, authenticated;
+revoke all on function public.my_company_id() from public, anon, authenticated;
+-- Supabase grants every new function to anon and authenticated by default, so each is
+-- revoked from all three above and only the ones the app needs are granted back.
 grant execute on function public.is_company_member(uuid) to authenticated;
 grant execute on function public.my_company_id() to authenticated;
 
