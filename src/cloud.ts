@@ -21,6 +21,11 @@ export const cloud = url && key ? createClient(url, key) : null;
 export const TEAM_DOMAIN = (import.meta.env.VITE_TEAM_DOMAIN as string | undefined) ?? 'codydesignbuild.com';
 
 const META = '$meta'; // collection for plain values such as companyName
+// One row listing which kinds of records the data has. The database keeps no row for an
+// empty list, so without this an empty list and a kind of record added by a newer
+// version of the app would look the same (and the app's upgrade, e.g. adding sample
+// records for a new feature, would never run).
+const SCHEMA = '$schema';
 const ORIGIN = crypto.randomUUID(); // this open copy of the app
 const SAVE_DELAY = 400;
 
@@ -76,6 +81,7 @@ export async function isTeamMember(): Promise<boolean> {
 /** Every record in the database as a Db, or null when the database is still empty. */
 export async function loadDb(): Promise<Db | null> {
   const out: AnyDb = {};
+  let known: string[] = [];
   const page = 1000;
   for (let from = 0; ; from += page) {
     const { data, error } = await cloud!
@@ -88,11 +94,13 @@ export async function loadDb(): Promise<Db | null> {
     if (error) throw error;
     for (const r of data as Row[]) {
       sortOf.set(sk(r.collection, r.id), r.sort);
-      if (r.collection === META) out[r.id] = r.data;
+      if (r.collection === SCHEMA) known = r.data as string[];
+      else if (r.collection === META) out[r.id] = r.data;
       else ((out[r.collection] ??= []) as unknown[]).push(r.data);
     }
     if (data.length < page) break;
   }
+  for (const k of known) out[k] ??= [];
   return Object.keys(out).length ? (out as unknown as Db) : null;
 }
 
@@ -128,6 +136,10 @@ function diff(prev: AnyDb, next: AnyDb): { upserts: Row[]; deletes: Key[] } {
       else upserts.push({ collection: META, id: k, data: b, sort: 0, origin: ORIGIN });
     }
   }
+  const lists = (db: AnyDb) => Object.keys(db).filter((k) => Array.isArray(db[k])).sort();
+  if (lists(prev).join() !== lists(next).join()) {
+    upserts.push({ collection: SCHEMA, id: 'collections', data: lists(next), sort: 0, origin: ORIGIN });
+  }
   return { upserts, deletes };
 }
 
@@ -158,6 +170,7 @@ export async function uploadDb(db: Db) {
 
 // ---------- Live changes from other people ----------
 function applyRow(db: AnyDb, change: { type: 'upsert'; row: Row } | { type: 'delete'; key: Key }): AnyDb {
+  if ((change.type === 'upsert' ? change.row.collection : change.key.collection) === SCHEMA) return db;
   if (change.type === 'delete') {
     const { collection, id } = change.key;
     if (collection === META) {

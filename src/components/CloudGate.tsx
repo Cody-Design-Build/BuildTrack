@@ -44,11 +44,11 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
         const saved = await loadDb();
         let db: Db;
         if (saved) {
-          // The database doesn't keep empty lists, and older data may predate newer
-          // kinds of records: fill those in and run the same upgrades as browser data.
-          const full = { ...saved } as Db & Record<string, unknown>;
+          // Run the same upgrades as browser data (e.g. sample records for a newer
+          // feature), save what they added, and make sure every list exists.
+          db = parseDb(JSON.stringify(saved));
+          const full = db as Db & Record<string, unknown>;
           for (const [k, v] of Object.entries(seed())) if (Array.isArray(v) && !Array.isArray(full[k])) full[k] = [];
-          db = parseDb(JSON.stringify(full));
           await saveChanges(saved, db);
         } else {
           // First sign-in for the whole team: start the shared data from this browser's copy.

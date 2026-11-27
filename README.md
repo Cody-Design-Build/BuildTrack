@@ -57,6 +57,8 @@ Bills are what we owe vendors and subcontractors on a job (`src/bills.ts`). Each
 
 ## Develop
 
+The full workflow (local, preview, live; branches and pull requests; database changes) is in **AGENTS.md**.
+
 ```
 npm install
 npm run dev
