@@ -1,9 +1,10 @@
 // A list of uploaded files on a record (a bill now, bid packages later): add, open, remove.
-// The bytes live in this browser's file store (src/files.ts); the record keeps StoredFile entries.
+// The bytes live in the file store (src/files.ts: the team's bucket, cached in this browser);
+// the record keeps StoredFile entries.
 import { useRef, useState } from 'react';
 import { ExternalLink, FileText, Image as ImageIcon, Paperclip, Trash2 } from 'lucide-react';
 import type { StoredFile } from '../data';
-import { fileSize, getFile } from '../files';
+import { MISSING_FILE, fileSize, getFile } from '../files';
 import { storeUpload } from '../plugins/budgets/BudgetSigning';
 import { fmtDate } from './Payments';
 
@@ -12,7 +13,7 @@ async function openFile(f: StoredFile) {
   const blob = await getFile(f.fileId).catch(() => undefined);
   if (!blob) {
     tab?.close();
-    window.alert(`${f.name} isn't stored in this browser. Files stay in the browser they were uploaded from.`);
+    window.alert(`${f.name} ${MISSING_FILE}`);
     return;
   }
   const url = URL.createObjectURL(blob);
