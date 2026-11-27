@@ -128,3 +128,10 @@ Then open http://localhost:5173. Sample jobs, customers, subs, proposals, invoic
 
 - [How BuildTrack works](docs/guide.md): the rules behind budgets, invoices, bids, bills and job costing.
 - [Developing BuildTrack](docs/development.md): building, themes, and where the code and data live.
+
+## Licence
+
+BuildTrack is free software under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). You can use it, change it and run it for your own company at no cost. If you run a modified version as a service for other people, you must make your changes available to them under the same licence.
+
+Copyright © 2026 Cody Design Build Inc.
+
