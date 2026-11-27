@@ -278,6 +278,10 @@ function applyRow(db: AnyDb, change: { type: 'upsert'; row: Row } | { type: 'del
  * Keeps the database in step with the app's Db. `apply` merges a change from
  * elsewhere into the app's state (without adding it to undo).
  */
+let flushPending: () => Promise<void> = async () => {};
+/** Saves any change still waiting to be sent (e.g. before signing out). */
+export const savePending = () => flushPending();
+
 export function useCloudSync(db: Db, apply: (fn: (db: Db) => Db) => void) {
   const synced = useRef<AnyDb>(db as unknown as AnyDb); // what the database holds, as far as we know
   const latest = useRef(db);
@@ -303,6 +307,7 @@ export function useCloudSync(db: Db, apply: (fn: (db: Db) => Db) => void) {
       timer.current = window.setTimeout(() => flushRef.current(), 5000);
     }
   };
+  flushPending = () => flushRef.current();
   useEffect(() => {
     if (!cloud) return;
     window.clearTimeout(timer.current);

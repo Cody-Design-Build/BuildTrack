@@ -3,8 +3,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { acceptInvites, cloud, signedInAccount, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
-import { parseDb, withTeamMember } from '../store';
+import { acceptInvites, cloud, savePending, signedInAccount, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { KEY, parseDb, withTeamMember } from '../store';
 import { seed, type Db } from '../data';
 
 type State =
@@ -92,7 +92,22 @@ function signIn() {
   });
 }
 
-export const signOut = () => cloud?.auth.signOut();
+/**
+ * Signs out: saves anything still pending, then removes this browser's copy of the
+ * company's data and files, so the next person on a shared computer finds nothing.
+ */
+export async function signOut() {
+  if (!cloud) return;
+  await savePending().catch(() => {});
+  await cloud.auth.signOut();
+  try {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem('bt-company');
+  } catch {
+    /* private window */
+  }
+  indexedDB.deleteDatabase('buildtrack-files');
+}
 
 function Screen({ state }: { state: State }) {
   return (
