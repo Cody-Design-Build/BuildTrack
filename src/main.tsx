@@ -23,6 +23,7 @@ import SettingsPage from './pages/Settings';
 import '@fontsource-variable/inter';
 import './index.css';
 import { initAppearance } from './appearance';
+import { CloudGate } from './components/CloudGate';
 
 initAppearance();
 
@@ -33,7 +34,8 @@ function LegacyTasksRedirect() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider>
+    <CloudGate>{(initial) => (
+    <StoreProvider initial={initial}>
       <BrowserRouter>
         <TooltipProvider delayDuration={300}>
         <Shell>
@@ -68,5 +70,6 @@ createRoot(document.getElementById('root')!).render(
         </TooltipProvider>
       </BrowserRouter>
     </StoreProvider>
+    )}</CloudGate>
   </StrictMode>,
 );

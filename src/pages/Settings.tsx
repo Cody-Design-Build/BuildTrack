@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Building2, Check, Database, Monitor, Moon, Palette, Sun, type LucideIcon } from 'lucide-react';
 import { PageHeader } from '../components/Layout';
@@ -7,6 +7,8 @@ import { useStore } from '../store';
 import { DataCard } from './Other';
 import { ACCENTS, THEMES, setAppearance, useAppearance, type Accent, type Mode } from '../appearance';
 import { cn } from '@/lib/utils';
+import { cloud, useCloudStatus } from '../cloud';
+import { signOut } from '../components/CloudGate';
 
 const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: 'general', label: 'General', icon: Building2 },
@@ -67,6 +69,7 @@ function General() {
   const [name, setName] = useState(db.companyName);
   return (
     <>
+      {cloud && <AccountCard />}
       <Card title="Company">
         <Field label="Company name">
           <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -86,6 +89,26 @@ function General() {
         ))}
       </Card>
     </>
+  );
+}
+
+function AccountCard() {
+  const [email, setEmail] = useState('');
+  const { status } = useCloudStatus();
+  useEffect(() => {
+    cloud!.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ''));
+  }, []);
+  const label = { local: 'This browser only', connecting: 'Connecting…', online: 'Connected', saving: 'Saving…', offline: 'Offline — changes will save when you reconnect', error: 'Couldn’t save — retrying' }[status];
+  return (
+    <Card title="Your account">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{email || '…'}</div>
+          <div className="text-xs text-muted-foreground">Shared team data · {label}</div>
+        </div>
+        <button type="button" className="btn" onClick={signOut}>Sign out</button>
+      </div>
+    </Card>
   );
 }
 

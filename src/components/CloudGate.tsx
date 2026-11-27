@@ -1,0 +1,146 @@
+// Sign-in and first load when BuildTrack is connected to Supabase. Without a
+// Supabase connection it just renders the app on this browser's storage.
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { LogOut } from 'lucide-react';
+import { cloud, isTeamMember, loadDb, saveChanges, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { loadLocal, parseDb } from '../store';
+import { seed, type Db } from '../data';
+
+type State =
+  | { step: 'checking' }
+  | { step: 'signed-out' }
+  | { step: 'not-allowed'; email: string }
+  | { step: 'loading'; note: string }
+  | { step: 'ready'; db: Db }
+  | { step: 'failed'; message: string };
+
+export function CloudGate({ children }: { children: (initial: Db | undefined) => ReactNode }) {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [state, setState] = useState<State>({ step: 'checking' });
+
+  useEffect(() => {
+    if (!cloud) return;
+    cloud.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = cloud.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!cloud || session === undefined) return;
+    if (!session) {
+      setState({ step: 'signed-out' });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setState({ step: 'loading', note: 'Loading your team’s data…' });
+        if (!(await isTeamMember())) {
+          if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account' });
+          return;
+        }
+        const saved = await loadDb();
+        let db: Db;
+        if (saved) {
+          // The database doesn't keep empty lists, and older data may predate newer
+          // kinds of records: fill those in and run the same upgrades as browser data.
+          const full = { ...saved } as Db & Record<string, unknown>;
+          for (const [k, v] of Object.entries(seed())) if (Array.isArray(v) && !Array.isArray(full[k])) full[k] = [];
+          db = parseDb(JSON.stringify(full));
+          await saveChanges(saved, db);
+        } else {
+          // First sign-in for the whole team: start the shared data from this browser's copy.
+          if (!cancelled) setState({ step: 'loading', note: 'Setting up your team’s shared data…' });
+          db = loadLocal();
+          await uploadDb(db);
+        }
+        if (!cancelled) setState({ step: 'ready', db });
+      } catch (e) {
+        if (!cancelled) setState({ step: 'failed', message: e instanceof Error ? e.message : String(e) });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Only re-run when a different person signs in, not on token refreshes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session === undefined, userId]);
+
+  if (!cloud) return <>{children(undefined)}</>;
+  if (state.step === 'ready') return <>{children(state.db)}</>;
+  return <Screen state={state} />;
+}
+
+function signIn() {
+  cloud!.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href,
+      queryParams: { hd: TEAM_DOMAIN, prompt: 'select_account' },
+    },
+  });
+}
+
+export const signOut = () => cloud?.auth.signOut();
+
+function Screen({ state }: { state: State }) {
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-background p-4 text-foreground">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-8 text-center shadow-sm">
+        <div className="mb-6 text-xl font-semibold tracking-tight">BuildTrack</div>
+        {(state.step === 'checking' || state.step === 'loading') && (
+          <p className="text-sm text-muted-foreground">{state.step === 'loading' ? state.note : 'Checking sign-in…'}</p>
+        )}
+        {state.step === 'signed-out' && (
+          <>
+            <p className="mb-6 text-sm text-muted-foreground">Sign in with your company Google account.</p>
+            <button
+              type="button"
+              onClick={signIn}
+              className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <GoogleMark /> Sign in with Google
+            </button>
+          </>
+        )}
+        {state.step === 'not-allowed' && (
+          <>
+            <p className="mb-6 text-sm text-muted-foreground">
+              <b className="text-foreground">{state.email}</b> isn’t on the BuildTrack team. Sign in with your @{TEAM_DOMAIN} account, or ask an admin to add you.
+            </p>
+            <button type="button" onClick={signOut} className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-muted">
+              <LogOut className="size-4" /> Use a different account
+            </button>
+          </>
+        )}
+        {state.step === 'failed' && (
+          <>
+            <p className="mb-2 text-sm">Couldn’t load the team’s data.</p>
+            <p className="mb-6 break-words text-xs text-muted-foreground">{state.message}</p>
+            <div className="flex justify-center gap-2">
+              <button type="button" onClick={() => window.location.reload()} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">
+                Try again
+              </button>
+              <button type="button" onClick={signOut} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">
+                Sign out
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="size-4" aria-hidden>
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+    </svg>
+  );
+}
