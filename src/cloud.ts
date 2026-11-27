@@ -17,8 +17,12 @@ const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const cloud = url && key ? createClient(url, key) : null;
 
-/** The Google Workspace domain offered at sign-in (the database decides who's actually allowed). */
-export const TEAM_DOMAIN = (import.meta.env.VITE_TEAM_DOMAIN as string | undefined) ?? 'codydesignbuild.com';
+/**
+ * The company's Google Workspace domain, if set: Google then offers only that
+ * domain's accounts at sign-in. Only a convenience: the database's allowed
+ * domains decide who actually gets in.
+ */
+export const TEAM_DOMAIN = (import.meta.env.VITE_TEAM_DOMAIN as string | undefined)?.trim() || undefined;
 
 const META = '$meta'; // collection for plain values such as companyName
 // One row listing which kinds of records the data has. The database keeps no row for an
@@ -72,6 +76,13 @@ function sortFor(collection: string, list: Item[], i: number): number {
 }
 
 // ---------- Reading and writing ----------
+/** False until this install has been told who its team is (`npm run team:allow`). */
+export async function teamIsSetUp(): Promise<boolean> {
+  const { data, error } = await cloud!.rpc('team_is_set_up');
+  if (error) throw error;
+  return data === true;
+}
+
 export async function isTeamMember(): Promise<boolean> {
   const { data, error } = await cloud!.rpc('is_team_member');
   if (error) throw error;
