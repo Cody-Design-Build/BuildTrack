@@ -1,3 +1,8 @@
--- This install's team: anyone with a Cody Design Build Google account.
--- Another company running BuildTrack would change this domain.
-insert into public.allowed_domains (domain) values ('codydesignbuild.com') on conflict do nothing;
+-- Intentionally empty.
+--
+-- This migration used to allow Cody Design Build's email domain on every install,
+-- which would have let that company's accounts into anyone else's self-hosted
+-- BuildTrack. A team's domains are now data each install sets for itself
+-- (`npm run team:allow -- yourcompany.com`, see docs/self-hosting.md), and a new
+-- install allows nobody until it does. The file stays so the migration history
+-- matches installs that already ran it.

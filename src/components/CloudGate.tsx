@@ -3,14 +3,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { cloud, isTeamMember, loadDb, saveChanges, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { cloud, isTeamMember, loadDb, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
 import { loadLocal, parseDb } from '../store';
 import { seed, type Db } from '../data';
 
 type State =
   | { step: 'checking' }
   | { step: 'signed-out' }
-  | { step: 'not-allowed'; email: string }
+  | { step: 'not-allowed'; email: string; setUp: boolean }
   | { step: 'loading'; note: string }
   | { step: 'ready'; db: Db }
   | { step: 'failed'; message: string };
@@ -38,7 +38,8 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
       try {
         setState({ step: 'loading', note: 'Loading your team’s data…' });
         if (!(await isTeamMember())) {
-          if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account' });
+          const setUp = await teamIsSetUp().catch(() => true);
+          if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account', setUp });
           return;
         }
         const saved = await loadDb();
@@ -78,7 +79,7 @@ function signIn() {
     provider: 'google',
     options: {
       redirectTo: window.location.href,
-      queryParams: { hd: TEAM_DOMAIN, prompt: 'select_account' },
+      queryParams: { prompt: 'select_account', ...(TEAM_DOMAIN ? { hd: TEAM_DOMAIN } : {}) },
     },
   });
 }
@@ -107,9 +108,18 @@ function Screen({ state }: { state: State }) {
         )}
         {state.step === 'not-allowed' && (
           <>
-            <p className="mb-6 text-sm text-muted-foreground">
-              <b className="text-foreground">{state.email}</b> isn’t on the BuildTrack team. Sign in with your @{TEAM_DOMAIN} account, or ask an admin to add you.
-            </p>
+            {state.setUp ? (
+              <p className="mb-6 text-sm text-muted-foreground">
+                <b className="text-foreground">{state.email}</b> isn’t on this BuildTrack team.{' '}
+                {TEAM_DOMAIN ? <>Sign in with your @{TEAM_DOMAIN} account, or ask</> : 'Sign in with your company account, or ask'} whoever runs it to add you.
+              </p>
+            ) : (
+              <p className="mb-6 text-left text-sm text-muted-foreground">
+                This BuildTrack hasn’t been told who its team is yet, so nobody can sign in. Whoever installed it needs to run{' '}
+                <code className="rounded bg-muted px-1 font-mono text-xs text-foreground">npm run team:allow -- yourcompany.com</code>{' '}
+                (see “Run BuildTrack for your team” in the docs).
+              </p>
+            )}
             <button type="button" onClick={signOut} className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-muted">
               <LogOut className="size-4" /> Use a different account
             </button>

@@ -13,13 +13,7 @@ git clone https://github.com/<you>/BuildTrack && cd BuildTrack
 npm install
 ```
 
-## 2. Set your company's email domain (do this first)
-
-Who may sign in is decided by the database: anyone with an email at an allowed domain. The repo ships with Cody Design Build's domain. **Change it to yours before you create the database**, or our staff's accounts would be allowed into yours.
-
-Edit `supabase/migrations/20261127144300_allowed_domain.sql` and replace `codydesignbuild.com` with your domain, e.g. `yourcompany.com`.
-
-## 3. Create the database
+## 2. Create the database
 
 1. Create a Supabase project (any region near you) and note its **project ref** (the random ID in its address) and database password.
 2. Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then:
@@ -29,7 +23,16 @@ Edit `supabase/migrations/20261127144300_allowed_domain.sql` and replace `codyde
    supabase db push
    ```
    This creates the `records` table, the access rules, live updates and a private file store.
-3. Check the sign-in list in the Supabase dashboard (Table Editor → `allowed_domains`): it should contain only your domain. Add individual outside addresses (a bookkeeper, say) to `allowed_emails`.
+
+## 3. Tell it who your team is
+
+A new install lets **nobody** in until you say who your team is, so a half-finished setup can never expose data. Allow your company's email domain:
+
+```
+npm run team:allow -- yourcompany.com
+```
+
+Everyone with an @yourcompany.com Google account can then sign in. You can also allow individual outside addresses (a bookkeeper, say) with `npm run team:allow -- jane@theirfirm.com`, see who's allowed with `npm run team:list`, and remove someone with `npm run team:remove -- …`. These run against the project you linked in step 2; the Supabase CLI asks you to confirm each change.
 
 ## 4. Turn on Google sign-in
 
@@ -48,7 +51,7 @@ Edit `supabase/migrations/20261127144300_allowed_domain.sql` and replace `codyde
    |---|---|
    | `VITE_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key |
-   | `VITE_TEAM_DOMAIN` | `yourcompany.com` (offered on the Google sign-in screen) |
+   | `VITE_TEAM_DOMAIN` | `yourcompany.com`. Optional: Google then offers only your company's accounts at sign-in. Who actually gets in is decided by step 3. |
 
 3. Deploy, and add your own domain if you like (e.g. `app.yourcompany.com`).
 4. In Supabase, **Authentication → URL Configuration**: set the Site URL to your app's address and add it to the redirect URLs as `https://app.yourcompany.com/**`.
