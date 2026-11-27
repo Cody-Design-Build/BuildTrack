@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useCloudStatus, type CloudStatus } from '../cloud';
 import { cn } from '@/lib/utils';
 import { DEMO } from '../demo';
+import { DemoLinks } from './DemoNotice';
 
 const CHECK_EVERY = 5 * 60 * 1000;
 
@@ -62,6 +63,7 @@ export function StatusCorner() {
   const env = DEMO ? 'Demo' : ENV[__BUILD__.env] ?? __BUILD__.env;
   return (
     <div className="ml-auto flex items-center gap-2">
+      <DemoLinks />
       {update && (
         <button
           type="button"
