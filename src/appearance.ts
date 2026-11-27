@@ -7,7 +7,15 @@ import { useSyncExternalStore } from 'react';
 export type Mode = 'light' | 'dark' | 'system';
 /** 'theme' keeps the theme's own accent; anything else is a slot from src/palette.css. */
 export type Accent = 'theme' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'gray';
-export type Appearance = { theme: string; mode: Mode; accent: Accent };
+/** Corner rounding; the sizes are in src/themes.css ([data-corners]). */
+export type Corners = 'sharp' | 'standard' | 'round';
+export type Appearance = { theme: string; mode: Mode; accent: Accent; corners: Corners };
+
+export const CORNERS: { id: Corners; name: string; note: string }[] = [
+  { id: 'sharp', name: 'Sharp', note: 'Nearly square' },
+  { id: 'standard', name: 'Standard', note: 'Slightly rounded' },
+  { id: 'round', name: 'Round', note: 'Soft and rounded' },
+];
 
 export const ACCENTS: { id: Accent; name: string }[] = [
   { id: 'theme', name: "Theme's own" },
@@ -36,7 +44,7 @@ export const THEMES: { id: string; name: string; note: string }[] = [
 ];
 
 const KEY = 'bt-appearance';
-const DEFAULT: Appearance = { theme: 'buildtrack', mode: 'light', accent: 'theme' };
+const DEFAULT: Appearance = { theme: 'buildtrack', mode: 'light', accent: 'theme', corners: 'standard' };
 const dark = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 let current: Appearance = load();
@@ -49,6 +57,7 @@ function load(): Appearance {
       theme: THEMES.some((t) => t.id === a.theme) ? a.theme! : DEFAULT.theme,
       mode: a.mode === 'dark' || a.mode === 'system' || a.mode === 'light' ? a.mode : DEFAULT.mode,
       accent: ACCENTS.some((x) => x.id === a.accent) ? a.accent! : DEFAULT.accent,
+      corners: CORNERS.some((x) => x.id === a.corners) ? a.corners! : DEFAULT.corners,
     };
   } catch {
     return DEFAULT;
@@ -66,6 +75,8 @@ function apply() {
   root.dataset.mode = mode;
   if (current.accent === 'theme') delete root.dataset.accent;
   else root.dataset.accent = current.accent;
+  if (current.corners === 'standard') delete root.dataset.corners;
+  else root.dataset.corners = current.corners;
   root.classList.toggle('dark', mode === 'dark');
 }
 

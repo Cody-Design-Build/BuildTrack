@@ -11,11 +11,17 @@
  * attribute) because it comes later in the file.
  */
 
+/* ---------- Corner rounding (Settings → Appearance → Corners) ----------
+ * Set only on the root, so theme previews inherit the chosen corners. Every
+ * other radius in the app is worked out from --radius (see src/index.css). */
+:root { --radius: 0.375rem; }
+:root[data-corners='sharp'] { --radius: 0.125rem; }
+:root[data-corners='round'] { --radius: 0.75rem; }
+
 /* ---------- Worked out from the base colours, for every theme ---------- */
 :root,
 [data-theme] {
   color-scheme: light;
-  --radius: 0.375rem;
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
