@@ -3,8 +3,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { cloud, isTeamMember, loadDb, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
-import { loadLocal, parseDb } from '../store';
+import { cloud, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { parseDb } from '../store';
 import { seed, type Db } from '../data';
 
 type State =
@@ -42,6 +42,7 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
           if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account', setUp });
           return;
         }
+        await openCompany();
         const saved = await loadDb();
         let db: Db;
         if (saved) {
@@ -52,9 +53,10 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
           for (const [k, v] of Object.entries(seed())) if (Array.isArray(v) && !Array.isArray(full[k])) full[k] = [];
           await saveChanges(saved, db);
         } else {
-          // First sign-in for the whole team: start the shared data from this browser's copy.
-          if (!cancelled) setState({ step: 'loading', note: 'Setting up your team’s shared data…' });
-          db = loadLocal();
+          // A new company's first sign-in: start it on the sample data. (Never this browser's
+          // saved copy, which may be another company's data.)
+          if (!cancelled) setState({ step: 'loading', note: 'Setting up your company’s data…' });
+          db = seed();
           await uploadDb(db);
         }
         if (!cancelled) setState({ step: 'ready', db });

@@ -7,9 +7,12 @@
 //
 // An upload that fails (offline, say) is kept locally and sent at the next start-up by
 // syncFiles(). Files are not part of Settings → backups.
-import { cloud } from './cloud';
+import { cloud, currentCompany } from './cloud';
 
 const BUCKET = 'files';
+// Each company's files live in a folder named after it; the storage rules only let a
+// company's members into its folder.
+const path = (id: string) => `${currentCompany()}/${id}`;
 
 const DB_NAME = 'buildtrack-files';
 const STORE = 'files';
@@ -43,8 +46,8 @@ const putLocal = (id: string, blob: Blob) => run('readwrite', (s) => s.put(blob,
 const getLocal = (id: string) => run<Blob | undefined>('readonly', (s) => s.get(id) as IDBRequest<Blob | undefined>);
 
 async function upload(id: string, blob: Blob) {
-  if (!cloud) return;
-  const { error } = await cloud.storage.from(BUCKET).upload(id, blob, { contentType: blob.type || 'application/octet-stream', upsert: true });
+  if (!cloud || !currentCompany()) return;
+  const { error } = await cloud.storage.from(BUCKET).upload(path(id), blob, { contentType: blob.type || 'application/octet-stream', upsert: true });
   if (error) throw error;
 }
 
@@ -57,8 +60,8 @@ export async function putFile(id: string, blob: Blob) {
 /** A stored file: this browser's copy, or the team's (downloaded once, then kept here). */
 export async function getFile(id: string): Promise<Blob | undefined> {
   const local = await getLocal(id).catch(() => undefined);
-  if (local || !cloud) return local;
-  const { data, error } = await cloud.storage.from(BUCKET).download(id);
+  if (local || !cloud || !currentCompany()) return local;
+  const { data, error } = await cloud.storage.from(BUCKET).download(path(id));
   if (error || !data) return undefined;
   await putLocal(id, data).catch(() => {});
   return data;
@@ -77,12 +80,12 @@ export const MISSING_FILE = filesShared
  * files attached before files were shared. Only files the data still uses are sent.
  */
 export async function syncFiles(keep: Set<string>) {
-  if (!cloud) return;
+  if (!cloud || !currentCompany()) return;
   const ids = (await run<IDBValidKey[]>('readonly', (s) => s.getAllKeys())).map(String).filter((id) => keep.has(id));
   if (!ids.length) return;
   const inBucket = new Set<string>();
   for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await cloud.storage.from(BUCKET).list('', { limit: 1000, offset });
+    const { data, error } = await cloud.storage.from(BUCKET).list(`${currentCompany()}`, { limit: 1000, offset });
     if (error) throw error;
     data.forEach((o) => inBucket.add(o.name));
     if (data.length < 1000) break;

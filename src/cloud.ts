@@ -34,7 +34,7 @@ const ORIGIN = crypto.randomUUID(); // this open copy of the app
 const SAVE_DELAY = 400;
 
 type Item = { id: string };
-type Row = { collection: string; id: string; data: unknown; sort: number; origin?: string | null };
+type Row = { collection: string; id: string; data: unknown; sort: number; origin?: string | null; company_id?: string };
 type Key = { collection: string; id: string };
 type AnyDb = Record<string, unknown>;
 
@@ -75,6 +75,51 @@ function sortFor(collection: string, list: Item[], i: number): number {
   return (before + after) / 2;
 }
 
+// ---------- The company ----------
+// Every row belongs to a company (supabase/migrations/…_companies.sql). A person
+// usually has one; with several, the last one they picked is remembered on this device.
+export interface Company { id: string; name: string }
+const COMPANY_KEY = 'bt-company';
+let companyId: string | null = null;
+let companies: Company[] = [];
+
+/** The signed-in person's companies (more than one only when they've been invited to several). */
+export const myCompanies = () => companies;
+
+/** The company whose data is open, or null when not connected. */
+export const currentCompany = () => companyId;
+
+/** The signed-in person's companies; opens the remembered one (or the first). */
+export async function openCompany(): Promise<Company[]> {
+  const { data, error } = await cloud!.from('companies').select('id,name').order('created_at');
+  if (error) throw error;
+  const list = (data ?? []) as Company[];
+  companies = list;
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(COMPANY_KEY);
+  } catch {
+    /* private window */
+  }
+  companyId = (list.find((c) => c.id === saved) ?? list[0])?.id ?? null;
+  return list;
+}
+
+/** Switch to another of the person's companies (the app reloads to open its data). */
+export function switchCompany(id: string) {
+  try {
+    localStorage.setItem(COMPANY_KEY, id);
+  } catch {
+    /* private window */
+  }
+  window.location.reload();
+}
+
+const mine = () => {
+  if (!companyId) throw new Error('No company is open');
+  return companyId;
+};
+
 // ---------- Reading and writing ----------
 /** False until this install has been told who its team is (`npm run team:allow`). */
 export async function teamIsSetUp(): Promise<boolean> {
@@ -98,6 +143,7 @@ export async function loadDb(): Promise<Db | null> {
     const { data, error } = await cloud!
       .from('records')
       .select('collection,id,data,sort')
+      .eq('company_id', mine())
       .order('collection')
       .order('sort')
       .order('id')
@@ -156,14 +202,15 @@ function diff(prev: AnyDb, next: AnyDb): { upserts: Row[]; deletes: Key[] } {
 
 async function write({ upserts, deletes }: { upserts: Row[]; deletes: Key[] }) {
   for (let i = 0; i < upserts.length; i += 500) {
-    const { error } = await cloud!.from('records').upsert(upserts.slice(i, i + 500));
+    const rows = upserts.slice(i, i + 500).map((r) => ({ ...r, company_id: mine() }));
+    const { error } = await cloud!.from('records').upsert(rows, { onConflict: 'company_id,collection,id' });
     if (error) throw error;
   }
   const byCollection = new Map<string, string[]>();
   for (const d of deletes) byCollection.set(d.collection, [...(byCollection.get(d.collection) ?? []), d.id]);
   for (const [collection, ids] of byCollection) {
     for (let i = 0; i < ids.length; i += 200) {
-      const { error } = await cloud!.from('records').delete().eq('collection', collection).in('id', ids.slice(i, i + 200));
+      const { error } = await cloud!.from('records').delete().eq('company_id', mine()).eq('collection', collection).in('id', ids.slice(i, i + 200));
       if (error) throw error;
     }
   }
@@ -246,14 +293,16 @@ export function useCloudSync(db: Db, apply: (fn: (db: Db) => Db) => void) {
     let dropped = false;
     const channel: RealtimeChannel = cloud
       .channel('records')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'records' }, (p) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'records', filter: `company_id=eq.${mine()}` }, (p) => {
         if (p.eventType === 'DELETE') {
+          // Deletes skip filters and access rules, so they arrive from every company:
+          // only act on our own (the key always includes the company).
           const old = p.old as Partial<Row>;
-          if (old.collection && old.id) merge({ type: 'delete', key: { collection: old.collection, id: old.id } });
+          if (old.company_id === companyId && old.collection && old.id) merge({ type: 'delete', key: { collection: old.collection, id: old.id } });
           return;
         }
         const row = p.new as Row;
-        if (row.origin !== ORIGIN) merge({ type: 'upsert', row });
+        if (row.company_id === companyId && row.origin !== ORIGIN) merge({ type: 'upsert', row });
       });
     let closed = false;
     const onStatus = async (s: string) => {
