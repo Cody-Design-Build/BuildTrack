@@ -39,10 +39,12 @@ BuildTrack is invite-only: nobody can create an account without an invite for th
 
 Once you've signed in (step 6), invite the rest of your team from **Settings → Members**: owners and admins add an email address and a role, and BuildTrack writes the invite for you to send. `npm run company:list` shows your company, its owners and any open invites.
 
-## 4. Turn on Google sign-in
+## 4. Turn on Google sign-in for your staff (optional)
+
+Everyone can sign in with a 6-digit code emailed to them, so you can skip this. If your company uses Google Workspace, it lets your staff sign in with their company Google account instead.
 
 1. In [Google Cloud Console](https://console.cloud.google.com), create a project for BuildTrack under your organisation.
-2. **Google Auth Platform → Get started**: app name BuildTrack, audience **Internal** if everyone you'll invite has a company Google account, otherwise **External** (anyone with Google can *try*; only invited addresses get in).
+2. **Google Auth Platform → Get started**: app name BuildTrack, audience **Internal** (only your company's Google accounts; everyone else uses an emailed code).
 3. **Clients → Create client → Web application.** Authorised redirect URI:
    `https://<your-project-ref>.supabase.co/auth/v1/callback`
 4. In Supabase, **Authentication → Sign In / Providers → Google**: enable it and paste the client ID and secret.
@@ -56,7 +58,7 @@ Once you've signed in (step 6), invite the rest of your team from **Settings →
    |---|---|
    | `VITE_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key |
-   | `VITE_TEAM_DOMAIN` | `yourcompany.com`. Optional: Google then offers only your company's accounts at sign-in. Who actually gets in is decided by invites (step 3). |
+   | `VITE_TEAM_DOMAIN` | `yourcompany.com`. Optional: shows a “Continue with Google (@yourcompany.com)” button for your staff (step 4). Without it, everyone signs in with an emailed code. Who actually gets in is decided by invites (step 3). |
 
 3. Deploy, and add your own domain if you like (e.g. `app.yourcompany.com`).
 4. In Supabase, **Authentication → URL Configuration**: set the Site URL to your app's address and add it to the redirect URLs as `https://app.yourcompany.com/**`.
