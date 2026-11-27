@@ -1,95 +1,130 @@
-# BuildTrack
+<h1 align="center">BuildTrack</h1>
 
-A simple job-management web app for a design-build company with a Home dashboard, Jobs, Tasks, a job and crew Schedule, Budgets, Invoices, vendor Bills, and a small CRM of People and Accounts. People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
+<p align="center"><b>Job management for design-build contractors, built by one.</b><br>
+Proposals, change orders, bids, invoices, bills and job costing, kept in one place and tied to the job.</p>
 
-## Budgets
+<p align="center"><img src="docs/screenshots/home.webp" alt="The BuildTrack Home dashboard: active contracts, open invoices, pipeline and tasks" width="900"></p>
 
-A job has no single budget table. Instead, each **proposal** or **change order** is its own budget with its own line items and its own document. A job can have several (e.g. two alternate proposals and three change orders), and the job's contract is the sum of the approved ones.
+---
 
-- Change status with the **status dropdown** next to the back link on a budget's page (statuses that aren't allowed yet are greyed out). **Draft** budgets are editable. Setting **Sent** locks a budget so it always matches what the customer saw; to change it, **Clone** it and send the copy. Sent budgets can be approved, declined or voided; approved ones can only be voided.
-- Setting **Approved** records who signed and when, and can attach the signed copy (PDF or photo). When one of several proposals on a job is signed, it offers to decline the others. A signed copy can also be attached, replaced or viewed later. Signed copies are kept in this browser's file storage (IndexedDB), not in Settings → backups.
-- Each budget page shows its own history: created, cloned, sent, approved, signed copy attached.
-- Lines can be negative, e.g. a credit for a design fee paid under another contract.
-- Every line has a **cost code**. Job costing is by cost code: expenses are recorded against a job and cost code, and linking an expense to a specific budget line is optional.
+Most construction software was designed years ago around how *someone else* runs a job, and you end up working the way the software works. BuildTrack was built inside a working design-build company to follow how jobs actually go:
 
-- Each budget is its own customer **document** (`src/components/BudgetDocument.tsx`). A budget page has three tabs: **Lines** (the line editor), **Document** (what the customer gets, updated as you edit) and **Details** (title, recipient, notes, signed copy, totals and history). The document shows prices only, never cost or markup. You choose how much the customer sees: every line priced, group totals only, or one total for the whole scope, with or without quantities. Change orders also show what was previously approved on the job and the new approved total. **Print / PDF** prints just the document, so you can save it as a PDF from the print dialog.
+1. You price the work.
+2. The customer signs.
+3. Subs bid on the scope.
+4. You bill as the work gets done.
+5. You pay the subs and see what the job really made.
 
-Budgets live on each job's **Budgets** tab (grouped by status, so the Approved row is the job's signed total) and in the top-level **Budgets** page. Both lists can be sorted and grouped (by status, type or, on the Budgets page, job). A job can have any number of approved proposals, e.g. a separate piece of work that isn't a change order, and they all count toward its approved total. The rules are in `src/budgets.ts`.
+Every step feeds the next, so nothing gets typed twice.
 
-## Invoices
+## What it does
 
-Invoices are progress bills against approved budgets (`src/invoices.ts`). A new invoice includes every approved proposal and change order on the job (you can untick any), and shows one section per budget. For each line, or a whole group at once, you enter the **percent complete to date**; the invoice bills the difference from what was billed before, and works out the amount due, billed to date and balance to finish. **Bill to 100%** finishes a budget in one click.
+### Proposals and change orders your customer can read
 
-- Draft invoices are editable. Setting the status to **Sent** (same dropdown) locks the invoice and freezes what had been billed before it, so its amounts never change afterwards. Sent invoices can be marked paid or voided; a voided invoice's amounts become billable again on the next draft.
-- The invoice document shows every line or group totals only, with contract, previously billed, percent complete and this invoice, and prints or saves as a PDF like budgets.
-- Each job has an **Invoices** tab (contract, billed, paid, outstanding, left to bill) and the top-level **Invoices** page lists them all, with an Overdue filter.
-- Older invoice records from the documents list (no line items) are left as they are and still count on the Home page.
+Each proposal and change order is its own document, with line items, cost codes, cost, markup and price. The customer sees a clean document with your prices, never your costs. You choose how much detail they get: every line, group totals or one number. Print it or save it as a PDF.
 
-## Bids
+Once a proposal is sent it's locked, so it always matches what the customer saw. When it's approved, BuildTrack records who signed and when, and keeps the signed copy. Change orders show what was already approved and the new contract total.
 
-A **bid package** (`src/bids.ts`) is a scope of work on a job sent to subcontractors for pricing, e.g. "Electrical — rough and finish". It has a trade (cost code), a bids-due date, the written scope, optional items to price (written fresh or **imported from a budget** — copied, never live-linked, and never showing your costs), and files such as plans and specs.
+<p align="center"><img src="docs/screenshots/budget-document.webp" alt="A proposal shown as the customer's document" width="900"></p>
 
-- **Delivery is by email.** The package prints as a *Bid request* PDF. Each invited sub has an **Email** button that opens a ready-to-send message in your mail app and records the date it went out (or, with no email on file, shows the text to copy). **Mark as sent** records it for everyone you emailed yourself. There's no portal.
-- Bids come back by email and are entered by hand: a total (required), optional prices per item, inclusions, exclusions, how long the price is good for, notes and their quote file. Subs who decline are marked as such.
-- **Compare bids** lines the subs up side by side, highlights the lowest price in each row, and shows each against the job's budgeted cost for the package's cost code.
-- **Award** marks the bid Awarded (and, optionally, the others Not selected) and creates a **draft bill** from that sub for the bid amount, coded to the package's cost code. More bills can be made against the same award for progress billing; the package shows awarded, billed and paid. An award can be undone while its bills are still drafts. More than one bid can be awarded for a split scope.
-- The **Bids** page lists open packages (out for bid, ready to award, due this week); each job has a **Bids** tab and each vendor's account page lists their bids.
+### Bids from your subs, compared side by side
 
-## Job costing
+Put a piece of the job out to bid. Write the scope, list the items to price (or copy them from the proposal), and attach plans and specs. Send it by email; your subs don't need another login or portal.
 
-Each job has a **Costs** tab (`src/costing.ts`) with one row per cost code:
+Enter each bid as it comes back. BuildTrack lines them up item by item, highlights the lowest price in each row, and compares each one with what you budgeted. **Award** a bid and its first bill is drafted for you.
 
-- **Budget**: cost (not price) of the job's approved proposal and change-order lines.
-- **Committed**: awarded bids.
-- **Actual**: approved vendor bills (open or paid) plus recorded expenses; **paid out** is what's been paid on those bills.
-- **Projected**: the committed amount once a bid is awarded, otherwise the budget, and never less than actual. **Variance** is budget minus projected.
+<p align="center"><img src="docs/screenshots/bids.webp" alt="A bid package with two subcontractor bids compared against the budget" width="900"></p>
 
-The totals give the projected cost, profit and margin, which also show on the job's Overview.
+### Progress invoices that do the maths
 
-## Bills
+Bill against the approved proposal and change orders by percent complete, line by line or a whole section at once. BuildTrack works out:
 
-Bills are what we owe vendors and subcontractors on a job (`src/bills.ts`). Each one is entered from the vendor's invoice: their invoice number, dates, and one or more charges, each with a **cost code** so job costing can total what each part of the job cost. Files such as the vendor's invoice or a lien release can be attached.
+- this invoice's amount;
+- what was billed before;
+- the balance to finish.
 
-- A bill starts as **Draft** while it's checked, then **Approve to pay** makes it **Open** and locks the amounts. An open bill can go back to draft or be voided until a payment is made on it.
-- **Record payment** logs each payment (date, amount, method, check or reference number). The bill turns **Paid** automatically when payments cover it, and reopens if a payment is removed. Lists show when it was paid, and an open bill past its due date shows as **Overdue**.
-- Payments made on bills share the payments table with payments received on invoices (`billId` instead of `invoiceId`).
-- The **Bills** page lists every bill (owed, overdue, due this week, paid this month, drafts to review); each job has a **Bills** tab and each vendor's account page lists its bills. A bill prints or saves as a PDF record of what was paid.
+Sent invoices lock so their numbers never move. Record payments as they come in, and see what's outstanding and overdue across every job.
 
-## Develop
+<p align="center"><img src="docs/screenshots/invoice.webp" alt="A progress invoice billing by percent complete, with a payment recorded" width="900"></p>
+
+### Bills and payments to vendors
+
+Enter what you owe subs and suppliers from their invoices, with each charge coded to a cost code. Approve bills before they're paid, record each payment (check, ACH, card), and see:
+
+- what's owed;
+- what's overdue;
+- what's due this week.
+
+Attach the vendor's invoice or lien release to the bill.
+
+<p align="center"><img src="docs/screenshots/bills.webp" alt="The Bills page: owed, overdue and due this week" width="900"></p>
+
+### Job costing that updates itself
+
+Every job has a **Costs** tab with one row per cost code, filled in automatically from the rest of BuildTrack:
+
+| Column | Where it comes from |
+|---|---|
+| **Budget** | Your approved proposals and change orders, at cost |
+| **Committed** | Bids you've awarded |
+| **Actual** | Approved vendor bills and expenses |
+| **Projected** | The best guess at the final cost, with variance and projected profit |
+
+You see a cost code going over while there's still time to do something about it, not after the job closes.
+
+<p align="center"><img src="docs/screenshots/costs.webp" alt="Job costing by cost code: budget, committed, actual, projected and variance" width="900"></p>
+
+### Everything about a job in one place
+
+A job's page holds:
+
+- the customer, the architect and every sub on it;
+- its proposals, bids, invoices, bills, costs, schedule, tasks and documents.
+
+The Overview gives the money at a glance:
+
+- approved contract and margin;
+- billed, received and outstanding;
+- owed to vendors;
+- cost to date and projected profit.
+
+<p align="center"><img src="docs/screenshots/job.webp" alt="A job's Overview: details, people on the job, budgets and billing" width="900"></p>
+
+### And the rest of the day-to-day
+
+- **Home dashboard**: active contracts, open invoices, your pipeline and what needs doing today.
+- **Schedule**: every job and crew on a Gantt chart or a list, which you can export to your calendar.
+- **Tasks**: to-dos for the team, by type, due date and assignee, also exportable to your calendar.
+- **Contacts**: people and companies (households, architects, subs, suppliers), each linked to the jobs they're on, with their bids and bills.
+- **Themes**: light and dark mode in eight colour themes, with your own accent colour. Customer documents always print black on white.
+
+<p align="center"><img src="docs/screenshots/dark.webp" alt="BuildTrack in a dark theme" width="900"></p>
+
+## Built for how contractors actually work
+
+- **Email first, no portals.** Bid requests, proposals and invoices are documents you send the way you already do, and nobody needs an account to read them.
+- **Numbers that don't move.** Sent proposals and invoices lock. To change one, clone it, so there's always a record of what was agreed.
+- **Your cost, their price.** Cost and markup stay on your side; the customer sees prices.
+- **Cost codes everywhere.** Proposals, bids, bills and expenses all use the same cost codes, which is what makes job costing automatic.
+
+## Status
+
+BuildTrack is under active development at Cody Design Build, and the app runs on sample data so you can explore every feature. On the way:
+
+- shared live data for the whole team;
+- modules you can switch on and off, or replace with your own;
+- a hosted version.
+
+## Try it
 
 ```
 npm install
 npm run dev
 ```
 
-The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/components/ui/`) on Tailwind CSS v4. Theme colours live in `src/index.css`; the older hand-written styles in `src/styles.css` are loaded in a lower cascade layer, so Tailwind classes always win where they meet. Add more components with `npx shadcn@latest add <name>`.
+Then open http://localhost:5173. Sample jobs, customers, subs, proposals, invoices, bids and bills are already loaded, saved in your browser. Use **Settings → Reset sample data** to start over.
 
-## Themes and dark mode
+## Learn more
 
-**Settings → Appearance** picks a colour theme (BuildTrack, Graphite, Nord, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Solarized) and Light, Dark or System mode. The choice is saved per browser (`bt-appearance` in localStorage), not in the company data, and `index.html` applies it before the first paint. Customer documents (budgets, invoices, PDFs) always stay black on white.
-
-- Themes live in `src/themes.css`: each one sets a few base colours for light and dark, and the rest are worked out from them. To add one, add a pair of `[data-theme]` blocks there and an entry in `THEMES` in `src/appearance.ts`.
-- `src/theme-legacy.css` swaps the few colours written directly into `src/styles.css` for theme colours.
-
-## Build
-
-```
-npm run build
-```
-
-The finished site is written to `dist/`. Serve that folder with any static web server, for example:
-
-```
-npx serve dist
-```
-
-(Opening `index.html` straight from the disk won't work, because each page lives at its own address such as `/jobs`.)
-
-All data is sample data stored in your browser (localStorage). Use **Settings → Reset sample data** to start over.
-
-## Where things live
-
-- **The app itself:** this folder. `src/` holds the code, and `npm run build` writes the finished site to `dist/`.
-- **Your data:** your browser saves a local copy under `buildtrack-db-v6`. Older saves and restored backups are migrated automatically (`src/migrate.ts`). Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. Each job's old budget table becomes one proposal (attached to the job's existing proposal document if it had one), its "spent so far" amounts become expenses, and other proposal and change-order documents become budgets with a single line for their total. The previous `buildtrack-db-v5` copy is left in place. To export or restore a copy, go to **Settings → Your data**.
-
-Legacy message records are removed when the app loads saved data or restores an older backup. Other records are retained.
+- [How BuildTrack works](docs/guide.md): the rules behind budgets, invoices, bids, bills and job costing.
+- [Developing BuildTrack](docs/development.md): building, themes, and where the code and data live.
