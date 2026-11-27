@@ -115,6 +115,37 @@ export function switchCompany(id: string) {
   window.location.reload();
 }
 
+const rpc = async <T,>(fn: string, args?: Record<string, unknown>): Promise<T> => {
+  const { data, error } = await cloud!.rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data as T;
+};
+
+/** Joins every company that invited this person's email. Returns how many. */
+export const acceptInvites = () => rpc<number>('accept_invites');
+/** Whether this install lets people create their own company. */
+export const signupOpen = () => rpc<boolean>('signup_open');
+/** A new company owned by the signed-in person; opened next time the app loads. */
+export async function createCompany(name: string) {
+  const id = await rpc<string>('create_company', { company_name: name });
+  try {
+    localStorage.setItem(COMPANY_KEY, id);
+  } catch {
+    /* private window */
+  }
+  return id;
+}
+
+export type Role = 'owner' | 'admin' | 'member';
+export interface TeamEntry { user_id: string | null; email: string; role: Role; joined: string; pending: boolean }
+/** Members of the open company, then pending invites. */
+export const companyTeam = () => rpc<TeamEntry[]>('company_team', { company: mine() });
+export const inviteMember = (email: string, role: 'admin' | 'member') => rpc<void>('invite_member', { company: mine(), invite_email: email, invite_role: role });
+export const cancelInvite = (email: string) => rpc<void>('cancel_invite', { company: mine(), invite_email: email });
+/** Change a member's role, or remove them with null. */
+export const setMemberRole = (userId: string, role: Role | null) => rpc<void>('set_member_role', { company: mine(), member: userId, new_role: role });
+export const renameCompany = (name: string) => rpc<void>('rename_company', { company: mine(), new_name: name });
+
 const mine = () => {
   if (!companyId) throw new Error('No company is open');
   return companyId;

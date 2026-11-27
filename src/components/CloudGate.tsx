@@ -1,9 +1,9 @@
 // Sign-in and first load when BuildTrack is connected to Supabase. Without a
 // Supabase connection it just renders the app on this browser's storage.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { cloud, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { acceptInvites, cloud, createCompany, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, signupOpen, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
 import { parseDb } from '../store';
 import { seed, type Db } from '../data';
 
@@ -11,6 +11,7 @@ type State =
   | { step: 'checking' }
   | { step: 'signed-out' }
   | { step: 'not-allowed'; email: string; setUp: boolean }
+  | { step: 'create-company'; email: string }
   | { step: 'loading'; note: string }
   | { step: 'ready'; db: Db }
   | { step: 'failed'; message: string };
@@ -37,7 +38,14 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
     (async () => {
       try {
         setState({ step: 'loading', note: 'Loading your team’s data…' });
+        // Join any company that invited this email, then: no company yet means either
+        // "create your company" (when sign-up is open) or "ask for an invite".
+        await acceptInvites().catch(() => 0);
         if (!(await isTeamMember())) {
+          if (await signupOpen().catch(() => false)) {
+            if (!cancelled) setState({ step: 'create-company', email: session.user.email ?? '' });
+            return;
+          }
           const setUp = await teamIsSetUp().catch(() => true);
           if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account', setUp });
           return;
@@ -57,6 +65,8 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
           // saved copy, which may be another company's data.)
           if (!cancelled) setState({ step: 'loading', note: 'Setting up your company’s data…' });
           db = seed();
+          const company = myCompanies().find((c) => c.id === currentCompany());
+          if (company?.name) db = { ...db, companyName: company.name };
           await uploadDb(db);
         }
         if (!cancelled) setState({ step: 'ready', db });
@@ -96,24 +106,14 @@ function Screen({ state }: { state: State }) {
         {(state.step === 'checking' || state.step === 'loading') && (
           <p className="text-sm text-muted-foreground">{state.step === 'loading' ? state.note : 'Checking sign-in…'}</p>
         )}
-        {state.step === 'signed-out' && (
-          <>
-            <p className="mb-6 text-sm text-muted-foreground">Sign in with your company Google account.</p>
-            <button
-              type="button"
-              onClick={signIn}
-              className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              <GoogleMark /> Sign in with Google
-            </button>
-          </>
-        )}
+        {state.step === 'signed-out' && <SignIn />}
+        {state.step === 'create-company' && <CreateCompany email={state.email} />}
         {state.step === 'not-allowed' && (
           <>
             {state.setUp ? (
               <p className="mb-6 text-sm text-muted-foreground">
-                <b className="text-foreground">{state.email}</b> isn’t on this BuildTrack team.{' '}
-                {TEAM_DOMAIN ? <>Sign in with your @{TEAM_DOMAIN} account, or ask</> : 'Sign in with your company account, or ask'} whoever runs it to add you.
+                <b className="text-foreground">{state.email}</b> isn’t on a BuildTrack team yet. Ask whoever runs your company’s BuildTrack to invite this address
+                {TEAM_DOMAIN ? <>, or sign in with your @{TEAM_DOMAIN} account</> : ''}.
               </p>
             ) : (
               <p className="mb-6 text-left text-sm text-muted-foreground">
@@ -156,3 +156,111 @@ function GoogleMark() {
     </svg>
   );
 }
+
+const input = 'w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const primary = 'w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50';
+
+/** Google, or an emailed 6-digit code. New addresses get an account automatically. */
+function SignIn() {
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const send = async (e?: FormEvent) => {
+    e?.preventDefault();
+    setBusy(true);
+    setError('');
+    const { error } = await cloud!.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+    setBusy(false);
+    if (error) setError(error.message);
+    else setSent(true);
+  };
+  const verify = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    const { error } = await cloud!.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' });
+    setBusy(false);
+    if (error) setError(error.message === 'Token has expired or is invalid' ? 'That code is wrong or has expired. Try again or send a new one.' : error.message);
+    // on success the session changes and CloudGate moves on
+  };
+
+  return (
+    <div className="text-left">
+      <button
+        type="button"
+        onClick={signIn}
+        className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+      >
+        <GoogleMark /> Continue with Google
+      </button>
+      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" /> or with your email <span className="h-px flex-1 bg-border" />
+      </div>
+      {!sent ? (
+        <form onSubmit={send} className="space-y-3">
+          <input className={input} type="email" required autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
+          <button type="submit" className={primary} disabled={busy || !email.includes('@')}>{busy ? 'Sending…' : 'Email me a sign-in code'}</button>
+        </form>
+      ) : (
+        <form onSubmit={verify} className="space-y-3">
+          <p className="text-sm text-muted-foreground">We sent a 6-digit code to <b className="text-foreground">{email}</b>. It works for an hour.</p>
+          <input
+            className={input + ' text-center font-mono text-lg tracking-[0.4em]'}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={8}
+            placeholder="••••••"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            aria-label="Sign-in code"
+            autoFocus
+          />
+          <button type="submit" className={primary} disabled={busy || code.length < 6}>{busy ? 'Checking…' : 'Sign in'}</button>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <button type="button" className="hover:text-foreground" onClick={() => { setSent(false); setCode(''); setError(''); }}>Use a different email</button>
+            <button type="button" className="hover:text-foreground" onClick={() => send()} disabled={busy}>Send a new code</button>
+          </div>
+        </form>
+      )}
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      <p className="mt-5 text-center text-xs text-muted-foreground">New here? Signing in creates your account.</p>
+    </div>
+  );
+}
+
+/** First sign-in with no company: name it and start (on sample data you can clear later). */
+function CreateCompany({ email }: { email: string }) {
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const create = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await createCompany(name);
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={create} className="space-y-3 text-left">
+      <p className="text-sm text-muted-foreground">
+        Welcome! <b className="text-foreground">{email}</b> isn’t on a team yet. Set up your company, or ask a teammate to invite this address.
+      </p>
+      <input className={input} required placeholder="Company name, e.g. Acme Design Build" value={name} onChange={(e) => setName(e.target.value)} aria-label="Company name" autoFocus />
+      <button type="submit" className={primary} disabled={busy || !name.trim()}>{busy ? 'Setting up…' : 'Create company'}</button>
+      <p className="text-xs text-muted-foreground">It starts with sample jobs, customers and subs so you can look around.</p>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <button type="button" onClick={signOut} className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+        <LogOut className="size-3.5" /> Use a different account
+      </button>
+    </form>
+  );
+}
+

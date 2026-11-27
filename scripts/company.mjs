@@ -3,6 +3,7 @@
 //   npm run company:list                                   every company and who can get in
 //   npm run company:create -- "Acme Design Build" acme.com  a new company, open to @acme.com
 //   npm run company:create -- "Acme Design Build" jane@acme.com   …or to one address
+//   npm run company:signup -- on | off                     let anyone sign up and create a company
 //
 // A new company starts empty; its first person to sign in gets the sample data, like a new
 // install. Runs against the linked Supabase project; the CLI asks before changing anything.
@@ -26,7 +27,13 @@ const list = () =>
     true,
   );
 
-if (command === 'list') {
+if (command === 'signup' && (name === 'on' || name === 'off')) {
+  run(
+    `insert into public.install_settings (key, value) values ('open_signup', '${name === 'on'}')
+     on conflict (key) do update set value = excluded.value`,
+  );
+  run(`select public.signup_open() as anyone_can_create_a_company`, true);
+} else if (command === 'list') {
   list();
 } else if (command === 'create' && name.trim() && (isEmail || isDomain)) {
   const table = isEmail ? 'allowed_emails' : 'allowed_domains';
@@ -38,6 +45,7 @@ if (command === 'list') {
   list();
 } else {
   console.error('Usage: npm run company:create -- "Company name" theirdomain.com | person@example.com');
+  console.error('       npm run company:signup -- on | off');
   console.error('       npm run company:list');
   process.exit(1);
 }
