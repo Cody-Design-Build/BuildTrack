@@ -163,9 +163,6 @@ export interface StoredFile {
   uploaded: string; // ISO datetime
 }
 
-/** Shown on documents. */
-export const COMPANY_LICENSE = '1118207';
-
 /**
  * A priced set of line items for a job: a proposal or a change order. Each one is its own
  * document with its own lines. A job can have any number of them, and the job's contract
@@ -399,6 +396,8 @@ export interface Db {
   tasks: Task[];
   scheduleEntries: ScheduleEntry[];
   companyName: string;
+  /** Contractor's licence number, shown on documents when set (Settings → General). */
+  companyLicense?: string;
   plugins?: PluginChoices; // missing means everything is on (company-wide, so it syncs)
 }
 
@@ -439,7 +438,9 @@ export function seed(): Db {
   // Written in the old one-budget-per-job shape and converted, so the sample data and saved
   // data go through the same migration.
   const raw: PreBudgetDb = {
-    companyName: 'Cody Design Build Inc.',
+    // A made-up company: sample data ships with every install and appears in screenshots.
+    companyName: 'Acme Design Build Co.',
+    companyLicense: '123456',
     activity: [
       { id: 'a1', date: '2026-11-25T15:28:00', partyId: 'c6', jobId: 'j8', title: 'Sam Ortiz', doc: 'Proposal 135-4', amount: 58460, text: 'Marked as approved by Sam Ortiz for Sam Ortiz at 538 Market St', color: '#00c950' },
       { id: 'a2', date: '2026-11-25T14:59:00', partyId: 'c6', jobId: 'j8', title: 'Sam Ortiz', doc: 'Proposal 135-4', amount: 0, text: 'Marked as pending by Dana Cole for Sam Ortiz at 538 Market St', color: '#f0b100' },

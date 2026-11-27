@@ -1,6 +1,6 @@
 // A vendor bill as a printable record: who we owe, for what (by cost code), the payments we've
 // made and what's left. Useful as a remittance copy to send with a check, or for the files.
-import { COMPANY_LICENSE, type Bill, type Db } from '../../data';
+import { type Bill, type Db } from '../../data';
 import { billMoney, billPayments } from './bills';
 import { money, type Lookups } from '../../store';
 
@@ -25,7 +25,7 @@ export function BillDocument({ bill, db, L }: { bill: Bill; db: Db; L: Lookups }
       <header className="bd-head">
         <div>
           <div className="bd-company">{db.companyName}</div>
-          <div className="bd-muted">License #{COMPANY_LICENSE}</div>
+          {db.companyLicense && <div className="bd-muted">License #{db.companyLicense}</div>}
         </div>
         <div className="bd-head-right">
           <div className="bd-kind">Bill</div>

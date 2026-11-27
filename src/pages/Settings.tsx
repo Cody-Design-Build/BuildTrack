@@ -70,6 +70,7 @@ function Card({ title, note, children }: { title: string; note?: string; childre
 function General() {
   const { db, update } = useStore();
   const [name, setName] = useState(db.companyName);
+  const [license, setLicense] = useState(db.companyLicense ?? '');
   return (
     <>
       {cloud && <AccountCard />}
@@ -77,8 +78,15 @@ function General() {
         <Field label="Company name">
           <input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
+        <Field label="Contractor licence number">
+          <input value={license} onChange={(e) => setLicense(e.target.value)} placeholder="Shown on proposals, invoices and bid requests" />
+        </Field>
         <div className="row-end">
-          <button type="button" className="btn primary" onClick={() => update((d) => ({ ...d, companyName: name.trim() || d.companyName }))}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => update((d) => ({ ...d, companyName: name.trim() || d.companyName, companyLicense: license.trim() || undefined }))}
+          >
             Save
           </button>
         </div>
