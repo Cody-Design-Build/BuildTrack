@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
 import { pruneFiles } from './files';
 import { invoiceTotals } from './invoices';
+import { useCloudSync } from './cloud';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
 export const KEY = 'buildtrack-db-v6';
@@ -61,7 +62,8 @@ function addBids(db: Db) {
   Object.assign(db, sampleBids(db));
 }
 
-function load(): Db {
+/** This browser's saved copy of the data, or the sample data. */
+export function loadLocal(): Db {
   try {
     for (const key of [KEY, ...LEGACY_KEYS]) {
       const raw = localStorage.getItem(key);
@@ -86,9 +88,16 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null);
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [hist, setHist] = useState<{ past: Db[]; now: Db; future: Db[] }>(() => ({ past: [], now: load(), future: [] }));
+/** `initial` is the team's shared data when connected to Supabase; otherwise this browser's copy is used. */
+export function StoreProvider({ children, initial }: { children: ReactNode; initial?: Db }) {
+  const [hist, setHist] = useState<{ past: Db[]; now: Db; future: Db[] }>(() => ({ past: [], now: initial ?? loadLocal(), future: [] }));
   const db = hist.now;
+  // Changes made by teammates: merged into the current data, not added to undo.
+  const applyRemote = useCallback((fn: (db: Db) => Db) => setHist((h) => {
+    const now = fn(h.now);
+    return now === h.now ? h : { ...h, now };
+  }), []);
+  useCloudSync(db, applyRemote);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(db));

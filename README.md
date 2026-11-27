@@ -117,6 +117,8 @@ BuildTrack is under active development at Cody Design Build, and the app runs on
 
 ## Try it
 
+The full workflow (local, preview, live; branches and pull requests; database changes) is in **AGENTS.md**.
+
 ```
 npm install
 npm run dev

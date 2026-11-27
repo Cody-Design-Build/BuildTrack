@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { StatusCorner } from './StatusCorner';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   House, Wrench, SquareCheck, Calendar, FileText, Users, Building2, Book, Folder, ChartPie,
@@ -231,6 +232,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           ⌘K
         </kbd>
       </form>
+      <StatusCorner />
     </header>
   );
 }
