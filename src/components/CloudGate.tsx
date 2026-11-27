@@ -188,16 +188,6 @@ function SignIn() {
 
   return (
     <div className="text-left">
-      <button
-        type="button"
-        onClick={signIn}
-        className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        <GoogleMark /> Continue with Google
-      </button>
-      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" /> or with your email <span className="h-px flex-1 bg-border" />
-      </div>
       {!sent ? (
         <form onSubmit={send} className="space-y-3">
           <input className={input} type="email" required autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
@@ -225,6 +215,23 @@ function SignIn() {
         </form>
       )}
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      {/* Google is for the install's own Workspace accounts only (its Google app is
+          Internal), so it shows only when VITE_TEAM_DOMAIN says whose. */}
+      {TEAM_DOMAIN && (
+        <>
+          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+          </div>
+          <button
+            type="button"
+            onClick={signIn}
+            className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            <GoogleMark /> Continue with Google
+          </button>
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">For @{TEAM_DOMAIN} accounts</p>
+        </>
+      )}
       <p className="mt-5 text-center text-xs text-muted-foreground">BuildTrack is invite-only. Use the email address your invite was sent to.</p>
     </div>
   );
