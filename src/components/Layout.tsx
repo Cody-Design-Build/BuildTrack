@@ -10,6 +10,7 @@ import { tone } from '../colors';
 import { usePlugins } from '../plugins/registry';
 import { cloud, currentCompany, myCompanies, switchCompany } from '../cloud';
 import { signOut } from './CloudGate';
+import { LogoMark } from './LogoMark';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,14 +41,15 @@ function useNav(): NavItem[] {
   return [...useNavGroups().flatMap((g) => g.items), ...LOWER];
 }
 
-export function Logo() {
+export function Logo({ markOnly }: { markOnly?: boolean }) {
   return (
     <Link
       to="/"
-      className="rounded-md text-lg font-semibold leading-none tracking-[-0.02em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex items-center gap-2 rounded-md text-lg font-semibold leading-none tracking-[-0.02em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label="BuildTrack home"
     >
-      BuildTrack
+      <LogoMark />
+      {!markOnly && 'BuildTrack'}
     </Link>
   );
 }
@@ -147,7 +149,7 @@ function SidebarBody({ collapsed, onCollapse }: { collapsed: boolean; onCollapse
   return (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-14 shrink-0 items-center border-b border-sidebar-border px-4', collapsed && 'justify-center px-0')}>
-        {!collapsed && <Logo />}
+        <Logo markOnly={collapsed} />
       </div>
       <nav aria-label="Main" className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
         {groups.map((g) => (

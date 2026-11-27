@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
+import { LogoMark } from './LogoMark';
 import { acceptInvites, cloud, savePending, signedInAccount, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
 import { KEY, parseDb, withTeamMember } from '../store';
 import { seed, type Db } from '../data';
@@ -113,7 +114,10 @@ function Screen({ state }: { state: State }) {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background p-4 text-foreground">
       <div className="w-full max-w-sm rounded-xl border bg-card p-8 text-center shadow-sm">
-        <div className="mb-6 text-xl font-semibold tracking-tight">BuildTrack</div>
+        <div className="mb-6 flex items-center justify-center gap-2 text-xl font-semibold tracking-tight">
+          <LogoMark className="size-7" />
+          BuildTrack
+        </div>
         {(state.step === 'checking' || state.step === 'loading') && (
           <p className="text-sm text-muted-foreground">{state.step === 'loading' ? state.note : 'Checking sign-in…'}</p>
         )}
