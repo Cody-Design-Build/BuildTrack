@@ -7,7 +7,7 @@ import { Field } from '../../components/Forms';
 import { useLookups, useStore, uid, localIso, sameDayLabel, timeLabel } from '../../store';
 import type { Activity, Budget, StoredFile } from '../../data';
 import { approveBudget, budgetLabel, openAlternates, setSignedCopy } from './budgets';
-import { MAX_FILE_BYTES, fileSize, getFile, putFile } from '../../files';
+import { MAX_FILE_BYTES, MISSING_FILE, fileSize, filesShared, getFile, putFile } from '../../files';
 import { tone } from '../../colors';
 
 const ACCEPT = 'application/pdf,image/*';
@@ -21,7 +21,7 @@ export async function storeUpload(file: File): Promise<StoredFile> {
   return { fileId, name: file.name, type: file.type || 'application/octet-stream', size: file.size, uploaded: localIso() };
 }
 
-/** A temporary address for a stored file, or 'missing' if this browser doesn't have it. */
+/** A temporary address for a stored file, or 'missing' if it can't be found. */
 export function useFileUrl(fileId?: string): string | 'missing' | '' {
   const [url, setUrl] = useState<string>('');
   useEffect(() => {
@@ -168,7 +168,7 @@ export function SignedCopyCard({ budget, onView }: { budget: Budget; onView: () 
             <span className="text-xs text-muted-foreground">{fileSize(f.size)}</span>
             <span className="grow" />
             {url === 'missing' ? (
-              <span className="text-xs text-muted-foreground">Not stored in this browser</span>
+              <span className="text-xs text-muted-foreground">{filesShared ? "Not uploaded yet" : "Not stored in this browser"}</span>
             ) : (
               <>
                 <button type="button" className="btn btn-sm" onClick={onView} disabled={!url}><Eye size={14} /> View</button>
@@ -202,7 +202,7 @@ export function SignedCopyCard({ budget, onView }: { budget: Budget; onView: () 
 
 export function SignedCopyViewer({ file }: { file: StoredFile }) {
   const url = useFileUrl(file.fileId);
-  if (url === 'missing') return <div className="card b-empty"><p>This signed copy isn't stored in this browser. Files stay in the browser they were uploaded from.</p></div>;
+  if (url === 'missing') return <div className="card b-empty"><p>This signed copy {MISSING_FILE}</p></div>;
   if (!url) return <div className="card b-empty"><p>Loading…</p></div>;
   return file.type.startsWith('image/') ? (
     <img src={url} alt={`Signed copy: ${file.name}`} className="mx-auto max-w-full rounded-md border bg-white" />

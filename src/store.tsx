@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
 import { filesInUse } from './plugins/registry';
-import { pruneFiles } from './files';
+import { pruneFiles, syncFiles } from './files';
 import { invoiceTotals } from './plugins/invoices/invoices';
 import { useCloudSync } from './cloud';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
@@ -106,12 +106,15 @@ export function StoreProvider({ children, initial }: { children: ReactNode; init
       /* ignore */
     }
   }, [db]);
-  // Drop stored files nothing points at (replaced or removed signed copies). Only at start-up,
-  // because undo can bring back a reference during the session.
+  // Drop this browser's copies of files nothing points at (replaced or removed signed copies),
+  // then send the team any file it doesn't have yet. Only at start-up, because undo can bring
+  // back a reference during the session.
   useEffect(() => {
     // every installed plugin (on or off) says which stored files its records still use
     const keep = new Set(filesInUse(hist.now).filter(Boolean));
-    pruneFiles(keep).catch(() => {});
+    pruneFiles(keep)
+      .then(() => syncFiles(keep))
+      .catch((e) => console.warn('File clean-up or upload failed', e));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const update = useCallback(
