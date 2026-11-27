@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, sampleBilling, samplePayables, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
 import { pruneFiles } from './files';
 import { invoiceTotals } from './invoices';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
@@ -16,6 +16,7 @@ export function parseDb(raw: string): Db {
   if (!db.invoices) db.invoices = []; // saved before invoices existed
   if (!db.payments) addPayments(db);
   if (!db.bills) addBills(db);
+  if (!db.bidPackages || !db.bids) addBids(db);
   if (!db.activity) db.activity = seed().activity;
   return db;
 }
@@ -45,6 +46,19 @@ function addBills(db: Db) {
   const sample = isSample ? samplePayables(db) : { bills: [], payments: [] };
   db.bills = sample.bills;
   db.payments = [...db.payments, ...sample.payments];
+}
+
+// Saved before bid packages existed. Sample data gets the extra sample subcontractors and the
+// sample packages (linked to the sample bills); real data just starts empty.
+function addBids(db: Db) {
+  const isSample = ['v1', 'v3', 'v4', 'v5'].every((id) => db.accounts.some((a) => a.id === id)) && db.jobs.some((j) => j.id === 'j12');
+  if (!isSample) {
+    db.bidPackages = [];
+    db.bids = [];
+    return;
+  }
+  db.accounts = [...db.accounts, ...SAMPLE_VENDORS.filter((v) => !db.accounts.some((a) => a.id === v.id))];
+  Object.assign(db, sampleBids(db));
 }
 
 function load(): Db {

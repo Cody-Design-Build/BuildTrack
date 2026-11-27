@@ -2466,3 +2466,14 @@ body {
   opacity: 0.5;
   color: var(--primary-foreground);
 }
+
+/* Bid request: blank price boxes for the sub to fill in, and the list of included files */
+.budget-doc .bd-blank {
+  min-width: 110px;
+  border-bottom: 1px solid var(--bd-rule);
+}
+.budget-doc .bd-files {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  list-style: disc;
+}

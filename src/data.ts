@@ -285,6 +285,62 @@ export interface Bill {
   created: string; // ISO datetime
   updated: string; // ISO datetime
   statusDates?: Partial<Record<BillStatus, string>>;
+  bidId?: string; // the awarded bid this bill is for, if any
+}
+
+export const BID_PACKAGE_STATUSES = ['Draft', 'Out for bid', 'Awarded', 'Cancelled'] as const;
+export type BidPackageStatus = (typeof BID_PACKAGE_STATUSES)[number];
+
+/** One item of a bid package's scope. Copied (not linked) when imported from a budget line. */
+export interface BidItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  budgetLineId?: string; // where it was imported from, for reference only
+}
+
+/**
+ * A scope of work on a job sent to subcontractors for pricing, e.g. "Electrical — whole house".
+ * Its cost code is what bids are compared against (the job's budgeted cost for that code) and
+ * what an awarded bid's bill is coded to.
+ */
+export interface BidPackage {
+  id: string;
+  jobId: string;
+  number: string; // e.g. "12-2"
+  title: string;
+  costCodeId: string;
+  status: BidPackageStatus;
+  due: string; // yyyy-mm-dd, when bids are due back
+  scope: string; // the written scope of work subs read
+  items: BidItem[];
+  attachments: StoredFile[]; // plans, specs, photos
+  created: string;
+  updated: string;
+  statusDates?: Partial<Record<BidPackageStatus, string>>;
+}
+
+export const BID_STATUSES = ['Invited', 'Received', 'Declined', 'Awarded', 'Not selected'] as const;
+export type BidStatus = (typeof BID_STATUSES)[number];
+
+/** One subcontractor's bid on a package: invited, then their price as it came back (usually by email). */
+export interface Bid {
+  id: string;
+  packageId: string;
+  jobId: string;
+  vendorId: string;
+  status: BidStatus;
+  invited: string; // yyyy-mm-dd the package was sent to them; '' = not sent yet
+  received: string; // yyyy-mm-dd their bid came back
+  amount: number; // their total
+  itemPrices: Record<string, number>; // optional price per scope item
+  inclusions: string;
+  exclusions: string;
+  notes: string;
+  validUntil: string; // yyyy-mm-dd, ''
+  attachments: StoredFile[]; // their quote
+  awarded?: string; // yyyy-mm-dd
 }
 
 /** Money spent on a job. Job costing is by cost code; linking a budget line is optional. */
@@ -313,6 +369,7 @@ export interface Activity {
   budgetId?: string; // set for budget events, so a budget can show its own history
   invoiceId?: string; // likewise for invoices (payments too, under the invoice they paid)
   billId?: string; // and for vendor bills and the payments made on them
+  bidPackageId?: string; // and for bid packages and their bids
 }
 
 export interface Db {
@@ -324,6 +381,8 @@ export interface Db {
   invoices: Invoice[];
   payments: Payment[];
   bills: Bill[];
+  bidPackages: BidPackage[];
+  bids: Bid[];
   people: Person[];
   accounts: Account[];
   memberships: Membership[];
@@ -477,6 +536,7 @@ export function seed(): Db {
       acc('v3', ['Vendor', 'Subcontractor'], 'Bayline Drywall', '#16a34a', { trade: 'Drywall' }),
       acc('v4', ['Vendor', 'Subcontractor'], 'Summit Electric', '#0284c7', { trade: 'Electrical' }),
       acc('v5', ['Vendor', 'Subcontractor'], 'Valley Plumbing', '#e11d48', { trade: 'Plumbing' }),
+      ...SAMPLE_VENDORS,
       acc('a1', ['Architect'], 'Lumen Architecture', '#7c3aed', { phone: '(415) 555-0190', email: 'studio@example.com', address: '18 Brannan Street' }),
     ],
     people: [
@@ -599,7 +659,86 @@ export function seed(): Db {
   const db = withSampleBudgets(migrateBudgets(raw, '2026-11-20T10:00:00'));
   const billing = { ...db, ...sampleBilling(db) };
   const bills = samplePayables(billing);
-  return { ...billing, bills: bills.bills, payments: [...billing.payments, ...bills.payments] };
+  const withBills = { ...billing, bills: bills.bills, payments: [...billing.payments, ...bills.payments] };
+  return { ...withBills, ...sampleBids(withBills) };
+}
+
+/** Extra subcontractors so sample bid packages have competing bids. */
+export const SAMPLE_VENDORS: Account[] = [
+  acc('v6', ['Vendor', 'Subcontractor'], 'Brightline Electric', '#ca8a04', { phone: '(510) 555-0164', email: 'bids@example.com', trade: 'Electrical' }),
+  acc('v7', ['Vendor', 'Subcontractor'], 'Pacific Plumbing Co.', '#0d9488', { phone: '(415) 555-0119', email: 'estimating@example.com', trade: 'Plumbing' }),
+  acc('v8', ['Vendor', 'Subcontractor'], 'Coastal Drywall', '#7c3aed', { phone: '(650) 555-0177', trade: 'Drywall' }),
+];
+
+/**
+ * Sample bid packages: two awarded on 2243 Lincoln (their bills are the sample bills 12-1 and
+ * 12-2), and on 87th St. ADU one with bids back to compare, one out for bid and one draft.
+ * Returns the bills too, with the awarded ones linked to their bids. Skips what isn't there.
+ */
+export function sampleBids(db: Pick<Db, 'jobs' | 'accounts' | 'costCodes' | 'bills'>): Pick<Db, 'bidPackages' | 'bids' | 'bills'> {
+  const cc = (name: string) => db.costCodes.find((c) => c.name === name)?.id ?? '';
+  const has = (id: string) => db.accounts.some((a) => a.id === id);
+  const bidPackages: BidPackage[] = [];
+  const bids: Bid[] = [];
+  const links: Record<string, string> = {}; // bill id → bid id
+  type B = { vendorId: string; status: BidStatus; invited: string; received?: string; amount?: number; prices?: number[]; inc?: string; exc?: string; notes?: string; valid?: string; awarded?: string; bill?: string };
+  const pkg = (jobId: string, n: number, code: string, title: string, status: BidPackageStatus, created: string, due: string, scope: string, items: [string, number, string][], list: B[]) => {
+    if (!db.jobs.some((j) => j.id === jobId)) return;
+    const id = `bp-${jobId}-${n}`;
+    const bidItems: BidItem[] = items.map(([description, quantity, unit], i) => ({ id: `${id}-i${i + 1}`, description, quantity, unit }));
+    bidPackages.push({
+      id, jobId, number: `${jobId.replace(/\D/g, '')}-${n}`, title, costCodeId: cc(code), status, due, scope, items: bidItems, attachments: [],
+      created: `${created}T09:00:00`, updated: `${created}T09:00:00`,
+      statusDates: status === 'Draft' ? undefined : { 'Out for bid': `${created}T10:00:00`, ...(status === 'Awarded' ? { Awarded: `${list.find((b) => b.awarded)?.awarded}T11:00:00` } : {}) },
+    });
+    list.filter((b) => has(b.vendorId)).forEach((b, i) => {
+      const bidId = `${id}-b${i + 1}`;
+      bids.push({
+        id: bidId, packageId: id, jobId, vendorId: b.vendorId, status: b.status, invited: b.invited, received: b.received ?? '', amount: b.amount ?? 0,
+        itemPrices: Object.fromEntries((b.prices ?? []).map((p, k) => [bidItems[k]?.id, p]).filter(([k]) => k)),
+        inclusions: b.inc ?? '', exclusions: b.exc ?? '', notes: b.notes ?? '', validUntil: b.valid ?? '', attachments: [], awarded: b.awarded,
+      });
+      if (b.bill) links[b.bill] = bidId;
+    });
+  };
+
+  pkg('j12', 1, 'Electrical', 'Electrical — rough and finish', 'Awarded', '2026-10-14', '2026-10-28',
+    'Complete electrical for the kitchen, primary suite and hall per the plans: new circuits, rough-in, devices, fixture install and final inspection. Panel is existing; confirm capacity.',
+    [['Rough-in wiring, kitchen and primary suite', 1, 'lump'], ['Devices and fixture trim-out', 1, 'lump'], ['Permit and inspections', 1, 'lump']],
+    [
+      { vendorId: 'v4', status: 'Awarded', invited: '2026-10-14', received: '2026-10-24', amount: 26100, prices: [17800, 6900, 1400], inc: 'Permit, all wire and boxes, install of owner-supplied fixtures.', exc: 'Fixtures, patch and paint.', valid: '2026-12-31', awarded: '2026-10-29', bill: 'bill-j12-1' },
+      { vendorId: 'v6', status: 'Not selected', invited: '2026-10-14', received: '2026-10-27', amount: 28400, prices: [19500, 7300, 1600], inc: 'Permit and inspections.', exc: 'Fixtures, trenching, low-voltage.' },
+    ]);
+  pkg('j12', 2, 'Plumbing', 'Plumbing — rough and finish', 'Awarded', '2026-10-14', '2026-10-30',
+    'Rough and finish plumbing for the kitchen and two baths, including relocating the gas line for the new range. Fixtures supplied by owner.',
+    [['Rough plumbing, kitchen and two baths', 1, 'lump'], ['Gas line relocation', 1, 'lump'], ['Fixture set and trim-out', 1, 'lump']],
+    [
+      { vendorId: 'v5', status: 'Awarded', invited: '2026-10-14', received: '2026-10-29', amount: 44800, prices: [31200, 3600, 10000], inc: 'Permit, PEX supply, ABS drains, gas line.', exc: 'Fixtures and water heater.', awarded: '2026-11-02', bill: 'bill-j12-2' },
+      { vendorId: 'v7', status: 'Not selected', invited: '2026-10-14', received: '2026-10-30', amount: 47900, inc: 'Permit and testing.', exc: 'Gas line.' },
+    ]);
+  pkg('j7', 1, 'Electrical', 'ADU electrical', 'Out for bid', '2026-11-12', '2026-11-26',
+    'Full electrical for the new 640 sq ft ADU: 100A subpanel fed from the main house, all rough wiring, devices, lighting install, EV-ready circuit and final inspection.',
+    [['100A subpanel and feeder from main panel', 1, 'lump'], ['Rough wiring', 640, 'sqft'], ['Devices and light fixture install', 1, 'lump'], ['EV-ready 240V circuit', 1, 'ea']],
+    [
+      { vendorId: 'v4', status: 'Received', invited: '2026-11-12', received: '2026-11-21', amount: 15400, prices: [3900, 7600, 2900, 1000], inc: 'Permit, trenching for feeder up to 60 ft.', exc: 'Fixtures, EV charger unit.', valid: '2027-01-15' },
+      { vendorId: 'v6', status: 'Received', invited: '2026-11-12', received: '2026-11-25', amount: 17250, prices: [4200, 8400, 3450, 1200], inc: 'Permit, trenching, Title 24 lighting controls.', exc: 'Fixtures.', notes: 'Can start the week of Jan 11.', valid: '2026-12-31' },
+    ]);
+  pkg('j7', 2, 'Plumbing', 'ADU plumbing', 'Out for bid', '2026-11-20', '2026-12-09',
+    'Water, waste and vent for the ADU kitchenette and bath; tie-in to the existing sewer lateral; tankless water heater install.',
+    [['Underground and rough plumbing', 1, 'lump'], ['Sewer tie-in', 1, 'lump'], ['Tankless water heater install', 1, 'ea'], ['Fixture set and trim-out', 1, 'lump']],
+    [
+      { vendorId: 'v5', status: 'Invited', invited: '2026-11-20' },
+      { vendorId: 'v7', status: 'Declined', invited: '2026-11-20', notes: 'Booked through February.' },
+    ]);
+  pkg('j7', 3, 'Drywall', 'ADU drywall', 'Draft', '2026-11-26', '2026-12-16',
+    'Hang, tape and finish the ADU to level 4, with moisture-resistant board in the bath. Approx. 2,400 sq ft of board.',
+    [['Hang, tape and finish, level 4', 2400, 'sqft'], ['Moisture-resistant board, bath', 1, 'lump']],
+    [
+      { vendorId: 'v3', status: 'Invited', invited: '' },
+      { vendorId: 'v8', status: 'Invited', invited: '' },
+    ]);
+  const bills = db.bills.map((b) => (links[b.id] ? { ...b, bidId: links[b.id] } : b));
+  return { bidPackages, bids, bills };
 }
 
 type SampleBill = {

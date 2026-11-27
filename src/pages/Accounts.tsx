@@ -8,6 +8,8 @@ import { BackLink, Empty, InfoLine, Row, SearchInput, Section } from '../compone
 import { StatusDot } from './Jobs';
 import { BillTable, NewBillDialog, isVendor } from './Bills';
 import { payables } from '../bills';
+import { BID_STATUS_COLOR, bidStatusLabel, packageLabel } from '../bids';
+import { Pill } from './Budgets';
 import { useLookups, useStore, money, personName } from '../store';
 import type { Account, JobLink, Membership } from '../data';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,7 @@ function AccountDetail({ account }: { account: Account }) {
   const bills = db.bills.filter((b) => b.vendorId === account.id).sort((a, b) => b.date.localeCompare(a.date));
   const owed = payables(db, bills);
   const [newBill, setNewBill] = useState(false);
+  const bids = db.bids.filter((b) => b.vendorId === account.id).map((b) => ({ b, p: db.bidPackages.find((p) => p.id === b.packageId) })).filter((x) => !!x.p);
 
   return (
     <div className="page scroll">
@@ -164,6 +167,19 @@ function AccountDetail({ account }: { account: Account }) {
                 }
               >
                 {bills.length === 0 ? <Empty>No bills from {account.name} yet.</Empty> : <BillTable bills={bills} showVendor={false} />}
+              </Section>
+            )}
+
+            {bids.length > 0 && (
+              <Section title="Bids" count={bids.length}>
+                {bids.map(({ b, p }) => (
+                  <Row key={b.id}>
+                    <Link to={`/bids/${p!.id}`} className="min-w-0 truncate text-sm font-medium text-foreground hover:text-primary">{p!.title || packageLabel(p!)}</Link>
+                    <span className="hidden truncate text-xs text-muted-foreground sm:inline">{L.job.get(p!.jobId)?.name}</span>
+                    <span className="ml-auto"><Pill label={bidStatusLabel(b)} color={BID_STATUS_COLOR[b.status]} /></span>
+                    <span className="w-24 text-right text-sm tabular-nums">{b.amount ? money(b.amount) : '—'}</span>
+                  </Row>
+                ))}
               </Section>
             )}
 

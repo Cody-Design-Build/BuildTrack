@@ -55,6 +55,8 @@ export function removeParty(d: Db, id: string): Db {
     expenses: d.expenses.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
     // bills are financial records: keep them, just without the vendor
     bills: d.bills.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
+    // drop their invites, but keep an awarded bid (it backs a commitment and bills)
+    bids: d.bids.filter((x) => x.vendorId !== id || x.status === 'Awarded').map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
   };
 }
 

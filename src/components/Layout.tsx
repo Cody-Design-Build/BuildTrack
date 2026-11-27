@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   House, Wrench, SquareCheck, Calendar, FileText, Users, Building2, Book, Folder, ChartPie,
-  Settings, LogOut, PanelLeftClose, PanelLeftOpen, ReceiptText, Receipt,
+  Settings, LogOut, PanelLeftClose, PanelLeftOpen, ReceiptText, Receipt, ClipboardList,
   Search, Ellipsis, Menu, ChevronsUpDown, User, Calculator, type LucideIcon,
 } from 'lucide-react';
 import { useStore } from '../store';
@@ -29,6 +29,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/tasks', label: 'Tasks', icon: SquareCheck },
       { to: '/schedule', label: 'Schedule', icon: Calendar },
       { to: '/budgets', label: 'Budgets', icon: Calculator },
+      { to: '/bids', label: 'Bids', icon: ClipboardList },
       { to: '/invoices', label: 'Invoices', icon: ReceiptText },
       { to: '/bills', label: 'Bills', icon: Receipt },
     ],

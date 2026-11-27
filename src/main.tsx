@@ -16,6 +16,8 @@ import Invoices from './pages/Invoices';
 import InvoiceDetail from './pages/InvoiceDetail';
 import Bills from './pages/Bills';
 import BillDetail from './pages/BillDetail';
+import Bids from './pages/Bids';
+import BidPackageDetail from './pages/BidPackageDetail';
 import { Documents, Reports, Placeholder } from './pages/Other';
 import SettingsPage from './pages/Settings';
 import '@fontsource-variable/inter';
@@ -45,6 +47,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/budgets/:id" element={<BudgetDetail />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/invoices/:id" element={<InvoiceDetail />} />
+            <Route path="/bids" element={<Bids />} />
+            <Route path="/bids/:id" element={<BidPackageDetail />} />
             <Route path="/bills" element={<Bills />} />
             <Route path="/bills/:id" element={<BillDetail />} />
             <Route path="/people" element={<People />} />

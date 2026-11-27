@@ -25,6 +25,27 @@ Invoices are progress bills against approved budgets (`src/invoices.ts`). A new 
 - Each job has an **Invoices** tab (contract, billed, paid, outstanding, left to bill) and the top-level **Invoices** page lists them all, with an Overdue filter.
 - Older invoice records from the documents list (no line items) are left as they are and still count on the Home page.
 
+## Bids
+
+A **bid package** (`src/bids.ts`) is a scope of work on a job sent to subcontractors for pricing, e.g. "Electrical — rough and finish". It has a trade (cost code), a bids-due date, the written scope, optional items to price (written fresh or **imported from a budget** — copied, never live-linked, and never showing your costs), and files such as plans and specs.
+
+- **Delivery is by email.** The package prints as a *Bid request* PDF. Each invited sub has an **Email** button that opens a ready-to-send message in your mail app and records the date it went out (or, with no email on file, shows the text to copy). **Mark as sent** records it for everyone you emailed yourself. There's no portal.
+- Bids come back by email and are entered by hand: a total (required), optional prices per item, inclusions, exclusions, how long the price is good for, notes and their quote file. Subs who decline are marked as such.
+- **Compare bids** lines the subs up side by side, highlights the lowest price in each row, and shows each against the job's budgeted cost for the package's cost code.
+- **Award** marks the bid Awarded (and, optionally, the others Not selected) and creates a **draft bill** from that sub for the bid amount, coded to the package's cost code. More bills can be made against the same award for progress billing; the package shows awarded, billed and paid. An award can be undone while its bills are still drafts. More than one bid can be awarded for a split scope.
+- The **Bids** page lists open packages (out for bid, ready to award, due this week); each job has a **Bids** tab and each vendor's account page lists their bids.
+
+## Job costing
+
+Each job has a **Costs** tab (`src/costing.ts`) with one row per cost code:
+
+- **Budget**: cost (not price) of the job's approved proposal and change-order lines.
+- **Committed**: awarded bids.
+- **Actual**: approved vendor bills (open or paid) plus recorded expenses; **paid out** is what's been paid on those bills.
+- **Projected**: the committed amount once a bid is awarded, otherwise the budget, and never less than actual. **Variance** is budget minus projected.
+
+The totals give the projected cost, profit and margin, which also show on the job's Overview.
+
 ## Bills
 
 Bills are what we owe vendors and subcontractors on a job (`src/bills.ts`). Each one is entered from the vendor's invoice: their invoice number, dates, and one or more charges, each with a **cost code** so job costing can total what each part of the job cost. Files such as the vendor's invoice or a lien release can be attached.

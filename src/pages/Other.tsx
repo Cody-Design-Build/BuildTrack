@@ -92,6 +92,8 @@ const TABLES: { key: keyof Db; label: string; what: string }[] = [
   { key: 'costCodes', label: 'cost codes', what: 'Job-costing codes that budget lines and expenses are recorded against' },
   { key: 'expenses', label: 'expenses', what: 'Money spent per job and cost code, optionally linked to a budget line' },
   { key: 'invoices', label: 'invoices', what: 'Progress invoices per job: which approved budgets they bill, percent complete to date per line, status and dates' },
+  { key: 'bidPackages', label: 'bid packages', what: 'Scopes of work sent to subcontractors for pricing: scope text, items, files, cost code and due date' },
+  { key: 'bids', label: 'bids', what: 'Each invited sub per bid package: when it was sent, their price (total and per item), inclusions, exclusions and status' },
   { key: 'bills', label: 'bills', what: 'Bills from vendors and subcontractors per job: their invoice number, dates, charges by cost code, status and attachments' },
   { key: 'payments', label: 'payments', what: 'Money received against invoices and paid out against bills (date, amount, method, check or reference number, notes)' },
   { key: 'docs', label: 'documents', what: 'Invoices, bids, subcontractor agreements, purchase orders and bills' },
