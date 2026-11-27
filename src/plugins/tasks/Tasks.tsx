@@ -4,7 +4,7 @@ import { Plus, Calendar, SquarePen, Eye, ChevronDown, Search, Maximize, Upload, 
 import { EditTools } from '../../components/EditTools';
 import { PageHeader, Modal, Avatar } from '../../components/Layout';
 import { TaskForm, Field } from '../../components/Forms';
-import { useLookups, useStore } from '../../store';
+import { meOf, useLookups, useStore } from '../../store';
 import { downloadCsv, downloadIcs } from '../../lib/downloads';
 import type { Task } from '../../data';
 import { tint, tone } from '../../colors';
@@ -69,7 +69,7 @@ export default function Tasks() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [creating, setCreating] = useState(false);
   const [types, setTypes] = useState(false);
-  const me = db.team[0]?.id;
+  const me = meOf(db)?.id;
 
   useEffect(() => {
     const id = params.get('id');
@@ -89,7 +89,7 @@ export default function Tasks() {
   const allTypes = [...new Set(db.tasks.map((t) => t.type).filter(Boolean))];
   const needle = q.trim().toLowerCase();
   const rows = db.tasks.filter((t) => {
-    if (view === 'mine' && (t.done || !t.assignees.includes(me))) return false;
+    if (view === 'mine' && (t.done || !me || !t.assignees.includes(me))) return false;
     if (view === 'open' && t.done) return false;
     if (view === 'done' && !t.done) return false;
     if (!needle) return true;

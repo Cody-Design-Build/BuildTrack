@@ -106,6 +106,7 @@ export interface TeamMember {
   name: string;
   initials: string;
   color: string;
+  email?: string; // the account that signs in as this person (shared data only)
 }
 
 export interface Task {

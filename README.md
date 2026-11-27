@@ -125,10 +125,7 @@ BuildTrack is meant to be changed, by you or by an AI coding agent such as Claud
 
 ## Status
 
-BuildTrack is under active development at Cody Design Build, where it runs with shared live data for the team (Google sign-in, changes appear on everyone's screen as they're saved). On the way:
-
-- shared files (signed copies and attachments) for the whole team;
-- a hosted version.
+BuildTrack is under active development at Cody Design Build, where it runs with shared live data for the team: Google sign-in, changes appear on everyone's screen as they're saved, and signed copies and attachments are shared. A hosted version is on the way.
 
 ## Try it
 

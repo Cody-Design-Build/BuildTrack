@@ -1,6 +1,7 @@
 // The bid package as subs see it: the scope, the items to price (never our budget numbers), the
 // files that come with it and when bids are due. Prints or saves as a PDF to attach to the email.
 import { type BidPackage, type Db } from '../../data';
+import { meOf } from '../../store';
 import { packageLabel } from './bids';
 import type { Lookups } from '../../store';
 
@@ -9,7 +10,7 @@ const longDate = (ymd?: string) => (ymd ? new Date(`${ymd.slice(0, 10)}T12:00:00
 export function BidPackageDocument({ pkg, db, L, vendorName }: { pkg: BidPackage; db: Db; L: Lookups; vendorName?: string }) {
   const job = L.job.get(pkg.jobId);
   const code = db.costCodes.find((c) => c.id === pkg.costCodeId);
-  const me = db.team[0];
+  const me = meOf(db);
   const issued = pkg.statusDates?.['Out for bid'] ?? pkg.updated;
   return (
     <article className="budget-doc" aria-label={`${packageLabel(pkg)} document`}>

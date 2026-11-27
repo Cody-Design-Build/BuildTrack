@@ -3,11 +3,12 @@ import { StatusCorner } from './StatusCorner';
 import { DemoNotice } from './DemoNotice';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Settings, LogOut, PanelLeftClose, PanelLeftOpen, Search, Ellipsis, Menu, ChevronsUpDown, User, type LucideIcon,
+  Building2, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Search, Ellipsis, Menu, ChevronsUpDown, User, type LucideIcon,
 } from 'lucide-react';
-import { useStore } from '../store';
+import { meOf, useStore } from '../store';
 import { tone } from '../colors';
 import { usePlugins } from '../plugins/registry';
+import { currentCompany, myCompanies, switchCompany } from '../cloud';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -80,7 +81,7 @@ function SideLink({ item, collapsed, end }: { item: NavItem; collapsed: boolean;
 
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { db } = useStore();
-  const me = db.team[0];
+  const me = meOf(db);
   const nav = useNavigate();
   return (
     <DropdownMenu>
@@ -110,6 +111,17 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
           <div className="text-xs text-muted-foreground">{db.companyName}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {myCompanies().length > 1 && (
+          <>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Switch company</DropdownMenuLabel>
+            {myCompanies().map((c) => (
+              <DropdownMenuItem key={c.id} disabled={c.id === currentCompany()} onSelect={() => switchCompany(c.id)}>
+                <Building2 /> {c.name || 'Unnamed company'}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onSelect={() => nav('/profile')}>
           <User /> Profile
         </DropdownMenuItem>

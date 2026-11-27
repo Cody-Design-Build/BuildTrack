@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Maximize, RefreshCw, Plus, Settings, ArrowUpRight, FileText, Hammer, ChevronRight, Wrench, Receipt, Target, SquareCheck, type LucideIcon } from 'lucide-react';
-import { useLookups, useStore, money, sameDayLabel, timeLabel } from '../../store';
+import { meOf, useLookups, useStore, money, sameDayLabel, timeLabel } from '../../store';
 import { linesByBudget, totals } from '../budgets/budgets';
 import { invoiceLabel, invoiceMoney } from '../invoices/invoices';
 import { QuickAdd } from '../../components/QuickAdd';
@@ -123,7 +123,7 @@ export default function Home() {
   const L = useLookups();
   const [filter, setFilter] = useState<'all' | 'customer' | 'vendor'>('all');
   const [adding, setAdding] = useState(false);
-  const me = db.team[0];
+  const me = meOf(db);
 
   const partyName = (id: string) => L.party.get(id)?.name ?? '';
   const partyHref = (id: string) => L.party.get(id)?.href ?? '/accounts';
@@ -150,7 +150,7 @@ export default function Home() {
   const draftBills = db.docs.filter((d) => d.kind === 'Bill' && d.status === 'Draft');
   const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
   const sum = (xs: number[]) => money(total(xs));
-  const myTasks = db.tasks.filter((t) => !t.done && t.assignees.includes(me?.id));
+  const myTasks = db.tasks.filter((t) => !t.done && !!me && t.assignees.includes(me.id));
 
   let lastDay = '';
   return (

@@ -270,7 +270,7 @@
       // Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
       "max_frequency": "1m0s",
       // Number of characters used in the email OTP.
-      "otp_length": 8,
+      "otp_length": 6,
       // Number of seconds before the email OTP expires (defaults to 1 hour).
       "otp_expiry": 3600,
 
@@ -285,13 +285,18 @@
       //   "sender_name": "Admin"
       // },
 
-      // Uncomment to customize email template
-      // "template": {
-      //   "invite": {
-      //     "subject": "You have been invited",
-      //     "content_path": "./supabase/templates/invite.html"
-      //   }
-      // },
+      // Sign-in emails carry a 6-digit code to type in (no links: on phones they
+      // often open in a different browser from the one signing in).
+      "template": {
+        "magic_link": {
+          "subject": "Your BuildTrack sign-in code",
+          "content_path": "./supabase/templates/magic_link.html"
+        },
+        "confirmation": {
+          "subject": "Your BuildTrack sign-in code",
+          "content_path": "./supabase/templates/confirmation.html"
+        }
+      },
 
       // Uncomment to customize notification email template
       // "notification": {
@@ -338,18 +343,19 @@
     //   "inactivity_timeout": "8h"
     // },
 
-    // This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-    // "hook": {
-    //   "before_user_created": {
-    //     "enabled": true,
-    //     "uri": "pg-functions://postgres/auth/before-user-created-hook"
-    //   },
-    //   // This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-    //   "custom_access_token": {
-    //     "enabled": true,
-    //     "uri": "pg-functions://<database>/<schema>/<hook_name>"
-    //   }
-    // },
+    // Invite-only (supabase/migrations/20261127210000_invites.sql): no account can be
+    // created without a valid invite for its email, and password sign-ins are refused.
+    // The functions must exist (db push) before these are switched on (config push).
+    "hook": {
+      "before_user_created": {
+        "enabled": true,
+        "uri": "pg-functions://postgres/public/hook_before_user_created"
+      },
+      "custom_access_token": {
+        "enabled": true,
+        "uri": "pg-functions://postgres/public/hook_custom_access_token"
+      }
+    },
 
     // Multi-factor-authentication is available to Supabase Pro plan.
     "mfa": {

@@ -10,7 +10,7 @@
 // can be checked before it's approved to pay. More bills can be made against the same award
 // (progress billing), and the package shows awarded vs billed vs paid.
 import type { Activity, Bid, BidItem, BidPackage, BidPackageStatus, BidStatus, Bill, Db } from '../../data';
-import { localIso, money, uid } from '../../store';
+import { meOf, localIso, money, uid } from '../../store';
 import type { CostEntry } from '../sdk';
 import { billAmount, nextBillNumber, logBill } from '../bills/bills';
 import { todayYmd } from '../invoices/invoices';
@@ -81,7 +81,7 @@ export function nextPackageNumber(db: Db, jobId: string) {
 
 function logPackage(d: Db, p: BidPackage, what: string, extra: Partial<Activity> = {}): Activity {
   const job = d.jobs.find((j) => j.id === p.jobId);
-  const me = d.team[0]?.name ?? 'You';
+  const me = meOf(d)?.name ?? 'You';
   return {
     id: uid('a'),
     date: localIso(),
@@ -307,7 +307,7 @@ const longDate = (ymd: string) => (ymd ? new Date(`${ymd}T12:00:00`).toLocaleDat
 export function inviteEmail(db: Db, p: BidPackage, vendorId: string) {
   const job = db.jobs.find((j) => j.id === p.jobId);
   const vendor = db.accounts.find((a) => a.id === vendorId);
-  const me = db.team[0]?.name ?? '';
+  const me = meOf(db)?.name ?? '';
   const subject = `Bid request: ${p.title || packageLabel(p)}${job ? ` — ${job.name}` : ''}`;
   const lines = [
     `Hi${vendor ? ` ${vendor.name}` : ''},`,

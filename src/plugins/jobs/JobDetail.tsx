@@ -5,7 +5,7 @@ import { PageHeader, Modal } from '../../components/Layout';
 import { JobForm, JobLinkForm, TaskForm } from '../../components/Forms';
 import { PartyLink, RoleBadge } from '../../components/Party';
 import { Button } from '@/components/ui/button';
-import { useLookups, useStore, money, uid, localIso } from '../../store';
+import { meOf, useLookups, useStore, money, uid, localIso } from '../../store';
 import { JOB_STATUSES, type JobLink, type Activity, type Db, type Doc, type Job, type JobStatus } from '../../data';
 import { tint } from '../../colors';
 import { usePlugins } from '../registry';
@@ -23,7 +23,7 @@ function logDoc(d: Db, doc: Doc, what: string): Activity {
   const p = d.people.find((x) => x.id === doc.partyId);
   const who = p ? `${p.firstName} ${p.lastName}`.trim() : d.accounts.find((a) => a.id === doc.partyId)?.name ?? '';
   const job = d.jobs.find((j) => j.id === doc.jobId);
-  const me = d.team[0]?.name ?? 'You';
+  const me = meOf(d)?.name ?? 'You';
   return {
     id: uid('a'),
     date: localIso(),

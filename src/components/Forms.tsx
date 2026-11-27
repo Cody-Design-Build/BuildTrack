@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { partyRemoved } from '../plugins/registry';
 import { Modal } from './Layout';
 import { PartyPicker } from './Party';
-import { useStore, useLookups, uid, personName, colorFor } from '../store';
+import { meOf, useStore, useLookups, uid, personName, colorFor } from '../store';
 import { ACCOUNT_TYPES, JOB_ROLES, JOB_STATUSES, type Account, type Db, type Job, type JobLink, type JobStatus, type Membership, type Person, type Task } from '../data';
 import { Button } from '@/components/ui/button';
 
@@ -181,7 +181,7 @@ export function TaskForm({ onClose, task, presetPartyId, presetJobId }: { onClos
   const [jobId, setJobId] = useState(task?.jobId ?? presetJobId ?? '');
   const [due, setDue] = useState(task?.due ?? '');
   const [type, setType] = useState(task?.type ?? '');
-  const [assignees, setAssignees] = useState<string[]>(task?.assignees ?? ([db.team[0]?.id].filter(Boolean) as string[]));
+  const [assignees, setAssignees] = useState<string[]>(task?.assignees ?? ([meOf(db)?.id].filter(Boolean) as string[]));
   // with a person or account chosen, offer their jobs first
   const theirs = new Set((L.linksByParty.get(partyId) ?? []).map((l) => l.jobId));
   const jobs = [...db.jobs].sort((a, b) => Number(theirs.has(b.id)) - Number(theirs.has(a.id)) || a.name.localeCompare(b.name));
