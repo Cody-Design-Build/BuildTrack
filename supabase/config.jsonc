@@ -231,7 +231,7 @@
 
     "rate_limit": {
       // Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-      "email_sent": 2,
+      "email_sent": 30, // Resend free plan: 100 a day
       // Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
       "sms_sent": 30,
       // Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -275,15 +275,18 @@
       "otp_expiry": 3600,
 
       // Use a production-ready SMTP server
-      // "smtp": {
-      //   "enabled": true,
-      //   "host": "smtp.sendgrid.net",
-      //   "port": 587,
-      //   "user": "apikey",
-      //   "pass": "env(SENDGRID_API_KEY)",
-      //   "admin_email": "admin@email.com",
-      //   "sender_name": "Admin"
-      // },
+      // Sign-in codes and invites go out through Resend from no-reply@buildtrack.run
+      // (Supabase's built-in sender only reaches the Supabase team, a few an hour).
+      // RESEND_API_KEY is a sending-only key, kept in .env.live.local.
+      "smtp": {
+        "enabled": true,
+        "host": "smtp.resend.com",
+        "port": 465,
+        "user": "resend",
+        "pass": "env(RESEND_API_KEY)",
+        "admin_email": "no-reply@buildtrack.run",
+        "sender_name": "BuildTrack"
+      },
 
       // Sign-in emails carry a 6-digit code to type in (no links: on phones they
       // often open in a different browser from the one signing in).
