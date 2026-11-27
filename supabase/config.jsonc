@@ -343,18 +343,19 @@
     //   "inactivity_timeout": "8h"
     // },
 
-    // This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-    // "hook": {
-    //   "before_user_created": {
-    //     "enabled": true,
-    //     "uri": "pg-functions://postgres/auth/before-user-created-hook"
-    //   },
-    //   // This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-    //   "custom_access_token": {
-    //     "enabled": true,
-    //     "uri": "pg-functions://<database>/<schema>/<hook_name>"
-    //   }
-    // },
+    // Invite-only (supabase/migrations/20261127210000_invites.sql): no account can be
+    // created without a valid invite for its email, and password sign-ins are refused.
+    // The functions must exist (db push) before these are switched on (config push).
+    "hook": {
+      "before_user_created": {
+        "enabled": true,
+        "uri": "pg-functions://postgres/public/hook_before_user_created"
+      },
+      "custom_access_token": {
+        "enabled": true,
+        "uri": "pg-functions://postgres/public/hook_custom_access_token"
+      }
+    },
 
     // Multi-factor-authentication is available to Supabase Pro plan.
     "mfa": {

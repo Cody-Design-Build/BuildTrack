@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { acceptInvites, cloud, createCompany, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, signupOpen, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { acceptInvites, cloud, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
 import { parseDb } from '../store';
 import { seed, type Db } from '../data';
 
@@ -11,7 +11,6 @@ type State =
   | { step: 'checking' }
   | { step: 'signed-out' }
   | { step: 'not-allowed'; email: string; setUp: boolean }
-  | { step: 'create-company'; email: string }
   | { step: 'loading'; note: string }
   | { step: 'ready'; db: Db }
   | { step: 'failed'; message: string };
@@ -38,14 +37,9 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
     (async () => {
       try {
         setState({ step: 'loading', note: 'Loading your team’s data…' });
-        // Join any company that invited this email, then: no company yet means either
-        // "create your company" (when sign-up is open) or "ask for an invite".
+        // Use any invites for this email (joining a company, or starting a new one).
         await acceptInvites().catch(() => 0);
         if (!(await isTeamMember())) {
-          if (await signupOpen().catch(() => false)) {
-            if (!cancelled) setState({ step: 'create-company', email: session.user.email ?? '' });
-            return;
-          }
           const setUp = await teamIsSetUp().catch(() => true);
           if (!cancelled) setState({ step: 'not-allowed', email: session.user.email ?? 'This account', setUp });
           return;
@@ -107,18 +101,17 @@ function Screen({ state }: { state: State }) {
           <p className="text-sm text-muted-foreground">{state.step === 'loading' ? state.note : 'Checking sign-in…'}</p>
         )}
         {state.step === 'signed-out' && <SignIn />}
-        {state.step === 'create-company' && <CreateCompany email={state.email} />}
+
         {state.step === 'not-allowed' && (
           <>
             {state.setUp ? (
               <p className="mb-6 text-sm text-muted-foreground">
-                <b className="text-foreground">{state.email}</b> isn’t on a BuildTrack team yet. Ask whoever runs your company’s BuildTrack to invite this address
-                {TEAM_DOMAIN ? <>, or sign in with your @{TEAM_DOMAIN} account</> : ''}.
+                <b className="text-foreground">{state.email}</b> isn’t on a BuildTrack team. BuildTrack is invite-only: ask an owner or admin of your company to invite this address, then sign in again within 7 days.
               </p>
             ) : (
               <p className="mb-6 text-left text-sm text-muted-foreground">
-                This BuildTrack hasn’t been told who its team is yet, so nobody can sign in. Whoever installed it needs to run{' '}
-                <code className="rounded bg-muted px-1 font-mono text-xs text-foreground">npm run team:allow -- yourcompany.com</code>{' '}
+                This BuildTrack has no owner yet, so nobody can sign in. Whoever installed it needs to invite the first owner with{' '}
+                <code className="rounded bg-muted px-1 font-mono text-xs text-foreground">npm run invite:owner -- you@yourcompany.com "Your Company"</code>{' '}
                 (see “Run BuildTrack for your team” in the docs).
               </p>
             )}
@@ -166,7 +159,11 @@ function SignIn() {
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  // A refused Google sign-in (no invite for that account) comes back in the address.
+  const [error, setError] = useState(() => {
+    const p = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
+    return p.get('error_description')?.replace(/\+/g, ' ') ?? '';
+  });
 
   const send = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -226,41 +223,7 @@ function SignIn() {
         </form>
       )}
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-      <p className="mt-5 text-center text-xs text-muted-foreground">New here? Signing in creates your account.</p>
+      <p className="mt-5 text-center text-xs text-muted-foreground">BuildTrack is invite-only. Use the email address your invite was sent to.</p>
     </div>
   );
 }
-
-/** First sign-in with no company: name it and start (on sample data you can clear later). */
-function CreateCompany({ email }: { email: string }) {
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const create = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      await createCompany(name);
-      window.location.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setBusy(false);
-    }
-  };
-  return (
-    <form onSubmit={create} className="space-y-3 text-left">
-      <p className="text-sm text-muted-foreground">
-        Welcome! <b className="text-foreground">{email}</b> isn’t on a team yet. Set up your company, or ask a teammate to invite this address.
-      </p>
-      <input className={input} required placeholder="Company name, e.g. Acme Design Build" value={name} onChange={(e) => setName(e.target.value)} aria-label="Company name" autoFocus />
-      <button type="submit" className={primary} disabled={busy || !name.trim()}>{busy ? 'Setting up…' : 'Create company'}</button>
-      <p className="text-xs text-muted-foreground">It starts with sample jobs, customers and subs so you can look around.</p>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <button type="button" onClick={signOut} className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
-        <LogOut className="size-3.5" /> Use a different account
-      </button>
-    </form>
-  );
-}
-

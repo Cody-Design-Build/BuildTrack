@@ -121,26 +121,15 @@ const rpc = async <T,>(fn: string, args?: Record<string, unknown>): Promise<T> =
   return data as T;
 };
 
-/** Joins every company that invited this person's email. Returns how many. */
+/** Uses every valid invite for this person's email: joins those companies (or starts the one a new-company invite is for). Returns how many. */
 export const acceptInvites = () => rpc<number>('accept_invites');
-/** Whether this install lets people create their own company. */
-export const signupOpen = () => rpc<boolean>('signup_open');
-/** A new company owned by the signed-in person; opened next time the app loads. */
-export async function createCompany(name: string) {
-  const id = await rpc<string>('create_company', { company_name: name });
-  try {
-    localStorage.setItem(COMPANY_KEY, id);
-  } catch {
-    /* private window */
-  }
-  return id;
-}
 
 export type Role = 'owner' | 'admin' | 'member';
-export interface TeamEntry { user_id: string | null; email: string; role: Role; joined: string; pending: boolean }
+export interface TeamEntry { user_id: string | null; email: string; role: Role; since: string; pending: boolean; expires_at: string | null }
 /** Members of the open company, then pending invites. */
 export const companyTeam = () => rpc<TeamEntry[]>('company_team', { company: mine() });
-export const inviteMember = (email: string, role: 'admin' | 'member') => rpc<void>('invite_member', { company: mine(), invite_email: email, invite_role: role });
+/** Invites someone (a single-use invite for their email, good for 7 days); returns when it expires. */
+export const inviteMember = (email: string, role: 'admin' | 'member') => rpc<string>('invite_member', { company: mine(), invite_email: email, invite_role: role });
 export const cancelInvite = (email: string) => rpc<void>('cancel_invite', { company: mine(), invite_email: email });
 /** Change a member's role, or remove them with null. */
 export const setMemberRole = (userId: string, role: Role | null) => rpc<void>('set_member_role', { company: mine(), member: userId, new_role: role });
@@ -152,7 +141,7 @@ const mine = () => {
 };
 
 // ---------- Reading and writing ----------
-/** False until this install has been told who its team is (`npm run team:allow`). */
+/** False until someone has been made a member (a new install: `npm run invite:owner`). */
 export async function teamIsSetUp(): Promise<boolean> {
   const { data, error } = await cloud!.rpc('team_is_set_up');
   if (error) throw error;

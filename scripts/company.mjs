@@ -1,51 +1,48 @@
-// Companies on this BuildTrack install (invite-only for now: there's no public sign-up).
+// Run by whoever operates this BuildTrack install (never from the app).
 //
-//   npm run company:list                                   every company and who can get in
-//   npm run company:create -- "Acme Design Build" acme.com  a new company, open to @acme.com
-//   npm run company:create -- "Acme Design Build" jane@acme.com   …or to one address
-//   npm run company:signup -- on | off                     let anyone sign up and create a company
+//   npm run invite:owner -- jane@acme.com "Acme Design Build"
+//       Invites Jane to own a company (single use, expires in 7 days). On a new install
+//       this is how the first owner gets in; on an install that already has companies it
+//       starts a new one when she signs in. She then invites her own team from
+//       Settings → Members.
+//   npm run company:list
+//       Every company, its owners, member count and open invites.
 //
-// A new company starts empty; its first person to sign in gets the sample data, like a new
-// install. Runs against the linked Supabase project; the CLI asks before changing anything.
+// Runs against the Supabase project this folder is linked to (`supabase link`). The
+// Supabase CLI asks you to confirm before it changes anything.
 import { execFileSync } from 'node:child_process';
 
-const [command, name = '', who = ''] = process.argv.slice(2);
-const entry = who.trim().toLowerCase().replace(/^@/, '');
-const isEmail = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(entry);
-const isDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(entry);
+const [command, email = '', name = ''] = process.argv.slice(2);
+const address = email.trim().toLowerCase();
+const isEmail = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(address);
 const run = (sql, readOnly = false) =>
   execFileSync('supabase', ['db', 'query', '--remote', ...(readOnly ? ['--read-only'] : []), sql], { stdio: 'inherit' });
 const quote = (s) => `'${s.replace(/'/g, "''")}'`;
 
 const list = () =>
   run(
-    `select c.name, c.id, coalesce(string_agg(x.who, ', ' order by x.who), '(nobody yet)') as who_can_sign_in
+    `select c.name as company,
+            (select string_agg(u.email, ', ') from public.company_members m join auth.users u on u.id = m.user_id
+              where m.company_id = c.id and m.role = 'owner') as owners,
+            (select count(*) from public.company_members m where m.company_id = c.id) as members,
+            (select string_agg(i.email || ' (' || i.role || ', expires ' || to_char(i.expires_at, 'Mon DD') || ')', ', ')
+               from public.invites i where i.company_id = c.id and i.used_at is null and i.expires_at > now()) as open_invites
      from public.companies c
-     left join (select company_id, domain as who from public.allowed_domains
-                union all select company_id, email from public.allowed_emails) x on x.company_id = c.id
-     group by c.id order by c.created_at`,
+     union all
+     select i.company_name || ' (new)', null, 0, i.email || ' (owner, expires ' || to_char(i.expires_at, 'Mon DD') || ')'
+     from public.invites i where i.company_id is null and i.used_at is null and i.expires_at > now()
+     order by 1`,
     true,
   );
 
-if (command === 'signup' && (name === 'on' || name === 'off')) {
-  run(
-    `insert into public.install_settings (key, value) values ('open_signup', '${name === 'on'}')
-     on conflict (key) do update set value = excluded.value`,
-  );
-  run(`select public.signup_open() as anyone_can_create_a_company`, true);
+if (command === 'invite-owner' && isEmail && name.trim()) {
+  run(`select public.invite_owner(${quote(address)}, ${quote(name.trim())})`);
+  console.log(`\nInvited ${address} to own ${name.trim()}. Tell them to sign in at your BuildTrack address within 7 days with that email (Google, or an emailed code).`);
+  list();
 } else if (command === 'list') {
   list();
-} else if (command === 'create' && name.trim() && (isEmail || isDomain)) {
-  const table = isEmail ? 'allowed_emails' : 'allowed_domains';
-  const column = isEmail ? 'email' : 'domain';
-  run(
-    `with c as (insert into public.companies (name) values (${quote(name.trim())}) returning id)
-     insert into public.${table} (${column}, company_id) select ${quote(entry)}, id from c`,
-  );
-  list();
 } else {
-  console.error('Usage: npm run company:create -- "Company name" theirdomain.com | person@example.com');
-  console.error('       npm run company:signup -- on | off');
+  console.error('Usage: npm run invite:owner -- jane@acme.com "Acme Design Build"');
   console.error('       npm run company:list');
   process.exit(1);
 }

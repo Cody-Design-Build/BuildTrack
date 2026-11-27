@@ -1,10 +1,18 @@
-// Settings → Members: who can sign in to this company, and inviting more people. Only
-// shown when connected to Supabase. Invites go out by email the way bids do: BuildTrack
-// writes the message, you send it. Signing in with the invited address joins the company.
+// Settings → Members: who's in this company, and inviting more people (owners and admins).
+// Only shown when connected to Supabase. BuildTrack is invite-only: an invite is for one
+// email address, works once and expires after 7 days. Invites go out by email the way
+// bids do: BuildTrack writes the message, you send it.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Copy, Mail, Trash2, UserPlus } from 'lucide-react';
+import { Copy, Mail, RotateCw, Trash2, UserPlus } from 'lucide-react';
 import { cancelInvite, cloud, companyTeam, inviteMember, setMemberRole, type Role, type TeamEntry } from '../cloud';
 import { useStore } from '../store';
+
+/** "Expires in 3 days", "Expires today" or "Expired". */
+function expiry(at: string | null) {
+  if (!at) return '';
+  const days = Math.ceil((new Date(at).getTime() - Date.now()) / 86_400_000);
+  return days <= 0 ? 'Expired' : days === 1 ? 'Expires within a day' : `Expires in ${days} days`;
+}
 
 const ROLE_HELP: Record<Role, string> = {
   owner: 'Everything, including managing owners',
@@ -16,7 +24,7 @@ function inviteText(company: string, email: string) {
   const url = window.location.origin;
   return {
     subject: `Join ${company} on BuildTrack`,
-    body: `You're invited to ${company} on BuildTrack.\n\nGo to ${url} and sign in with ${email} (Google, or a code we email you). You'll join ${company} automatically.`,
+    body: `You're invited to ${company} on BuildTrack.\n\nGo to ${url} within 7 days and sign in with ${email} (Google, or a code we email you). You'll join ${company} automatically.`,
   };
 }
 
@@ -108,7 +116,7 @@ export function TeamSettings() {
           <div className="card-head"><h2>Invite people</h2></div>
           <div className="card-body">
             <p className="form-note mb-3 text-muted-foreground">
-              Add their email, then send them the invite. When they sign in with that address, by Google or an emailed code, they join {db.companyName}.
+              Add their email, then send them the invite. It’s for that one address, works once and expires after 7 days. When they sign in with it, by Google or an emailed code, they join {db.companyName}.
             </p>
             <form onSubmit={invite} className="flex flex-wrap gap-2">
               <input className="b-input min-w-56 flex-1" type="email" required placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email to invite" />
@@ -120,17 +128,21 @@ export function TeamSettings() {
             </form>
             {invites.length > 0 && (
               <div className="mt-4 space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">Waiting to sign in</div>
+                <div className="text-xs font-medium text-muted-foreground">Invited, not signed in yet</div>
                 {invites.map((i) => {
                   const t = inviteText(db.companyName, i.email);
+                  const expired = expiry(i.expires_at) === 'Expired';
                   return (
                     <div key={i.email} className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted/50">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm">{i.email}</div>
-                        <div className="text-xs text-muted-foreground">Invited as {i.role}</div>
+                        <div className={'text-xs ' + (expired ? 'text-destructive' : 'text-muted-foreground')}>Invited as {i.role} · {expiry(i.expires_at)}</div>
                       </div>
-                      <a className="btn btn-sm" href={`mailto:${i.email}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`}><Mail size={14} /> Email invite</a>
-                      <button type="button" className="btn btn-sm" onClick={() => copy(i.email)}><Copy size={14} /> {copied === i.email ? 'Copied' : 'Copy'}</button>
+                      {expired && (
+                        <button type="button" className="btn btn-sm" onClick={() => act(() => inviteMember(i.email, i.role === 'admin' ? 'admin' : 'member'))}><RotateCw size={14} /> Invite again</button>
+                      )}
+                      {!expired && <a className="btn btn-sm" href={`mailto:${i.email}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`}><Mail size={14} /> Email invite</a>}
+                      {!expired && <button type="button" className="btn btn-sm" onClick={() => copy(i.email)}><Copy size={14} /> {copied === i.email ? 'Copied' : 'Copy'}</button>}
                       <button type="button" className="btn btn-sm" aria-label={`Cancel invite for ${i.email}`} onClick={() => act(() => cancelInvite(i.email))}><Trash2 size={14} /></button>
                     </div>
                   );

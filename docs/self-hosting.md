@@ -24,20 +24,25 @@ npm install
    ```
    This creates the `records` table, the access rules, live updates and a private file store.
 
-## 3. Tell it who your team is
+## 3. Make it invite-only, and invite your first owner
 
-A new install lets **nobody** in until you say who your team is, so a half-finished setup can never expose data. Allow your company's email domain:
+BuildTrack is invite-only: nobody can create an account without an invite for their email address. An invite works once and expires after 7 days.
 
-```
-npm run team:allow -- yourcompany.com
-```
+1. In Supabase, **Authentication → Hooks**, add two hooks, each as a *Postgres function* in the `public` schema:
+   - **Before User Created** → `hook_before_user_created` (refuses accounts without a valid invite)
+   - **Customize Access Token** → `hook_custom_access_token` (refuses password sign-ins; people use Google or an emailed code)
+2. Invite yourself as the first owner:
+   ```
+   npm run invite:owner -- you@yourcompany.com "Your Company Name"
+   ```
+   This runs against the project you linked in step 2; the Supabase CLI asks you to confirm.
 
-Everyone with an @yourcompany.com Google account can then sign in. You can also allow individual outside addresses (a bookkeeper, say) with `npm run team:allow -- jane@theirfirm.com`, see who's allowed with `npm run team:list`, and remove someone with `npm run team:remove -- …`. These run against the project you linked in step 2; the Supabase CLI asks you to confirm each change.
+Once you've signed in (step 6), invite the rest of your team from **Settings → Members**: owners and admins add an email address and a role, and BuildTrack writes the invite for you to send. `npm run company:list` shows your company, its owners and any open invites.
 
 ## 4. Turn on Google sign-in
 
 1. In [Google Cloud Console](https://console.cloud.google.com), create a project for BuildTrack under your organisation.
-2. **Google Auth Platform → Get started**: app name BuildTrack, audience **Internal** (only your company's accounts can sign in).
+2. **Google Auth Platform → Get started**: app name BuildTrack, audience **Internal** if everyone you'll invite has a company Google account, otherwise **External** (anyone with Google can *try*; only invited addresses get in).
 3. **Clients → Create client → Web application.** Authorised redirect URI:
    `https://<your-project-ref>.supabase.co/auth/v1/callback`
 4. In Supabase, **Authentication → Sign In / Providers → Google**: enable it and paste the client ID and secret.
@@ -51,14 +56,16 @@ Everyone with an @yourcompany.com Google account can then sign in. You can also 
    |---|---|
    | `VITE_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key |
-   | `VITE_TEAM_DOMAIN` | `yourcompany.com`. Optional: Google then offers only your company's accounts at sign-in. Who actually gets in is decided by step 3. |
+   | `VITE_TEAM_DOMAIN` | `yourcompany.com`. Optional: Google then offers only your company's accounts at sign-in. Who actually gets in is decided by invites (step 3). |
 
 3. Deploy, and add your own domain if you like (e.g. `app.yourcompany.com`).
 4. In Supabase, **Authentication → URL Configuration**: set the Site URL to your app's address and add it to the redirect URLs as `https://app.yourcompany.com/**`.
 
 ## 6. First sign-in
 
-The first person to sign in starts the shared data. It begins as the sample data, so everyone can find their way around; replace it with your own jobs, people and cost codes as you go. Every change saves automatically and shows up on teammates' screens live.
+Open your app and sign in with the address you invited in step 3, by Google or with a 6-digit code emailed to you. You're the owner, and you stay signed in on that device. Your company starts on the sample data, so you can find your way around; replace it with your own jobs, people and cost codes as you go. Every change saves automatically and shows up on teammates' screens live.
+
+Supabase's built-in email sender only sends a few emails an hour, which is enough to get started. Before inviting a whole team, add your own email sender (for example [Resend](https://resend.com)) under **Authentication → Emails → SMTP Settings**.
 
 ## Keeping it up to date
 
