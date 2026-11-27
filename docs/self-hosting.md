@@ -1,5 +1,7 @@
 # Run BuildTrack for your team
 
+> BuildTrack is currently an internal tool at Cody Design Build. These steps work, and they're how our own install is set up, but running your own copy isn't supported yet.
+
 On its own, BuildTrack runs in one browser with sample data (`npm run dev`). To give your whole team the same live data with company sign-in, you connect it to your own [Supabase](https://supabase.com) database and host it on [Vercel](https://vercel.com). Both have free plans to start on. You'll need about an hour, a GitHub account, and admin access to your company's Google Workspace.
 
 Everything below runs in **your** accounts: your data never passes through ours.
@@ -67,7 +69,16 @@ Everyone can sign in with a 6-digit code emailed to them, so you can skip this. 
 
 Open your app and sign in with the address you invited in step 3, by Google or with a 6-digit code emailed to you. You're the owner, and you stay signed in on that device. Your company starts on the sample data, so you can find your way around; replace it with your own jobs, people and cost codes as you go. Every change saves automatically and shows up on teammates' screens live.
 
-Supabase's built-in email sender only sends a few emails an hour, which is enough to get started. Before inviting a whole team, add your own email sender (for example [Resend](https://resend.com)) under **Authentication → Emails → SMTP Settings**.
+### Email for sign-in codes
+
+Supabase's built-in email only reaches people on your Supabase team, a few emails an hour. That's enough for you to sign in once, but not for inviting anyone else. Set up your own sender before inviting your team. [Resend](https://resend.com)'s free plan (100 emails a day) is plenty:
+
+1. In Resend, **Domains → Add domain**, for example `yourcompany.com`, and add the DNS records it lists where your domain's DNS is managed. If your registrar won't keep the `send` MX record, switch its mail settings to custom MX first, but check that turns off nothing you use. Wait until Resend shows **Verified**.
+2. In Resend, **API Keys → Create**, with **Sending access** for that domain only.
+3. In Supabase, **Authentication → Emails → SMTP Settings**: host `smtp.resend.com`, port `465`, username `resend`, password the key, sender `no-reply@yourcompany.com`, name `BuildTrack`.
+4. In **Authentication → Rate Limits**, raise *emails per hour* from 2 to about 30.
+
+How sign-in, invites and email fit together, and what to check when a code doesn't arrive, is in [Accounts, sign-in and email](accounts-and-email.md).
 
 ## Keeping it up to date
 

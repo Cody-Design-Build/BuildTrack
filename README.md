@@ -125,7 +125,9 @@ BuildTrack is meant to be changed, by you or by an AI coding agent such as Claud
 
 ## Status
 
-BuildTrack is under active development at Cody Design Build, where it runs with shared live data for the team: Google sign-in, changes appear on everyone's screen as they're saved, and signed copies and attachments are shared. A hosted version is on the way.
+**BuildTrack is an internal tool at Cody Design Build.** It isn't open to the public. There's no sign-up, and every account starts with an invite (see [Accounts, sign-in and email](docs/accounts-and-email.md)). The team uses it with shared live data: sign-in by emailed code or company Google account, changes appear on everyone's screen as they're saved, and signed copies and attachments are shared.
+
+The code is public under the AGPL. Running your own copy is possible ([Run BuildTrack for your team](docs/self-hosting.md)), but it isn't supported yet. A hosted version for other companies may come later.
 
 ## Try it
 
@@ -136,13 +138,14 @@ npm run dev
 
 Then open http://localhost:5173. Sample jobs, customers, subs, proposals, invoices, bids and bills are already loaded, saved in your browser. Use **Settings → Reset sample data** to start over.
 
-To put your whole team on it, with shared live data and company Google sign-in on your own Supabase and Vercel accounts, follow **[Run BuildTrack for your team](docs/self-hosting.md)**.
+Running it for a whole team, with shared live data and invite-only sign-in on your own Supabase and Vercel accounts, is described in **[Run BuildTrack for your team](docs/self-hosting.md)**. That isn't supported yet.
 
 ## Learn more
 
 - [How BuildTrack works](docs/guide.md): the rules behind budgets, invoices, bids, bills and job costing.
 - [Developing BuildTrack](docs/development.md): building, themes, and where the code and data live.
-- [Run BuildTrack for your team](docs/self-hosting.md): Supabase, Google sign-in and Vercel.
+- [Accounts, sign-in and email](docs/accounts-and-email.md): invites, sign-in codes, Resend and what to check when a code doesn't arrive.
+- [Run BuildTrack for your team](docs/self-hosting.md): Supabase, sign-in, email and Vercel (unsupported for now).
 - [AGENTS.md](AGENTS.md): the workflow for people and AI agents changing BuildTrack.
 
 ## Licence
