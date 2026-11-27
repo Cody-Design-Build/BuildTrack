@@ -3,8 +3,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
-import { acceptInvites, cloud, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
-import { parseDb } from '../store';
+import { acceptInvites, cloud, signedInAccount, currentCompany, myCompanies, isTeamMember, loadDb, openCompany, saveChanges, teamIsSetUp, uploadDb, TEAM_DOMAIN } from '../cloud';
+import { parseDb, withTeamMember } from '../store';
 import { seed, type Db } from '../data';
 
 type State =
@@ -53,6 +53,7 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
           db = parseDb(JSON.stringify(saved));
           const full = db as Db & Record<string, unknown>;
           for (const [k, v] of Object.entries(seed())) if (Array.isArray(v) && !Array.isArray(full[k])) full[k] = [];
+          db = withTeamMember(db, signedInAccount()); // first sign-in: put them on the team list
           await saveChanges(saved, db);
         } else {
           // A new company's first sign-in: start it on the sample data. (Never this browser's
@@ -61,6 +62,7 @@ export function CloudGate({ children }: { children: (initial: Db | undefined) =>
           db = seed();
           const company = myCompanies().find((c) => c.id === currentCompany());
           if (company?.name) db = { ...db, companyName: company.name };
+          db = withTeamMember(db, signedInAccount());
           await uploadDb(db);
         }
         if (!cancelled) setState({ step: 'ready', db });

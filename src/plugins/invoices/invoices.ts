@@ -14,7 +14,7 @@
 // removed. Paid is never set by hand.
 import type { Activity, Budget, BudgetLine, Db, Invoice, InvoiceStatus, Payment } from '../../data';
 import { linesByBudget, totals } from '../budgets/budgets';
-import { linePrice, localIso, uid } from '../../store';
+import { meOf, linePrice, localIso, uid } from '../../store';
 
 export const INVOICE_STATUS_COLOR: Record<InvoiceStatus, string> = {
   Draft: '#2b7fff',
@@ -199,7 +199,7 @@ export function logInvoice(d: Db, inv: Invoice, what: string): Activity {
   const p = d.people.find((x) => x.id === inv.partyId);
   const who = p ? `${p.firstName} ${p.lastName}`.trim() : d.accounts.find((a) => a.id === inv.partyId)?.name ?? '';
   const job = d.jobs.find((j) => j.id === inv.jobId);
-  const me = d.team[0]?.name ?? 'You';
+  const me = meOf(d)?.name ?? 'You';
   return {
     id: uid('a'),
     date: localIso(),

@@ -1,6 +1,6 @@
 // Budget rules shared by the job page, the budget page and the Budgets list.
 import type { Activity, Budget, BudgetKind, BudgetLine, BudgetStatus, Db, StoredFile } from '../../data';
-import { lineCost, linePrice, localIso, uid } from '../../store';
+import { meOf, lineCost, linePrice, localIso, uid } from '../../store';
 import type { CostEntry } from '../sdk';
 
 export const BUDGET_STATUS_COLOR: Record<BudgetStatus, string> = {
@@ -75,7 +75,7 @@ export function logBudget(d: Db, b: Budget, what: string): Activity {
   const p = d.people.find((x) => x.id === b.partyId);
   const who = p ? `${p.firstName} ${p.lastName}`.trim() : d.accounts.find((a) => a.id === b.partyId)?.name ?? '';
   const job = d.jobs.find((j) => j.id === b.jobId);
-  const me = d.team[0]?.name ?? 'You';
+  const me = meOf(d)?.name ?? 'You';
   return {
     id: uid('a'),
     date: nowIso(),

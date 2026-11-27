@@ -82,6 +82,10 @@ export interface Company { id: string; name: string }
 const COMPANY_KEY = 'bt-company';
 let companyId: string | null = null;
 let companies: Company[] = [];
+let account: { email: string; name: string } | null = null;
+
+/** The signed-in account (email and Google name), or null when not connected. */
+export const signedInAccount = () => account;
 
 /** The signed-in person's companies (more than one only when they've been invited to several). */
 export const myCompanies = () => companies;
@@ -91,6 +95,10 @@ export const currentCompany = () => companyId;
 
 /** The signed-in person's companies; opens the remembered one (or the first). */
 export async function openCompany(): Promise<Company[]> {
+  const { data: who } = await cloud!.auth.getUser();
+  const email = who.user?.email?.toLowerCase() ?? '';
+  const meta = who.user?.user_metadata ?? {};
+  account = email ? { email, name: String(meta.full_name || meta.name || email.split('@')[0]) } : null;
   const { data, error } = await cloud!.from('companies').select('id,name').order('created_at');
   if (error) throw error;
   const list = (data ?? []) as Company[];

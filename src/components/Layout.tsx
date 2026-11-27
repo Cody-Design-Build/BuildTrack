@@ -5,7 +5,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Building2, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Search, Ellipsis, Menu, ChevronsUpDown, User, type LucideIcon,
 } from 'lucide-react';
-import { useStore } from '../store';
+import { meOf, useStore } from '../store';
 import { tone } from '../colors';
 import { usePlugins } from '../plugins/registry';
 import { currentCompany, myCompanies, switchCompany } from '../cloud';
@@ -81,7 +81,7 @@ function SideLink({ item, collapsed, end }: { item: NavItem; collapsed: boolean;
 
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { db } = useStore();
-  const me = db.team[0];
+  const me = meOf(db);
   const nav = useNavigate();
   return (
     <DropdownMenu>

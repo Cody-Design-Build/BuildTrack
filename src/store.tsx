@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, AVATAR_COLORS } from './data';
+import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, type TeamMember, AVATAR_COLORS } from './data';
 import { filesInUse } from './plugins/registry';
 import { pruneFiles, syncFiles } from './files';
 import { invoiceTotals } from './plugins/invoices/invoices';
-import { useCloudSync } from './cloud';
+import { signedInAccount, useCloudSync } from './cloud';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
 export const KEY = 'buildtrack-db-v6';
@@ -151,6 +151,24 @@ export const money = (n: number, cents = false) =>
 
 /** A percentage to one decimal place, or a dash when there isn't one (e.g. margin on $0). */
 export const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 10) / 10}%` : '—');
+
+/**
+ * The person using the app: on shared data, the team member whose email is the signed-in
+ * account's (CloudGate adds one on first sign-in); otherwise the first team member, as the
+ * sample data and the demo expect.
+ */
+export function meOf(db: Db): TeamMember | undefined {
+  const account = signedInAccount();
+  if (!account) return db.team[0];
+  return db.team.find((t) => t.email?.toLowerCase() === account.email);
+}
+
+/** A team member for an account signing in for the first time, if the team doesn't have one. */
+export function withTeamMember(db: Db, account: { email: string; name: string } | null): Db {
+  if (!account || db.team.some((t) => t.email?.toLowerCase() === account.email)) return db;
+  const member: TeamMember = { id: uid('t'), name: account.name, initials: initials(account.name), color: colorFor(account.name), email: account.email };
+  return { ...db, team: [...db.team, member] };
+}
 
 export const personName = (p?: Pick<Person, 'firstName' | 'lastName'>) => (p ? `${p.firstName} ${p.lastName}`.trim() : '');
 

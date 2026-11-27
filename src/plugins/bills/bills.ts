@@ -6,7 +6,7 @@
 // moves the bill between Open and Paid. Payments live in the same table as customer payments,
 // marked with billId instead of invoiceId.
 import type { Activity, Bill, BillLine, BillStatus, Db, Payment } from '../../data';
-import { localIso, uid } from '../../store';
+import { meOf, localIso, uid } from '../../store';
 import { todayYmd } from '../invoices/invoices';
 import type { CostEntry } from '../sdk';
 
@@ -104,7 +104,7 @@ export const newBillLine = (costCodeId = ''): BillLine => ({ id: uid('bl'), desc
 
 export function logBill(d: Db, bill: Bill, what: string): Activity {
   const job = d.jobs.find((j) => j.id === bill.jobId);
-  const me = d.team[0]?.name ?? 'You';
+  const me = meOf(d)?.name ?? 'You';
   return {
     id: uid('a'),
     date: localIso(),
