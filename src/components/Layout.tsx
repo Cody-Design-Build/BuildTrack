@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StatusCorner } from './StatusCorner';
+import { DemoNotice } from './DemoNotice';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Settings, LogOut, PanelLeftClose, PanelLeftOpen, Search, Ellipsis, Menu, ChevronsUpDown, User, type LucideIcon,
@@ -309,6 +310,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <main className="main flex-1 pb-[var(--tabs-h)] sm:pb-0">{children}</main>
       </div>
       <BottomTabs />
+      <DemoNotice />
     </div>
   );
 }

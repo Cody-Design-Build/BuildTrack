@@ -8,6 +8,7 @@ Read this before changing anything. It's the process every person and agent foll
 |---|---|---|---|
 | **Local** | Quick changes on your own machine | This browser's own copy (sample data), no sign-in | `npm run dev` (http://localhost:5173), or `npm run build` and the preview on http://127.0.0.1:4173 |
 | **Preview** | Checking a change before it goes live | Sample data in the viewer's browser, never the live database | Vercel builds every pull request and comments a link on it |
+| **Demo** | Anyone trying BuildTrack from buildtrack.run | Sample data in the visitor's own browser; `VITE_DEMO=1`, no Supabase settings (`src/demo.ts`) | Vercel project `buildtrack-demo` deploys `main` to https://demo.buildtrack.run |
 | **Live** | The team's real app | The `buildtrack` Supabase project (CDB Team org), Google sign-in for @codydesignbuild.com | Vercel deploys `main` automatically |
 
 Local and Preview never touch live data. Only `npm run dev:live` connects your machine to the live database (it reads `.env.live.local`); edits there are real.
