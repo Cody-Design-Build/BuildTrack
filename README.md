@@ -1,7 +1,8 @@
 <h1 align="center">BuildTrack</h1>
 
 <p align="center"><b>Job management for design-build contractors, built by one.</b><br>
-Proposals, change orders, bids, invoices, bills and job costing, kept in one place and tied to the job.</p>
+Proposals, change orders, bids, invoices, bills and job costing, kept in one place and tied to the job.<br>
+<a href="https://buildtrack.run">buildtrack.run</a></p>
 
 <p align="center"><img src="docs/screenshots/home.webp" alt="The BuildTrack Home dashboard: active contracts, open invoices, pipeline and tasks" width="900"></p>
 
@@ -107,11 +108,20 @@ The Overview gives the money at a glance:
 - **Your cost, their price.** Cost and markup stay on your side; the customer sees prices.
 - **Cost codes everywhere.** Proposals, bids, bills and expenses all use the same cost codes, which is what makes job costing automatic.
 
+## Built for the agentic era
+
+BuildTrack is meant to be changed, by you or by an AI coding agent such as Claude Code or Codex. Describe what your company needs in plain words; the agent makes the change and you check it before your team sees it.
+
+- **[AGENTS.md](AGENTS.md)** walks any agent through the code, the data and the release process.
+- **One simple data model.** Every record is a row; a new kind of record needs no database migration.
+- **Every change gets a preview.** Pull requests build a private preview with sample data before anything goes live.
+- **Small enough to read.** React and TypeScript, no framework maze.
+
 ## Status
 
-BuildTrack is under active development at Cody Design Build, and the app runs on sample data so you can explore every feature. On the way:
+BuildTrack is under active development at Cody Design Build, where it runs with shared live data for the team (Google sign-in, changes appear on everyone's screen as they're saved). On the way:
 
-- shared live data for the whole team;
+- shared files (signed copies and attachments) for the whole team;
 - modules you can switch on and off, or replace with your own;
 - a hosted version.
 
@@ -126,10 +136,14 @@ npm run dev
 
 Then open http://localhost:5173. Sample jobs, customers, subs, proposals, invoices, bids and bills are already loaded, saved in your browser. Use **Settings → Reset sample data** to start over.
 
+To put your whole team on it, with shared live data and company Google sign-in on your own Supabase and Vercel accounts, follow **[Run BuildTrack for your team](docs/self-hosting.md)**.
+
 ## Learn more
 
 - [How BuildTrack works](docs/guide.md): the rules behind budgets, invoices, bids, bills and job costing.
 - [Developing BuildTrack](docs/development.md): building, themes, and where the code and data live.
+- [Run BuildTrack for your team](docs/self-hosting.md): Supabase, Google sign-in and Vercel.
+- [AGENTS.md](AGENTS.md): the workflow for people and AI agents changing BuildTrack.
 
 ## Licence
 
