@@ -4,6 +4,8 @@ The rules behind each part of the app, in more detail than the [README](../READM
 
 ## People and accounts
 
+(Here "accounts" means the companies and households you work with. Who can sign in to BuildTrack, and how, is in [Accounts, sign-in and email](accounts-and-email.md).)
+
 People are standalone records that can belong to several accounts (households, companies, vendors…), and both people and accounts are linked to jobs with a role such as Customer, Architect or Subcontractor.
 
 ## Budgets

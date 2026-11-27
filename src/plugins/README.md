@@ -61,9 +61,9 @@ To change a plugin without keeping the original, edit its folder directly.
 ## Not done yet
 
 - Each plugin's records are still declared in the shared `Db` type in `src/data.ts`, with their
-  upgrades in `src/store.tsx` (`parseDb`). Moving those into the plugins comes with the backend.
+  upgrades in `src/store.tsx` (`parseDb`). Moving those into the plugins is still to do.
 - Some plugins still import helpers from others (e.g. Invoices uses Budgets' totals, Bids
   creates bills). Those are listed in `requires`.
 - Plugins are built into the app. Installing one without rebuilding, and limiting what a
-  third-party plugin can see, come later with the hosted version.
+  third-party plugin can see, come later (BuildTrack is an internal tool for now).
 

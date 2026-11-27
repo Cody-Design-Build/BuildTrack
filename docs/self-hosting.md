@@ -2,7 +2,7 @@
 
 > BuildTrack is currently an internal tool at Cody Design Build. These steps work, and they're how our own install is set up, but running your own copy isn't supported yet.
 
-On its own, BuildTrack runs in one browser with sample data (`npm run dev`). To give your whole team the same live data with company sign-in, you connect it to your own [Supabase](https://supabase.com) database and host it on [Vercel](https://vercel.com). Both have free plans to start on. You'll need about an hour, a GitHub account, and admin access to your company's Google Workspace.
+On its own, BuildTrack runs in one browser with sample data (`npm run dev`). To give your whole team the same live data with company sign-in, you connect it to your own [Supabase](https://supabase.com) database and host it on [Vercel](https://vercel.com). Both have free plans to start on. You'll need about an hour, a GitHub account, a domain you can add email records to, and (only for Google sign-in) admin access to your company's Google Workspace.
 
 Everything below runs in **your** accounts: your data never passes through ours.
 
@@ -24,7 +24,7 @@ npm install
    supabase link --project-ref <your-project-ref>
    supabase db push
    ```
-   This creates the `records` table, the access rules, live updates and a private file store.
+   This creates the `records` table, companies, members and invites, the access rules, live updates and a private file store.
 
 ## 3. Make it invite-only, and invite your first owner
 
@@ -77,6 +77,7 @@ Supabase's built-in email only reaches people on your Supabase team, a few email
 2. In Resend, **API Keys → Create**, with **Sending access** for that domain only.
 3. In Supabase, **Authentication → Emails → SMTP Settings**: host `smtp.resend.com`, port `465`, username `resend`, password the key, sender `no-reply@yourcompany.com`, name `BuildTrack`.
 4. In **Authentication → Rate Limits**, raise *emails per hour* from 2 to about 30.
+5. In **Authentication → Sign In / Providers → Email**, set the code length to **6**. In **Authentication → Emails → Templates**, paste `supabase/templates/magic_link.html` into *Magic link* and `supabase/templates/confirmation.html` into *Confirm signup*, so people get a code to type rather than a link (subject: "Your BuildTrack sign-in code").
 
 How sign-in, invites and email fit together, and what to check when a code doesn't arrive, is in [Accounts, sign-in and email](accounts-and-email.md).
 

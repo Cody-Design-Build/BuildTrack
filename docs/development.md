@@ -11,7 +11,9 @@ npm install
 npm run dev
 ```
 
-The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/components/ui/`) on Tailwind CSS v4. Theme colours live in `src/index.css`; the older hand-written styles in `src/styles.css` are loaded in a lower cascade layer, so Tailwind classes always win where they meet. Add more components with `npx shadcn@latest add <name>`.
+That runs BuildTrack in your browser on sample data, with no sign-in. `npm run dev:live` connects your machine to the live database instead (it reads `.env.live.local`; edits there are real). How sign-in, invites and email work on the live app is in [accounts-and-email.md](accounts-and-email.md).
+
+The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/components/ui/`) on Tailwind CSS v4. Colours come from the theme engine (see Appearance below) as CSS tokens; the older hand-written styles in `src/styles.css` are loaded in a lower cascade layer, so Tailwind classes always win where they meet. Add more components with `npx shadcn@latest add <name>`.
 
 ## Appearance: themes, colours, fonts and presets
 
@@ -45,11 +47,12 @@ npx serve dist
 
 (Opening `index.html` straight from the disk won't work, because each page lives at its own address such as `/jobs`.)
 
-All data is sample data stored in your browser (localStorage). Use **Settings → Reset sample data** to start over.
+A build without Supabase settings runs on sample data stored in the browser (localStorage); use **Settings → Data → Reset sample data** to start over. The live site is built by Vercel with the Supabase settings, so it signs in and uses the shared data.
 
 ## Where things live
 
 - **The app itself:** this folder. `src/` holds the code: the kernel (store, shell, shared components) at the top level and every feature in `src/plugins/` (see [its README](../src/plugins/README.md)). `npm run build` writes the finished site to `dist/`.
-- **Your data:** your browser saves a local copy under `buildtrack-db-v6`. Older saves and restored backups are migrated automatically (`src/migrate.ts`). Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. Each job's old budget table becomes one proposal (attached to the job's existing proposal document if it had one), its "spent so far" amounts become expenses, and other proposal and change-order documents become budgets with a single line for their total. The previous `buildtrack-db-v5` copy is left in place. To export or restore a copy, go to **Settings → Your data**.
+- **Live data:** in Supabase, one row per record in the `records` table, filed under a company (`supabase/migrations/`). Files are in the private `files` storage bucket under the company's id. Signing out clears the browser's copy.
+- **Browser-only data:** your browser saves a local copy under `buildtrack-db-v6`. Older saves and restored backups are migrated automatically (`src/migrate.ts`). Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. Each job's old budget table becomes one proposal (attached to the job's existing proposal document if it had one), its "spent so far" amounts become expenses, and other proposal and change-order documents become budgets with a single line for their total. The previous `buildtrack-db-v5` copy is left in place. To export or restore a copy, go to **Settings → Data**.
 
 Legacy message records are removed when the app loads saved data or restores an older backup. Other records are retained.
