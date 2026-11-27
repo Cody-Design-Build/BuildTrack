@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Calendar, SquarePen, Eye, ChevronDown, ChevronRight, Search, Maximize, ZoomIn, ZoomOut, Upload, Check, Square, Settings, ChartNoAxesGantt, Link2, Maximize2, Minimize2 } from 'lucide-react';
 import { EditTools } from '../components/EditTools';
+import { useRememberedChoice } from '../components/DocLayout';
 import { PageHeader, Modal } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useLookups, useStore, uid, type Lookups } from '../store';
@@ -128,7 +129,10 @@ export default function Schedule() {
   const [kindMenu, setKindMenu] = useState(false);
   const [sel, setSel] = useState<Record<string, boolean>>({});
   const go = useNavigate();
-  const [list, setList] = useState(true);
+  // Opens on the Gantt chart; remembers Gantt or List per browser.
+  const [view, setView] = useRememberedChoice('bt-schedule-view', ['gantt', 'list'] as const, 'gantt');
+  const list = view === 'list';
+  const setList = (on: boolean) => setView(on ? 'list' : 'gantt');
   const [zoom, setZoom] = useState(25);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<ScheduleEntry | null>(null);
