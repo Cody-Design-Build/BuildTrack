@@ -9,6 +9,7 @@ import { useSyncExternalStore } from 'react';
 import { complete, fontStack, modeFor, themeCss } from './theming/engine';
 import { allThemes, findTheme, setLookCss, subscribeThemes, type ThemeEntry } from './theming/registry';
 import type { Accent, ColorKey, ColorOverrides, Corners, FontChoice, Look, Mode, Preset, ThemeColors, ThemeDefinition } from './theming/types';
+import { RETIRED_THEMES } from './theming/packs';
 
 export type { Accent, Corners, FontChoice, Look, Mode, Preset };
 /** @deprecated use Look */
@@ -89,7 +90,7 @@ export function cleanLook(a: Partial<Look> | undefined): Look {
   const light = okColors(x.colors?.light);
   const darkC = okColors(x.colors?.dark);
   return {
-    theme: typeof x.theme === 'string' && /^[a-z0-9-]+$/.test(x.theme) && x.theme !== 'look' ? x.theme : DEFAULT_LOOK.theme,
+    theme: typeof x.theme === 'string' && /^[a-z0-9-]+$/.test(x.theme) && x.theme !== 'look' ? (RETIRED_THEMES[x.theme] ?? x.theme) : DEFAULT_LOOK.theme,
     mode: x.mode === 'dark' || x.mode === 'system' || x.mode === 'light' ? x.mode : DEFAULT_LOOK.mode,
     accent: ACCENTS.some((a) => a.id === x.accent) ? x.accent! : DEFAULT_LOOK.accent,
     corners: CORNERS.some((c) => c.id === x.corners) ? x.corners! : DEFAULT_LOOK.corners,
