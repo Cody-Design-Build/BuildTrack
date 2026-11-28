@@ -59,5 +59,5 @@ export function omarchyTheme(text: string, id: string, name: string): ThemeDefin
   // Drop what the file didn't have, so the engine fills it in.
   for (const k of Object.keys(colors) as (keyof ThemeColors)[]) if (colors[k] === undefined) delete colors[k];
   for (const k of Object.keys(colors.palette!) as (keyof NonNullable<ThemeColors['palette']>)[]) if (colors.palette![k] === undefined) delete colors.palette![k];
-  return { id, name, note: dark ? 'Omarchy theme · dark' : 'Omarchy theme · light', [dark ? 'dark' : 'light']: colors, font: 'jetbrains-mono' };
+  return { id, name, note: dark ? 'Omarchy theme · dark' : 'Omarchy theme · light', [dark ? 'dark' : 'light']: colors, font: 'jetbrains-mono', radius: 0 }; // Omarchy is square-cornered
 }

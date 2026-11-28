@@ -126,6 +126,14 @@ export function resolveMode(mode: Mode): 'light' | 'dark' {
 }
 
 /** The theme with the look's colour changes on top. */
+/**
+ * The exact corner size in px, if any: the person's own, or else the theme's suggestion while
+ * they've left Corners on Standard. Undefined means the Corners choice's CSS applies.
+ */
+export function lookRadius(look: Look, theme = lookTheme(look)): number | undefined {
+  return look.radius ?? (look.corners === 'standard' ? theme?.radius : undefined);
+}
+
 export function lookTheme(look: Look): ThemeDefinition | undefined {
   const base = findTheme(look.theme) ?? findTheme(DEFAULT_LOOK.theme);
   if (!base || !look.colors) return base;
@@ -149,7 +157,8 @@ function apply() {
   else root.dataset.accent = look.accent;
   if (look.corners === 'standard') delete root.dataset.corners;
   else root.dataset.corners = look.corners;
-  if (look.radius !== undefined) root.style.setProperty('--radius', `${look.radius}px`);
+  const radius = lookRadius(look, theme);
+  if (radius !== undefined) root.style.setProperty('--radius', `${radius}px`);
   else root.style.removeProperty('--radius');
   if (look.numbers === 'mono') root.dataset.numbers = 'mono';
   else delete root.dataset.numbers;
@@ -158,7 +167,7 @@ function apply() {
   // For index.html, so the next visit starts in the right colours and font.
   try {
     const only = theme && !(theme.light && theme.dark) ? (theme.dark ? 'dark' : 'light') : null;
-    localStorage.setItem(BOOT_KEY, JSON.stringify({ css: theme ? themeCss(theme) : '', theme: theme?.id, font, only, radius: look.radius }));
+    localStorage.setItem(BOOT_KEY, JSON.stringify({ css: theme ? themeCss(theme) : '', theme: theme?.id, font, only, radius }));
   } catch {
     /* storage unavailable */
   }

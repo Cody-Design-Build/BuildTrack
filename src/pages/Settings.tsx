@@ -9,7 +9,7 @@ import { Field } from '../components/Forms';
 import { useStore } from '../store';
 import { DataCard } from './Other';
 import {
-  ACCENTS, COLOR_FIELDS, CORNERS, applyLook, currentMode, deletePreset, lookTheme, renamePreset, resetColors, savePreset, setAppearance, setColor,
+  ACCENTS, COLOR_FIELDS, CORNERS, applyLook, currentMode, deletePreset, lookRadius, lookTheme, renamePreset, resetColors, savePreset, setAppearance, setColor,
   updatePreset, useLookState, useThemes, type Accent, type Corners, type FontChoice, type Look, type Mode,
 } from '../appearance';
 import { companyTeam, signedInAccount } from '../cloud';
@@ -318,11 +318,15 @@ function AppearanceSettings() {
       </Card>
       <Card title="Corners" note="How rounded cards, buttons and fields are. Badges and avatars stay round.">
         <div className="grid grid-cols-3 gap-3">
-          {CORNERS.map((c) => (
-            <Choice key={c.id} selected={look.radius === undefined && corners === c.id} onSelect={() => setAppearance({ corners: c.id, radius: undefined })} label={c.name} note={c.note}>
-              <CornerSample px={c.px} />
-            </Choice>
-          ))}
+          {CORNERS.map((c) => {
+            // Standard follows the theme's own corners when it suggests some (Omarchy: square).
+            const own = c.id === 'standard' && effective?.radius !== undefined;
+            return (
+              <Choice key={c.id} selected={look.radius === undefined && corners === c.id} onSelect={() => setAppearance({ corners: c.id, radius: undefined })} label={own ? "Theme's" : c.name} note={own ? `${effective!.radius}px, as ${effective!.name} suggests` : c.note}>
+                <CornerSample px={own ? effective!.radius! : c.px} />
+              </Choice>
+            );
+          })}
         </div>
         <label className="mt-4 flex items-center gap-3 border-t pt-4 text-sm">
           <span className="w-28 shrink-0 font-medium">Exact size</span>
@@ -330,11 +334,11 @@ function AppearanceSettings() {
             type="range"
             min={0}
             max={20}
-            value={look.radius ?? CORNERS.find((c) => c.id === corners)?.px ?? 6}
+            value={lookRadius(look, effective) ?? CORNERS.find((c) => c.id === corners)?.px ?? 6}
             onChange={(e) => setAppearance({ radius: Number(e.target.value) })}
             className="flex-1 accent-[var(--primary)]"
           />
-          <span className="w-12 text-right tabular-nums text-muted-foreground">{look.radius ?? CORNERS.find((c) => c.id === corners)?.px}px</span>
+          <span className="w-12 text-right tabular-nums text-muted-foreground">{lookRadius(look, effective) ?? CORNERS.find((c) => c.id === corners)?.px}px</span>
         </label>
       </Card>
     </>

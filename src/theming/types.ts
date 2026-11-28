@@ -1,5 +1,5 @@
 // What a theme is: a name and the colours for light and/or dark mode, plus an
-// optional font. Only background, foreground and primary are required; the engine
+// optional font and corner size. Only background, foreground and primary are required; the engine
 // (./engine.ts) works out every other colour from them. Built-in themes spell
 // everything out; imported and agent-written themes can give as little or as much
 // as they like.
@@ -60,6 +60,8 @@ export interface ThemeDefinition {
   dark?: ThemeColors;
   /** The font this theme suggests (Settings → Appearance → Font can override it). */
   font?: FontId;
+  /** The corner size this theme suggests, in px, e.g. 0 for square (Settings → Appearance → Corners can override it). */
+  radius?: number;
 }
 
 export const defineTheme = (t: ThemeDefinition): ThemeDefinition => t;
