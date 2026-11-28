@@ -454,14 +454,14 @@
       }
     },
 
-    // OAuth server configuration
+    // OAuth server: how AI agents sign in to BuildTrack's MCP server (/mcp, docs/agents.md).
+    // People approve each agent on the app's /oauth/consent page; agents register themselves.
     "oauth_server": {
-      // Enable OAuth server functionality
-      "enabled": false,
+      "enabled": true,
       // Path for OAuth consent flow UI
       "authorization_url_path": "/oauth/consent",
-      // Allow dynamic client registration
-      "allow_dynamic_registration": false
+      // Allow dynamic client registration (how MCP clients such as Claude register)
+      "allow_dynamic_registration": true
     }
   },
 
