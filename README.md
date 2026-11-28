@@ -1,6 +1,6 @@
 <h1 align="center">BuildTrack</h1>
 
-<p align="center"><b>Job management for design-build contractors, built by one.</b><br>
+<p align="center"><b>Job management for general contractors, remodelers, trades and anyone who does work for customers on a jobsite. Built by a contractor.</b><br>
 Proposals, change orders, bids, invoices, bills and job costing, kept in one place and tied to the job.<br>
 <a href="https://buildtrack.run">buildtrack.run</a></p>
 
