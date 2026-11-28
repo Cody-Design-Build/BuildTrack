@@ -60,13 +60,15 @@ Agents that keep a `subscriptions/listen` stream open are told straight away whe
 
 A skill is a short Markdown guide with a name and a description of when to use it. BuildTrack ships `buildtrack-basics`, and each plugin ships its own (for example `progress-billing` with Invoices and `job-costing` with Job costing). They're served with the MCP [skills extension](https://modelcontextprotocol.io/extensions/skills/overview), so clients that support it load a skill only when a task needs it. Other clients can use `list_skills` and `read_skill`.
 
-In **Settings → Agents → Skills** anyone in the company can:
+**Settings → Agents → Skills** lists them by where they come from (BuildTrack, each plugin, then the company's own), each with a switch. Anyone in the company can:
 
-- **edit** a skill. Changing one of BuildTrack's saves the company's own version, and **Reset** goes back to BuildTrack's;
-- **turn off** a skill agents shouldn't use;
-- **add** the company's own skills, e.g. how you handle warranty calls.
+- **read** a skill: click it to open it in a side panel, laid out as Markdown;
+- **turn off** a skill agents shouldn't use (the switch), and back on;
+- **upload** `SKILL.md` files (the button, or drop them on the card): front matter with `name` and `description`, then the Markdown. A file named like one of BuildTrack's skills becomes the company's version of it;
+- **download** any skill as `SKILL.md`;
+- see **What changed** in a changed skill compared with BuildTrack's version, and **Reset** it; **Delete** the company's own.
 
-Or just ask: "change the job-costing skill so you flag any code more than 10% over". The agent uses `save_skill`, and the skill shows "changed by Dana Cole's agent".
+Skills aren't edited in the app: agents write them better, and every change says who made it. Or just ask: "change the job-costing skill so you flag any code more than 10% over". The agent uses `save_skill`, and the skill shows "changed by Dana Cole's agent".
 
 Skills the company hasn't changed aren't stored. They keep improving as BuildTrack does. A changed skill stays as the company wrote it until someone resets it.
 
