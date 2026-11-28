@@ -108,6 +108,8 @@ Every feature (budgets, bids, invoices, bills, job costing, the schedule, tasks)
 
 Don't like how a module works? Change that module or replace it, without touching the rest of BuildTrack. Modules share data through small, documented contracts. For example, job costing adds up cost entries from budgets, bids and bills, so a new job-costing module works with all of them. See [`src/plugins/README.md`](src/plugins/README.md).
 
+**Add your own, without changing BuildTrack.** Need a punch list or equipment tracking? Write a plugin, or ask Claude to, and install the one file in **Settings → Plugins**. It reaches everyone in the company, phones included, and BuildTrack keeps updating underneath it. Installed plugins run sandboxed by default: they see only the records they ask for and can't reach the internet. See [Plugins a company installs](docs/plugins.md).
+
 ## Built for how contractors actually work
 
 - **Email first, no portals.** Bid requests, proposals and invoices are documents you send the way you already do, and nobody needs an account to read them.

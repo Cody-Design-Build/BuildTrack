@@ -54,6 +54,13 @@ on a contract in `sdk.ts`, and the kernel collects it from whichever plugins are
 So job costing works with any budgets, bids or bills plugin that provides these entries, and
 any of them can be rewritten without touching the others.
 
+## A company's own plugins
+
+Companies install plugins in Settings → Plugins, from one file, without changing BuildTrack:
+see [`docs/plugins.md`](../../docs/plugins.md) (`npm run plugin -- new | dev | build`, the kit in
+`kit.tsx`, sandboxing in `loader.tsx`). To change BuildTrack itself for everyone, edit the plugins
+here.
+
 ## Replacing a plugin
 
 Give your plugin the same `role` as the one it replaces (job costing has `role: { id: 'costing' }`); when a role has more than one plugin, Settings → Plugins lets you pick one. To write your own:
@@ -74,6 +81,6 @@ To change a plugin without keeping the original, edit its folder directly.
   upgrades in `src/store.tsx` (`parseDb`). Moving those into the plugins is still to do.
 - Some plugins still import helpers from others (e.g. Invoices uses Budgets' totals, Bids
   creates bills). Those are listed in `requires`.
-- Plugins are built into the app. Installing one without rebuilding, and limiting what a
-  third-party plugin can see, come later (BuildTrack is an internal tool for now).
+- These plugins are built into the app. A company can also install its own without rebuilding,
+  sandboxed or not: see [`docs/plugins.md`](../../docs/plugins.md).
 

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BuildTrack plugin</title>
+    <!-- A sandboxed plugin's screen. Loaded in an iframe without allow-same-origin, so it runs on an
+         opaque origin: no session, no storage, no cookies, no access to the app. See src/sandbox/. -->
+    <!-- Nothing leaves the frame: it can load BuildTrack's own scripts, styles and fonts, and nothing
+         from anywhere else (no fetch, images, forms or frames), so a plugin can't send the records
+         it's shown anywhere. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; form-action 'none'; frame-src 'none'; base-uri 'none'" />
+    <script type="importmap">
+      { "imports": { "@buildtrack/sdk": "/sdk/buildtrack.js", "react": "/sdk/react.js", "react/jsx-runtime": "/sdk/react-jsx-runtime.js" } }
+    </script>
+    <style>html, body { background: transparent; }</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/sandbox/main.tsx"></script>
+  </body>
+</html>

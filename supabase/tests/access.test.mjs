@@ -141,3 +141,18 @@ ok((await as(...WILE, `insert into storage.objects (bucket_id, name) values ('fi
 ok((await as(...WILE, `select * from storage.objects`)).length === 0, 'acme cannot see cdb files');
 ok((await as(...DAVID, `insert into storage.objects (bucket_id, name) values ('files', 'flat-file')`)).error, 'flat (no company) file names are refused');
 ok((await as(...DAVID, `select * from storage.objects`)).length === 1, 'david sees his file');
+// installed plugins: code that runs for the whole company, so only owners and admins manage them
+const MEM = ['99999999-9999-9999-9999-999999999999', 'crew@codydesignbuild.com'];
+await db.exec(`insert into auth.users (id, email) values ('${MEM[0]}', '${MEM[1]}'); insert into public.company_members (company_id, user_id, role) values ('${cdb.id}', '${MEM[0]}', 'member')`);
+const plug = (who, id = 'acme.punch-list') => as(...who, `insert into public.records (company_id, collection, id, data) values ('${cdb.id}','installedPlugins','${id}','{"id":"${id}"}') on conflict (company_id, collection, id) do update set data = excluded.data returning id`);
+ok((await plug(MEM)).error, 'a member cannot install a plugin');
+ok(!(await plug(DAVID)).error, 'the owner can install a plugin');
+ok((await as(...MEM, `select id from public.records where collection = 'installedPlugins'`)).length === 1, 'members can read installed plugins (the app loads them)');
+ok((await as(...MEM, `update public.records set data = '{"id":"evil"}' where collection = 'installedPlugins' returning id`)).length === 0, 'a member cannot change an installed plugin');
+ok((await as(...MEM, `delete from public.records where collection = 'installedPlugins' returning id`)).length === 0, 'a member cannot remove an installed plugin');
+ok((await as(...MEM, `insert into public.records (company_id, collection, id, data) values ('${cdb.id}','$meta','plugins','{"off":[],"roles":{}}')`)).error, 'a member cannot turn plugins on or off');
+ok(!(await as(...DAVID, `insert into public.records (company_id, collection, id, data) values ('${cdb.id}','$meta','plugins','{"off":["buildtrack.bids"],"roles":{}}') on conflict (company_id, collection, id) do update set data = excluded.data returning id`)).error, 'the owner can turn plugins on or off');
+ok(!(await as(...MEM, `insert into public.records (company_id, collection, id, data) values ('${cdb.id}','acme.punch-list.items','p1','{"id":"p1"}') returning id`)).error, "a member can still write a plugin's own records");
+ok(!(await as(...MEM, `insert into public.records (company_id, collection, id, data) values ('${cdb.id}','$meta','companyName','"Cody"') on conflict (company_id, collection, id) do update set data = excluded.data returning id`)).error, 'a member can still change other settings');
+ok((await as(...WILE, `select id from public.records where collection = 'installedPlugins'`)).length === 0, "other companies can't see a company's plugins");
+ok(!(await as(...DAVID, `delete from public.records where collection = 'installedPlugins' returning id`)).error, 'the owner can remove a plugin');
