@@ -5,7 +5,7 @@ export const BUILTIN_THEMES = [
   defineTheme({
     id: "buildtrack",
     name: "BuildTrack",
-    note: "The original warm orange",
+    note: "Warm white and safety orange. The default",
     light: {
       background: "oklch(0.985 0.002 75)",
       foreground: "oklch(0.21 0.006 285.885)",
@@ -72,7 +72,8 @@ export const BUILTIN_THEMES = [
   defineTheme({
     id: "graphite",
     name: "Graphite",
-    note: "Black and white, no accent colour",
+    note: "Plain greys, no accent colour",
+    radius: 4,
     light: {
       background: "#fafafa",
       foreground: "#0a0a0a",
@@ -142,8 +143,9 @@ export const BUILTIN_THEMES = [
   defineTheme({
     id: "blueprint",
     name: "Blueprint",
-    note: "Drawing-set blues: whiteprint by day, blueprint by night",
+    note: "Drawing-set blues in IBM Plex",
     font: "plex",
+    radius: 2,
     light: {
       background: "#eef3f8", foreground: "#0f2a4a", text: "#1f3b5c", card: "#ffffff", sidebar: "#e3ebf4",
       muted: "#e3ebf4", mutedForeground: "#4a6584", accent: "#dce7f5", border: "#c9d6e5", borderStrong: "#a9bdd4",
@@ -158,7 +160,9 @@ export const BUILTIN_THEMES = [
   defineTheme({
     id: "kraft",
     name: "Kraft",
-    note: "Brown paper and rust, like a plan set on the tailgate",
+    note: "Brown paper and rust",
+    font: "nunito",
+    radius: 14,
     light: {
       background: "#efe6d6", foreground: "#2e2117", text: "#45352a", card: "#f8f2e7", sidebar: "#e7dbc6",
       muted: "#e5d8c2", mutedForeground: "#6b5746", accent: "#e9d3bc", border: "#d3c2a6", borderStrong: "#b9a584",
@@ -174,6 +178,7 @@ export const BUILTIN_THEMES = [
     id: "hi-vis",
     name: "Hi-Vis",
     note: "Maximum contrast for bright sun on site",
+    radius: 4,
     light: {
       background: "#ffffff", foreground: "#000000", text: "#111111", card: "#ffffff", sidebar: "#f4f4f0",
       muted: "#f0f0ea", mutedForeground: "#3d3d3d", accent: "#fff1e0", border: "#b5b5ad", borderStrong: "#6b6b6b",
@@ -189,6 +194,8 @@ export const BUILTIN_THEMES = [
     id: "sage",
     name: "Sage",
     note: "Calm greens and soft greys",
+    font: "nunito",
+    radius: 14,
     light: {
       background: "#f3f5f0", foreground: "#1e2a22", text: "#344339", card: "#ffffff", sidebar: "#e9eee6",
       muted: "#e6ece3", mutedForeground: "#56665b", accent: "#dfeadf", border: "#d3dccf", borderStrong: "#b4c2af",
@@ -203,7 +210,9 @@ export const BUILTIN_THEMES = [
   defineTheme({
     id: "walnut",
     name: "Walnut",
-    note: "Warm wood and brass, like a good office",
+    note: "Warm wood and brass",
+    font: "nunito",
+    radius: 14,
     light: {
       background: "#f6f1ea", foreground: "#2a1d15", text: "#44342a", card: "#fffdf9", sidebar: "#efe6da",
       muted: "#ede4d8", mutedForeground: "#6b594b", accent: "#efe2cc", border: "#ddcfbf", borderStrong: "#c2ae98",
@@ -219,6 +228,7 @@ export const BUILTIN_THEMES = [
     id: "concrete",
     name: "Concrete",
     note: "Poured grey with safety yellow",
+    radius: 4,
     light: {
       background: "#ecedeb", foreground: "#1c1f22", text: "#33383d", card: "#f8f8f7", sidebar: "#e1e3e0",
       muted: "#e2e4e1", mutedForeground: "#575d63", accent: "#f3ead2", border: "#cdd0cc", borderStrong: "#a9ada8",
@@ -228,6 +238,23 @@ export const BUILTIN_THEMES = [
       background: "#1e2124", foreground: "#eceeef", text: "#cdd1d4", card: "#262a2e", sidebar: "#1a1d20",
       muted: "#2e3337", mutedForeground: "#9ca3a9", accent: "#363220", border: "#3a3f44", borderStrong: "#545a60",
       primary: "#f2b705", primaryForeground: "#1e2124",
+    },
+  }),
+  defineTheme({
+    id: "lilac",
+    name: "Lilac",
+    note: "Soft violet and grey",
+    font: "nunito",
+    radius: 14,
+    light: {
+      background: "#f6f4fa", foreground: "#241f33", text: "#3b3550", card: "#ffffff", sidebar: "#eeebf6",
+      muted: "#ebe7f4", mutedForeground: "#5f5878", accent: "#ece5fb", border: "#dcd6ea", borderStrong: "#bdb5d3",
+      primary: "#6a4fb3", primaryForeground: "#ffffff",
+    },
+    dark: {
+      background: "#1a1724", foreground: "#eeeaf7", text: "#d3cde4", card: "#221e2f", sidebar: "#16131f",
+      muted: "#2b263a", mutedForeground: "#a39cbb", accent: "#2f2745", border: "#352f47", borderStrong: "#4d4563",
+      primary: "#b9a3f5", primaryForeground: "#1a1724",
     },
   }),
 ];

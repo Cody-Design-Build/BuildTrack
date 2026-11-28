@@ -19,7 +19,7 @@ The UI is built with [shadcn/ui](https://ui.shadcn.com) components (in `src/comp
 
 **Settings → Appearance** lets each person shape how BuildTrack looks:
 
-- **Theme**: a starting point. The BuildTrack themes (BuildTrack, Graphite, Blueprint, Kraft, Hi-Vis, Sage, Walnut, Concrete; each light and dark) and seven basic Omarchy desktop themes (three light, four dark, including Osaka Jade; square corners and JetBrains Mono, like Omarchy). **Import theme** adds an Omarchy `colors.toml` or a downloaded BuildTrack theme (kept in that browser); **Download this theme** saves the current one, custom colours included, as JSON.
+- **Theme**: a starting point. Grouped by style, each with its own colours, font and corners: **Clean** (BuildTrack, Graphite, Blueprint, Concrete, Hi-Vis; Inter or IBM Plex, small corners), **Soft** (Sage, Kraft, Walnut, Lilac; Nunito, rounded) and **Terminal** (four Omarchy desktop themes: Tokyo Night, Osaka Jade, Gruvbox, Flexoki Light; JetBrains Mono, square). Groups are set in `THEME_PACKS` (`src/theming/packs/index.ts`). **Import theme** adds an Omarchy `colors.toml` or a downloaded BuildTrack theme (kept in that browser); **Download this theme** saves the current one, custom colours included, as JSON.
 - **Customize colours**: every colour (surfaces, text, borders, accent, status), per mode, with colour pickers or codes. Anything left alone follows the theme.
 - **Mode**, **Accent** (from the theme's palette), **Font** (theme's, Inter, System, IBM Plex Sans, JetBrains Mono), **Numbers in a monospaced font**, **Corners** (Sharp / Standard / Round or an exact size).
 - **Presets**: the whole look saved under a name, to switch back to.

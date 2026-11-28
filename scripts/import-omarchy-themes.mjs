@@ -13,8 +13,8 @@ import { join } from 'node:path';
 const dirs = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['/usr/share/omarchy/themes', join(homedir(), '.config/omarchy/themes')];
-// Three light, four dark.
-const KEEP = ['catppuccin', 'catppuccin-latte', 'flexoki-light', 'gruvbox', 'osaka-jade', 'rose-pine', 'tokyo-night'];
+// The Terminal group in Settings → Appearance: one light, three dark.
+const KEEP = ['flexoki-light', 'gruvbox', 'osaka-jade', 'tokyo-night'];
 const found = new Map();
 for (const dir of dirs) {
   if (!existsSync(dir)) continue;

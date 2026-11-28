@@ -48,7 +48,7 @@ export interface ThemeColors {
   palette?: Partial<Record<PaletteSlot, Color>>;
 }
 
-export type FontId = 'inter' | 'system' | 'plex' | 'jetbrains-mono';
+export type FontId = 'inter' | 'system' | 'plex' | 'nunito' | 'jetbrains-mono';
 
 export interface ThemeDefinition {
   /** Lower-case, dashes: 'osaka-jade'. Prefix your own, e.g. 'acme-brand'. */

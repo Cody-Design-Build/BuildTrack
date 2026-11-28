@@ -60,7 +60,7 @@ const KEY = 'bt-appearance';
 const PRESETS_KEY = 'bt-presets';
 const BOOT_KEY = 'bt-theme-boot';
 export const DEFAULT_LOOK: Look = { theme: 'buildtrack', mode: 'light', accent: 'theme', corners: 'standard', font: 'theme' };
-const FONT_CHOICES: FontChoice[] = ['theme', 'inter', 'system', 'plex', 'jetbrains-mono'];
+const FONT_CHOICES: FontChoice[] = ['theme', 'inter', 'system', 'plex', 'nunito', 'jetbrains-mono'];
 const dark = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 /** What's stored: the look, when it last changed, and whether the person ever changed it. */
