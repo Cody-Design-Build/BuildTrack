@@ -13,8 +13,8 @@ import { join } from 'node:path';
 const dirs = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['/usr/share/omarchy/themes', join(homedir(), '.config/omarchy/themes')];
-// Three light, three dark.
-const KEEP = ['catppuccin', 'catppuccin-latte', 'flexoki-light', 'gruvbox', 'rose-pine', 'tokyo-night'];
+// Three light, four dark.
+const KEEP = ['catppuccin', 'catppuccin-latte', 'flexoki-light', 'gruvbox', 'osaka-jade', 'rose-pine', 'tokyo-night'];
 const found = new Map();
 for (const dir of dirs) {
   if (!existsSync(dir)) continue;

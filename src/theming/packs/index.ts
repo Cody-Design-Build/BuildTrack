@@ -13,7 +13,7 @@ export interface ThemePack {
 
 export const THEME_PACKS: ThemePack[] = [
   { id: 'builtin', name: 'BuildTrack themes', themes: BUILTIN_THEMES },
-  { id: 'omarchy', name: 'Omarchy themes', themes: OMARCHY_THEMES.map((t) => omarchyTheme(t.toml, t.id, t.name)) },
+  { id: 'omarchy', name: 'Omarchy', themes: OMARCHY_THEMES.map((t) => omarchyTheme(t.toml, t.id, t.name)) },
 ];
 
 /**
@@ -39,7 +39,6 @@ export const RETIRED_THEMES: Record<string, string> = {
   'omarchy-matte-black': 'omarchy-gruvbox',
   'omarchy-miasma': 'omarchy-gruvbox',
   'omarchy-nord': 'omarchy-tokyo-night',
-  'omarchy-osaka-jade': 'omarchy-gruvbox',
   'omarchy-retro-82': 'omarchy-tokyo-night',
   'omarchy-ristretto': 'omarchy-gruvbox',
   'omarchy-solitude': 'omarchy-tokyo-night',
