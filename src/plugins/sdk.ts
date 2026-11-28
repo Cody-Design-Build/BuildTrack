@@ -97,8 +97,19 @@ export interface Plugin {
   role?: { id: string; label: string };
   /** Plugin ids this one needs. It's turned off while any of them is off. */
   requires?: string[];
-  /** The Db lists this plugin owns. Agents can read them while the plugin is on. */
-  collections?: (keyof Db)[];
+  /**
+   * The Db lists this plugin owns. Agents can read them while the plugin is on. An installed
+   * plugin's own lists are named after it: plugin 'acme.punch-list' keeps 'acme.punch-list.items'.
+   */
+  collections?: (keyof Db | (string & {}))[];
+  /**
+   * Installed plugins only: the company's records it reads, and the ones it may change, besides
+   * its own (`collections`). Shown when it's installed; a sandboxed plugin gets nothing else.
+   */
+  reads?: (keyof Db)[];
+  writes?: (keyof Db)[];
+  /** Installed plugins: the plugin kit version it was written for (see kit.ts). */
+  apiVersion?: number;
   /** Know-how for AI agents using this plugin's data and tools (see SkillDefault). */
   skills?: SkillDefault[];
 

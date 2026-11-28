@@ -5,14 +5,20 @@ import { z } from 'zod';
 import type { PluginChoices } from '../data';
 import { activeOf, chosenFor, normalizeChoices } from '../plugins/activation';
 import { PLUGIN_BASES } from '../plugins/bases';
+import { allBases, type PluginProposal } from '../plugins/installed';
+import { localIso } from '../model';
+import type { Db } from '../data';
 import { THEME_PACKS } from '../theming/packs';
 import type { Look } from '../theming/types';
 import { commit, defineTool, type AgentContext, type AgentTool } from './sdk';
 
 type TeamEntry = { user_id: string | null; email: string; role: 'owner' | 'admin' | 'member'; since: string; pending: boolean; expires_at: string | null };
 
-const plugin = (id: string) => {
-  const p = PLUGIN_BASES.find((x) => x.id === id);
+/** BuildTrack's own plugins and the company's installed ones. */
+const basesOf = (db: Db) => allBases(PLUGIN_BASES, db);
+
+const plugin = (db: Db, id: string) => {
+  const p = basesOf(db).find((x) => x.id === id);
   if (!p) throw new Error(`No plugin "${id}". get_settings lists them.`);
   return p;
 };
@@ -21,21 +27,25 @@ const themes = () => THEME_PACKS.flatMap((pack) => pack.themes.map((t) => ({ id:
 
 function pluginStates(ctx: Pick<AgentContext, 'db'>) {
   const choices = normalizeChoices(ctx.db.plugins);
-  const on = new Set(activeOf(PLUGIN_BASES, choices).map((p) => p.id));
-  return PLUGIN_BASES.map((p) => ({
+  const bases = basesOf(ctx.db);
+  const installed = new Set((ctx.db.installedPlugins ?? []).map((r) => r.id));
+  const on = new Set(activeOf(bases, choices).map((p) => p.id));
+  return bases.map((p) => ({
     id: p.id, name: p.name, description: p.description, on: on.has(p.id),
     switchedOn: p.core || !choices.off.includes(p.id),
     alwaysOn: !!p.core,
     needs: p.requires ?? [],
-    role: p.role ? { id: p.role.id, label: p.role.label, chosen: chosenFor(p.role.id, PLUGIN_BASES, choices)?.id === p.id } : undefined,
+    role: p.role ? { id: p.role.id, label: p.role.label, chosen: chosenFor(p.role.id, bases, choices)?.id === p.id } : undefined,
+    installedByCompany: installed.has(p.id),
   }));
 }
 
 /** Plugins that would stop working if `id` were off (directly or through another). */
-function dependentsOf(id: string, choices: PluginChoices) {
-  const before = new Set(activeOf(PLUGIN_BASES, choices).map((p) => p.id));
-  const after = new Set(activeOf(PLUGIN_BASES, { ...choices, off: [...choices.off, id] }).map((p) => p.id));
-  return PLUGIN_BASES.filter((p) => p.id !== id && before.has(p.id) && !after.has(p.id)).map((p) => p.name);
+function dependentsOf(db: Db, id: string, choices: PluginChoices) {
+  const bases = basesOf(db);
+  const before = new Set(activeOf(bases, choices).map((p) => p.id));
+  const after = new Set(activeOf(bases, { ...choices, off: [...choices.off, id] }).map((p) => p.id));
+  return bases.filter((p) => p.id !== id && before.has(p.id) && !after.has(p.id)).map((p) => p.name);
 }
 
 export function settingsTools(): AgentTool[] {
@@ -61,12 +71,12 @@ export function settingsTools(): AgentTool[] {
       input: z.object({ pluginId: z.string(), on: z.boolean() }),
       writes: true,
       confirm: (ctx, { pluginId, on }) => {
-        const p = plugin(pluginId);
+        const p = plugin(ctx.db, pluginId);
         if (p.core) throw new Error(`${p.name} is always on.`);
         const choices = normalizeChoices(ctx.db.plugins);
         // turning one on just brings it (and its records) back: no need to ask
         if (on || choices.off.includes(pluginId)) return '';
-        const also = dependentsOf(pluginId, choices);
+        const also = dependentsOf(ctx.db, pluginId, choices);
         return `Turn ${p.name} off for everyone in the company?${also.length ? ` ${also.join(', ')} will stop working too, because they need it.` : ''} Its records are kept.`;
       },
       run: async (ctx, { pluginId, on }) => {
@@ -84,9 +94,9 @@ export function settingsTools(): AgentTool[] {
       input: z.object({ role: z.string(), pluginId: z.string() }),
       writes: true,
       confirm: (ctx, { role, pluginId }) => {
-        const p = plugin(pluginId);
+        const p = plugin(ctx.db, pluginId);
         if (p.role?.id !== role) throw new Error(`${p.name} doesn't fill the "${role}" role.`);
-        const current = chosenFor(role, PLUGIN_BASES, normalizeChoices(ctx.db.plugins));
+        const current = chosenFor(role, basesOf(ctx.db), normalizeChoices(ctx.db.plugins));
         return current?.id === pluginId ? '' : `Switch ${p.role.label} from ${current?.name ?? 'none'} to ${p.name} for everyone in the company?`;
       },
       run: async (ctx, { role, pluginId }) => {
@@ -94,6 +104,34 @@ export function settingsTools(): AgentTool[] {
         const next: PluginChoices = { roles: { ...choices.roles, [role]: pluginId }, off: choices.off.filter((x) => x !== pluginId) };
         await commit(ctx, { ...ctx.db, plugins: next }, '');
         return { plugins: pluginStates({ db: { ...ctx.db, plugins: next } }) };
+      },
+    }),
+
+    defineTool({
+      name: 'propose_plugin',
+      title: 'Propose a plugin for the company to install',
+      description: "Saves a plugin you've written (read the writing-plugins skill first) as a proposal. Nothing runs yet: an owner or admin reviews it in Settings → Plugins, sees what it can read and change, and installs it (normally sandboxed). Proposing the same id again replaces the earlier proposal.",
+      input: z.object({
+        id: z.string().describe("The plugin's id, with the company's own prefix, e.g. 'acme.punch-list'"),
+        name: z.string(),
+        description: z.string(),
+        version: z.string().default('1.0.0'),
+        code: z.string().max(400_000).describe("The plugin's JavaScript module: `export default definePlugin({ … })`, importing from '@buildtrack/sdk' and 'react'"),
+        note: z.string().describe('One or two sentences for the admin: what it does and why it was asked for'),
+      }),
+      writes: true,
+      run: async (ctx, { id, name, description, version, code, note }) => {
+        if (!/export\s+default/.test(code)) throw new Error('The code must `export default definePlugin({ … })`.');
+        const proposal: PluginProposal = {
+          id,
+          manifest: { id, name, description, version, apiVersion: 1 },
+          code,
+          note,
+          proposed: localIso(),
+          proposedBy: `${ctx.user.name}'s agent`,
+        };
+        await commit(ctx, { ...ctx.db, pluginProposals: [...(ctx.db.pluginProposals ?? []).filter((p) => p.id !== id), proposal] }, '');
+        return { proposed: id, next: `Tell the person it's ready for an owner or admin to review and install in Settings → Plugins (Install a plugin → Proposed).` };
       },
     }),
 

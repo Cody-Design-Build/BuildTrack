@@ -10,6 +10,7 @@ import { createMcpHandler, type ServerEvent, type ServerEventBus } from '@modelc
 import type { Db } from '../data';
 import { activeOf, normalizeChoices } from '../plugins/activation';
 import { PLUGIN_BASES } from '../plugins/bases';
+import { allBases } from '../plugins/installed';
 import { buildServer } from './server';
 import type { AgentContext } from './sdk';
 
@@ -119,7 +120,8 @@ export const mcpHandlerFor = (ctx: AgentContext, bus?: ServerEventBus) =>
 /** What a change to one record means for agents: their tools, or their skills, changed. */
 export function eventsFor(row: { collection?: string; id?: string }): ServerEvent[] {
   // plugins switched on or off change the tools, the records and the skills on offer
-  if (row.collection === META && row.id === 'plugins') return [{ kind: 'tools_list_changed' }, { kind: 'resources_list_changed' }];
+  // (and so does installing, updating or removing one)
+  if ((row.collection === META && row.id === 'plugins') || row.collection === 'installedPlugins') return [{ kind: 'tools_list_changed' }, { kind: 'resources_list_changed' }];
   if (row.collection === 'skills' && row.id) return [{ kind: 'resources_list_changed' }, { kind: 'resource_updated', uri: `skill://${row.id}/SKILL.md` }];
   return [];
 }
@@ -210,7 +212,7 @@ export async function handleAgentRequest(request: Request, env: AgentEnv): Promi
   const { db, known, maxSort } = loaded;
   const ctx: AgentContext = {
     db,
-    plugins: activeOf(PLUGIN_BASES, normalizeChoices(db.plugins)),
+    plugins: activeOf(allBases(PLUGIN_BASES, db), normalizeChoices(db.plugins)),
     company,
     user,
     save: (next) => saveChanges(sb, company.id, db as unknown as AnyDb, next as unknown as AnyDb, known, maxSort),

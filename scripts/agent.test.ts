@@ -7,6 +7,7 @@ import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
 import { seed, type Db, type PluginChoices } from '../src/data';
 import { activeOf, normalizeChoices } from '../src/plugins/activation';
 import { PLUGIN_BASES } from '../src/plugins/bases';
+import { allBases, type InstalledPlugin } from '../src/plugins/installed';
 import { readFileSync } from 'node:fs';
 import { eventsFor, mcpHandlerFor, protectedResourceMetadata } from '../src/agent/http';
 import type { AgentContext } from '../src/agent/sdk';
@@ -24,7 +25,7 @@ type ConnectOptions = { modern?: boolean; elicit?: 'accept' | 'decline'; asked?:
 async function connect(store: Store, o: ConnectOptions = {}) {
   const ctx = (): AgentContext => ({
     db: store.db,
-    plugins: activeOf(PLUGIN_BASES, normalizeChoices(store.db.plugins)),
+    plugins: activeOf(allBases(PLUGIN_BASES, store.db), normalizeChoices(store.db.plugins)),
     company: { id: 'c1', name: store.db.companyName },
     user: { email: 'dana@example.com', name: 'Dana Cole' },
     save: async (next) => void (store.db = next),
@@ -227,6 +228,37 @@ check(!noBudgets.includes('job_billing'), 'Budgets off: Invoices (which needs it
   check(st.rpcs?.some((r) => r.fn === 'set_member_role' && r.args?.member === 'u-dana' && r.args.new_role === null), 'set_member_role removes with a null role');
   const toolInfo = (await c.listTools()).tools.find((t) => t.name === 'record_payment');
   check(toolInfo?.annotations?.destructiveHint === true && JSON.stringify(toolInfo.inputSchema).includes('confirmed'), 'tools that ask first are marked and take confirmed');
+}
+
+// ── Plugins the company installed ─────────────────────────────────────────────────────────
+{
+  const punch: InstalledPlugin = {
+    id: 'acme.punch-list',
+    manifest: {
+      id: 'acme.punch-list', name: 'Punch list', description: 'Items to finish', version: '1.0.0', apiVersion: 1,
+      collections: ['acme.punch-list.items'], reads: ['jobs'],
+      skills: [{ name: 'punch-list', description: 'How the punch list works.', body: '# Punch list' }],
+    },
+    code: 'export default {}', trust: 'sandboxed', installed: '2026-11-27T10:00:00', installedBy: 'Dana Cole',
+  };
+  const s2: Store = { db: { ...store.db, installedPlugins: [punch], ['acme.punch-list.items' as 'jobs']: [{ id: 'p1', jobId: 'j1', text: 'Caulk the tub' }] as never } };
+  const c2 = await connect(s2);
+  const listed = await call(c2, 'list_records', { collection: 'acme.punch-list.items' });
+  check(JSON.stringify(listed.data).includes('Caulk the tub'), "agents can read an installed plugin's records");
+  const skill = await call(c2, 'read_skill', { name: 'punch-list' });
+  check(!skill.error && JSON.stringify(skill.data).includes('# Punch list'), "an installed plugin's skill reaches agents");
+  const settings = await call(c2, 'get_settings');
+  check(settings.data?.plugins?.some((p: { id: string; installedByCompany?: boolean }) => p.id === 'acme.punch-list' && p.installedByCompany), 'get_settings lists installed plugins');
+  // turned off: its records and skill go
+  s2.db = { ...s2.db, plugins: { off: ['acme.punch-list'], roles: {} } };
+  const c3 = await connect(s2);
+  check((await call(c3, 'read_skill', { name: 'punch-list' })).error !== '', "an installed plugin turned off takes its skill with it");
+  const writing = await call(c3, 'read_skill', { name: 'writing-plugins' });
+  check(!writing.error && JSON.stringify(writing.data).includes('propose_plugin'), 'agents get the writing-plugins skill');
+  const prop = await call(c3, 'propose_plugin', { id: 'acme.equipment', name: 'Equipment', description: 'Track tools', code: "import { definePlugin } from '@buildtrack/sdk';\nexport default definePlugin({ id: 'acme.equipment', name: 'Equipment' });", note: 'Asked for by Dana' });
+  check(!prop.error && s2.db.pluginProposals?.[0]?.id === 'acme.equipment' && s2.db.pluginProposals[0].proposedBy === "Dana Cole's agent", 'propose_plugin saves a proposal for an admin to review');
+  check(!(s2.db.installedPlugins ?? []).some((r) => r.id === 'acme.equipment'), 'a proposal is not installed');
+  check((await call(c3, 'propose_plugin', { id: 'x.y', name: 'Bad', description: '', code: 'console.log(1)', note: '' })).error !== '', 'propose_plugin refuses code without a default export');
 }
 
 // ── The current protocol (2026-07-28) as well as the older one used above ─────────────────

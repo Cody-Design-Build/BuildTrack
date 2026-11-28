@@ -1,4 +1,5 @@
 import { migrateBudgets, type LegacyBudgetItem, type PreBudgetDb } from './migrate';
+import type { InstalledPlugin, PluginProposal } from './plugins/installed';
 import type { Look, Preferences } from './theming/types';
 
 // The app's data model and sample data.
@@ -422,6 +423,10 @@ export interface Db {
   companyLook?: Look;
   /** The company's changes to agent skills (missing until the first change). */
   skills?: SkillRecord[];
+  /** Plugins the company installed (Settings → Plugins); only owners and admins can change these. */
+  installedPlugins?: InstalledPlugin[];
+  /** Plugins proposed for installing, usually written by an agent; an owner or admin installs them. */
+  pluginProposals?: PluginProposal[];
 }
 
 export const AVATAR_COLORS = ['#c026d3', '#d97706', '#16a34a', '#e11d48', '#ea580c', '#0284c7', '#65a30d', '#7c3aed', '#0d9488'];

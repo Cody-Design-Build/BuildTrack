@@ -38,5 +38,14 @@ export default defineConfig({
   base: '/',
   define: { __BUILD__: JSON.stringify(build) },
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
-  build: { outDir: 'dist', emptyOutDir: true },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    // sandbox.html: where sandboxed plugins run (src/sandbox/)
+    rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), sandbox: path.resolve(__dirname, 'sandbox.html') } },
+  },
+  // the sandbox frame has an opaque origin ("null"), so it loads the app's scripts and styles
+  // cross-origin; they're public anyway (vercel.json sends the same header in production)
+  server: { cors: { origin: '*' } },
+  preview: { cors: { origin: '*' } },
 });

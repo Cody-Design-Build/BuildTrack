@@ -8,6 +8,7 @@ import type { Db, PluginChoices } from '../data';
 import type { CostEntry, Plugin } from './sdk';
 import { activeOf, chosenFor, normalizeChoices, NO_CHOICES } from './activation';
 
+let builtIn: Plugin[] = [];
 let installed: Plugin[] = [];
 let choices: PluginChoices = NO_CHOICES;
 let input: PluginChoices | undefined;
@@ -30,15 +31,38 @@ export function setChoices(next: PluginChoices | undefined) {
   listeners.forEach((l) => l());
 }
 
-/** Called once at start-up with every installed plugin (src/plugins/index.ts). */
+/** Called once at start-up with BuildTrack's own plugins (src/plugins/index.ts). */
 export function registerPlugins(list: Plugin[]) {
   const seen = new Set<string>();
   for (const p of list) {
     if (seen.has(p.id)) throw new Error(`Two plugins have the id ${p.id}`);
     seen.add(p.id);
   }
+  builtIn = list;
   installed = list;
   compute();
+}
+
+/** BuildTrack's own plugins (not the ones a company installed). */
+export const builtInPlugins = () => builtIn;
+
+/**
+ * The company's installed plugins, once loaded (src/plugins/loader.tsx). They join BuildTrack's
+ * own; one with the id of a built-in plugin is ignored.
+ */
+export function setLoadedPlugins(list: Plugin[]) {
+  const ids = new Set(builtIn.map((p) => p.id));
+  installed = [...builtIn, ...list.filter((p) => !ids.has(p.id))];
+  compute();
+  listeners.forEach((l) => l());
+}
+
+/** Installed plugins still loading, and ones that failed (id → what went wrong). */
+let status: { loading: string[]; failed: Record<string, string> } = { loading: [], failed: {} };
+export const pluginStatus = () => status;
+export function setPluginStatus(next: typeof status) {
+  status = next;
+  listeners.forEach((l) => l());
 }
 
 export const installedPlugins = () => installed;
@@ -88,4 +112,11 @@ export function filesInUse(db: Db): string[] {
 /** Let every installed plugin tidy its records when a person or company is deleted. */
 export function partyRemoved(db: Db, partyId: string): Db {
   return installed.reduce((d, p) => (p.removeParty ? p.removeParty(d, partyId) : d), db);
+}
+
+export function usePluginStatus() {
+  return useSyncExternalStore(
+    (l) => (listeners.add(l), () => listeners.delete(l)),
+    () => status,
+  );
 }

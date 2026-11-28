@@ -227,7 +227,24 @@ function diff(prev: AnyDb, next: AnyDb): { upserts: Row[]; deletes: Key[] } {
   return { upserts, deletes };
 }
 
-async function write({ upserts, deletes }: { upserts: Row[]; deletes: Key[] }) {
+/** Records only owners and admins may change (supabase/migrations/20261128090000_plugin_admins.sql). */
+const adminOnly = (k: Key) => k.collection === 'installedPlugins' || (k.collection === META && k.id === 'plugins');
+
+async function write(changes: { upserts: Row[]; deletes: Key[] }) {
+  // Sent on their own: if the database refuses them (someone who isn't an admin), everything
+  // else still saves. The app doesn't offer these changes to non-admins anyway.
+  const admin = { upserts: changes.upserts.filter(adminOnly), deletes: changes.deletes.filter(adminOnly) };
+  await writeRows({ upserts: changes.upserts.filter((r) => !adminOnly(r)), deletes: changes.deletes.filter((d) => !adminOnly(d)) });
+  if (admin.upserts.length || admin.deletes.length) {
+    try {
+      await writeRows(admin);
+    } catch (e) {
+      console.warn('Only owners and admins can change plugins; that change was not saved.', e);
+    }
+  }
+}
+
+async function writeRows({ upserts, deletes }: { upserts: Row[]; deletes: Key[] }) {
   for (let i = 0; i < upserts.length; i += 500) {
     const rows = upserts.slice(i, i + 500).map((r) => ({ ...r, company_id: mine() }));
     const { error } = await cloud!.from('records').upsert(rows, { onConflict: 'company_id,collection,id' });

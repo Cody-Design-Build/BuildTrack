@@ -29,7 +29,7 @@ The server builds its list of tools and skills **every time an agent asks**, fro
 | From | Reads | Changes |
 |---|---|---|
 | BuildTrack | `company_overview` (start here), `list_records`, `get_record`, `search_records`, `list_skills`, `read_skill` | `save_skill`, `reset_skill` |
-| Settings | `get_settings`, `list_members` | `set_plugin`\*, `choose_plugin`\*, `set_company_details`\*, `set_company_theme`\*, `invite_member`\*, `set_member_role`\*, `cancel_invite`\* |
+| Settings | `get_settings`, `list_members` | `propose_plugin`, `set_plugin`\*, `choose_plugin`\*, `set_company_details`\*, `set_company_theme`\*, `invite_member`\*, `set_member_role`\*, `cancel_invite`\* |
 | Jobs | | `create_job`, `update_job`, `link_to_job` |
 | Contacts | | `create_account`, `create_person` |
 | Tasks | | `create_task`, `complete_task` |
@@ -39,7 +39,7 @@ The server builds its list of tools and skills **every time an agent asks**, fro
 | Bids | `bid_comparison` | `create_bid_package`, `invite_vendors`, `mark_bids_sent`, `record_bid`, `decline_bid`, `award_bid`\* |
 | Job costing | `job_costs` | |
 
-\* asks the person first. Team changes go through the same database functions as Settings → Members, so only owners and admins can invite or change roles. Recording that something was sent doesn't email anyone. Deleting records isn't offered to agents.
+\* asks the person first. `propose_plugin` saves a plugin the agent wrote (it reads the `writing-plugins` skill first) for an owner or admin to review and install in Settings → Plugins; nothing runs until they do ([plugins.md](plugins.md)). Installed plugins' records and skills reach agents like BuildTrack's own. Team changes go through the same database functions as Settings → Members, so only owners and admins can invite or change roles. Recording that something was sent doesn't email anyone. Deleting records isn't offered to agents.
 
 Read-only tools are marked as such (`readOnlyHint`), so clients can run them without asking each time. Tools that ask first are marked `destructiveHint`.
 

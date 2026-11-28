@@ -10,6 +10,7 @@
 import type { Db, SkillRecord } from './data';
 import type { PluginBase, SkillDefault } from './plugins/sdk';
 import { localIso } from './model';
+import { WRITING_PLUGINS } from './plugins/authoring';
 
 export const SKILL_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const SKILL_LIMITS = { name: 64, description: 1024, body: 50_000 };
@@ -46,6 +47,7 @@ BuildTrack is job management for a design-build contractor: jobs, customers and 
 ## Skills
 Skills like this one are the company's own know-how. Each company can change them in Settings → Agents, and can ask you to: use \`save_skill\` to change or add one and \`reset_skill\` to go back to BuildTrack's version. Keep a skill focused on one topic, with a description that says when to use it.`,
   },
+  WRITING_PLUGINS,
 ];
 
 /** A skill as it stands for this company. */

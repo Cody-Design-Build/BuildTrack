@@ -12,7 +12,7 @@ import {
   ACCENTS, COLOR_FIELDS, CORNERS, applyLook, currentMode, deletePreset, lookRadius, lookTheme, renamePreset, resetColors, savePreset, setAppearance, setColor,
   updatePreset, useLookState, useThemes, type Accent, type Corners, type FontChoice, type Look, type Mode,
 } from '../appearance';
-import { companyTeam, signedInAccount } from '../cloud';
+import { useIsAdmin } from '../lib/useIsAdmin';
 import { FONTS, fontStack, modeFor } from '../theming/engine';
 import { omarchyTheme } from '../theming/omarchy';
 import { findTheme, importTheme, isTheme, removeImportedTheme, type ThemeEntry } from '../theming/registry';
@@ -475,14 +475,7 @@ function PresetsCard({ presets, look }: { presets: { id: string; name: string; l
 function CompanyThemeCard({ look }: { look: Look }) {
   const { db, update } = useStore();
   const company = db.companyLook;
-  const [canSet, setCanSet] = useState(!cloud);
-  useEffect(() => {
-    if (!cloud) return;
-    const email = signedInAccount()?.email;
-    companyTeam()
-      .then((team) => setCanSet(team.some((t) => t.email.toLowerCase() === email && (t.role === 'owner' || t.role === 'admin'))))
-      .catch(() => setCanSet(false));
-  }, []);
+  const canSet = useIsAdmin();
   const themeName = (l: Look) => findTheme(l.theme)?.name ?? l.theme;
   const same = !!company && JSON.stringify(company) === JSON.stringify(look);
   return (

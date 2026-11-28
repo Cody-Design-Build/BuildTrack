@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" />
     <title>BuildTrack</title>
+    <!-- Where installed plugins find the plugin kit and React (src/plugins/loader.tsx, scripts/plugin-sdk.mjs). -->
+    <script type="importmap">
+      { "imports": { "@buildtrack/sdk": "/sdk/buildtrack.js", "react": "/sdk/react.js", "react/jsx-runtime": "/sdk/react-jsx-runtime.js" } }
+    </script>
     <script>
       // Apply the saved theme before the first paint (see src/appearance.ts).
       try {

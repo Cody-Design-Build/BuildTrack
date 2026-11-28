@@ -19,7 +19,8 @@ import { initAppearance } from './appearance';
 import { AppearanceSync } from './components/AppearanceSync';
 import { CloudGate } from './components/CloudGate';
 import { PLUGINS } from './plugins';
-import { installedPlugins, registerPlugins, setChoices, usePlugins } from './plugins/registry';
+import { installedPlugins, registerPlugins, setChoices, usePluginStatus, usePlugins } from './plugins/registry';
+import { InstalledPlugins, isSafeMode, leaveSafeMode } from './plugins/loader';
 
 initAppearance();
 registerPlugins(PLUGINS);
@@ -33,6 +34,8 @@ function PluginChoicesSync({ children }: { children: ReactNode }) {
 
 function NotFound() {
   const { pathname } = useLocation();
+  const status = usePluginStatus();
+  if (status.loading.length) return null; // an installed plugin's page may be on its way
   const owner = installedPlugins().find((p) => p.routes?.some((r) => matchPath(r.path, pathname)));
   if (owner)
     return (
@@ -41,7 +44,26 @@ function NotFound() {
         text={<>The {owner.name} plugin is turned off. Turn it on in <Link to="/settings?section=plugins" className="underline">Settings → Plugins</Link>.</>}
       />
     );
+  const failed = Object.keys(status.failed);
+  if (failed.length)
+    return (
+      <Placeholder
+        title="Not found"
+        text={<>That page doesn't exist, or belongs to a plugin that didn't load. See <Link to="/settings?section=plugins" className="underline">Settings → Plugins</Link>.</>}
+      />
+    );
   return <Placeholder title="Not found" text="That page doesn't exist." />;
+}
+
+/** Shown while the app runs without installed plugins (opened with ?safe). */
+function SafeModeBar() {
+  if (!isSafeMode()) return null;
+  return (
+    <div role="status" className="sticky top-0 z-50 flex flex-wrap items-center justify-center gap-2 border-b bg-[color-mix(in_oklab,var(--warning)_18%,var(--background))] px-4 py-2 text-sm text-foreground">
+      Safe mode: installed plugins aren't running. Fix or remove one in <Link to="/settings?section=plugins" className="underline">Settings → Plugins</Link>.
+      <button type="button" className="font-medium underline" onClick={leaveSafeMode}>Leave safe mode</button>
+    </div>
+  );
 }
 
 /** Pages come from the plugins that are on; settings and the profile are part of the app itself. */
@@ -65,7 +87,9 @@ createRoot(document.getElementById('root')!).render(
     <CloudGate>{(initial) => (
     <StoreProvider initial={initial}>
       <PluginChoicesSync>
+      <InstalledPlugins />
       <BrowserRouter>
+        <SafeModeBar />
         <TooltipProvider delayDuration={300}>
         <AppearanceSync />
         <Shell>
