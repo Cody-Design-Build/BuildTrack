@@ -3,6 +3,7 @@ import { useStore, money, pct } from '../../store';
 import { SummaryRow } from '../../components/Detail';
 import { costEntries } from '../registry';
 import { definePlugin } from '../sdk';
+import base from './base';
 import { JobCosts } from './Costs';
 import { jobCosts } from './costing';
 
@@ -18,10 +19,7 @@ function Summary({ job }: { job: Job }) {
 }
 
 export default definePlugin({
-  id: 'buildtrack.costing',
-  name: 'Job costing',
-  description: 'Budget, committed, actual and projected cost for each cost code, with variance and profit.',
-  role: { id: 'costing', label: 'Job costing' },
+  ...base,
   jobTabs: [{ id: 'costs', label: 'Costs', order: 50, component: JobCosts }],
   jobSummary: [{ order: 40, component: Summary }],
 });

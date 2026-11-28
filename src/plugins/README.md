@@ -7,8 +7,14 @@ Everything in BuildTrack is a plugin. The app itself (the "kernel") is only:
 - shared building blocks: forms, tables, documents, attachments, payments (`src/components/`)
 
 Jobs, contacts, tasks, the schedule, budgets, bids, invoices, bills, expenses and job costing
-each live in a folder here, and each folder has an `index.tsx` that describes the plugin with
-`definePlugin()` (see `sdk.ts` for every option).
+each live in a folder here. Each folder has:
+
+- `base.ts`: the plugin without its screens, with `definePluginBase()`: its id, what it needs,
+  the records it owns, its contracts and its skills. No React, so the agent server can load it.
+- `index.tsx`: `definePlugin({ ...base, ... })` adding the menu, pages and tabs (see `sdk.ts`).
+- `tools.ts` (optional): tools for AI agents (see [`docs/agents.md`](../../docs/agents.md)).
+
+The app lists every plugin in `index.ts`; the agent server lists their bases in `bases.ts`.
 
 ## What a plugin can add
 
@@ -25,6 +31,8 @@ each live in a folder here, and each folder has an `index.tsx` that describes th
 | `requires`        | Other plugins it needs; it's turned off while any of them is off        |
 | `role`            | Plugins with the same role replace each other; Settings offers a choice |
 | `core`            | Always on                                                               |
+| `collections`     | The `Db` lists it owns; agents can read them while it's on              |
+| `skills`          | Know-how for AI agents, which each company can change (Settings → Agents) |
 
 `filesInUse` and `removeParty` run for every installed plugin, on or off, so turning a plugin
 off never loses its data.
@@ -51,9 +59,11 @@ any of them can be rewritten without touching the others.
 Give your plugin the same `role` as the one it replaces (job costing has `role: { id: 'costing' }`); when a role has more than one plugin, Settings → Plugins lets you pick one. To write your own:
 
 1. Copy the closest plugin's folder, e.g. `src/plugins/costing` to `src/plugins/my-costing`.
-2. Give it a new `id` (use your own prefix, e.g. `acme.costing`) and `name`.
+2. Give it a new `id` (use your own prefix, e.g. `acme.costing`) and `name` in `base.ts`.
 3. Change what you like. Read data from `useStore()` and other plugins' data through contracts.
-4. Add it to the list in `src/plugins/index.ts`.
+   Rename its tools and skills too: names are unique across plugins.
+4. Add it to the lists in `src/plugins/index.ts` and `src/plugins/bases.ts`, and its tools (if
+   any) to `src/agent/plugins.ts`.
 5. Pick it in Settings → Plugins.
 
 To change a plugin without keeping the original, edit its folder directly.

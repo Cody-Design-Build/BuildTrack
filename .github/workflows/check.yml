@@ -18,3 +18,5 @@ jobs:
       - run: npm run check
       # Access rules: every migration on PGlite, then who can see and do what.
       - run: npm run test:db
+      # The agent server: a real MCP client runs every tool on the sample data.
+      - run: npm run test:agent

@@ -65,3 +65,6 @@ Bills are what we owe vendors and subcontractors on a job (`src/plugins/bills/bi
 
 Every feature is a plugin in `src/plugins/`: each adds its own menu items, pages, job tabs, company-page sections and Overview rows. **Settings → Plugins** turns them on and off for the whole company (their data is kept) and, where several plugins do the same job, chooses between them. Plugins share data through small contracts instead of reading each other's records; job costing, for example, adds up cost entries that Budgets, Bids, Bills and Expenses provide. See [`src/plugins/README.md`](../src/plugins/README.md) to change or replace one.
 
+## AI agents and skills
+
+Claude and other AI agents can connect to BuildTrack and answer questions about your jobs using each plugin's tools, as the person who connected them. They also read the company's **skills**: written guides to how you work, which anyone can change in **Settings → Agents** (or by asking an agent). See [AI agents and skills](agents.md).

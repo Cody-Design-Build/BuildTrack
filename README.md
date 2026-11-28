@@ -117,7 +117,11 @@ Don't like how a module works? Change that module or replace it, without touchin
 
 ## Built for the agentic era
 
-BuildTrack is meant to be changed, by you or by an AI coding agent such as Claude Code or Codex. Describe what your company needs in plain words; the agent makes the change and you check it before your team sees it.
+**Ask an agent about your jobs.** BuildTrack has an MCP server, so Claude and other AI agents can work with your live data: "what will Oak Avenue make?", "what's overdue?", "which electrical bid is best?". Agents use BuildTrack's own tools, so the numbers follow the same rules as the app, and they see only what the person who connected them can see. Each plugin brings its own tools, so a plugin you turn off takes its tools with it, and new ones reach every connected agent with nothing to reinstall.
+
+**Skills you can read and change.** Agents also get your company's **skills**: short written guides to how you bill, level bids or cost a job. BuildTrack and each plugin come with some. Change them in **Settings → Agents** to fit how you work, or add your own, or just ask an agent to change one. See [AI agents and skills](docs/agents.md).
+
+**Change BuildTrack itself** with an AI coding agent such as Claude Code or Codex. Describe what your company needs in plain words; the agent makes the change and you check it before your team sees it.
 
 - **[AGENTS.md](AGENTS.md)** walks any agent through the code, the data and the release process.
 - **One simple data model.** Every record is a row; a new kind of record needs no database migration.
@@ -150,6 +154,7 @@ Running it for a whole team, with shared live data and invite-only sign-in on yo
 - [How BuildTrack works](docs/guide.md): the rules behind budgets, invoices, bids, bills and job costing.
 - [Developing BuildTrack](docs/development.md): building, themes, and where the code and data live.
 - [Accounts, sign-in and email](docs/accounts-and-email.md): invites, sign-in codes, Resend and what to check when a code doesn't arrive.
+- [AI agents and skills](docs/agents.md): connecting Claude and other agents, the tools they get, and skills.
 - [Run BuildTrack for your team](docs/self-hosting.md): Supabase, sign-in, email and Vercel (unsupported for now).
 - [AGENTS.md](AGENTS.md): the workflow for people and AI agents changing BuildTrack.
 

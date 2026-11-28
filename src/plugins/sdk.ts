@@ -63,6 +63,23 @@ export interface CostEntry {
   source: { plugin: string; id: string; href?: string };
 }
 
+// ── Skills ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A skill: written know-how an AI agent reads when a task calls for it, e.g. how progress
+ * billing works. Plugins ship default skills next to their tools; each company can change them
+ * (or add its own) in Settings → Agents, and agents can be asked to change them too. Served to
+ * agents over MCP (src/agent/).
+ */
+export interface SkillDefault {
+  /** Lowercase words joined by hyphens, e.g. 'progress-billing'. Unique across all plugins. */
+  name: string;
+  /** One or two sentences: what it covers and when to use it. Agents see this before reading the rest. */
+  description: string;
+  /** The skill itself, in Markdown. */
+  body: string;
+}
+
 // ── The plugin ─────────────────────────────────────────────────────────────────────────────
 
 export interface Plugin {
@@ -80,6 +97,10 @@ export interface Plugin {
   role?: { id: string; label: string };
   /** Plugin ids this one needs. It's turned off while any of them is off. */
   requires?: string[];
+  /** The Db lists this plugin owns. Agents can read them while the plugin is on. */
+  collections?: (keyof Db)[];
+  /** Know-how for AI agents using this plugin's data and tools (see SkillDefault). */
+  skills?: SkillDefault[];
 
   nav?: PluginNavItem[];
   routes?: PluginRoute[];
@@ -99,3 +120,11 @@ export interface Plugin {
 }
 
 export const definePlugin = (p: Plugin): Plugin => p;
+
+/**
+ * Everything about a plugin except its screens: what it is, its data, its contracts and its
+ * skills. Each plugin keeps this in its own base.ts, free of React and the browser, so the agent
+ * server (src/agent/) can load it too; index.tsx adds the screens on top.
+ */
+export type PluginBase = Omit<Plugin, 'nav' | 'routes' | 'jobTabs' | 'jobSummary' | 'accountSections'>;
+export const definePluginBase = (p: PluginBase): PluginBase => p;

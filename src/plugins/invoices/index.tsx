@@ -3,6 +3,7 @@ import type { Job } from '../../data';
 import { useStore, money, pct } from '../../store';
 import { SummaryRow } from '../../components/Detail';
 import { definePlugin } from '../sdk';
+import base from './base';
 import Invoices, { JobInvoices } from './Invoices';
 import InvoiceDetail from './InvoiceDetail';
 import { jobBilling } from './invoices';
@@ -20,10 +21,7 @@ function Summary({ job }: { job: Job }) {
 }
 
 export default definePlugin({
-  id: 'buildtrack.invoices',
-  name: 'Invoices',
-  description: 'Progress billing to customers against approved budgets, with payments received.',
-  requires: ['buildtrack.budgets'],
+  ...base,
   nav: [{ to: '/invoices', label: 'Invoices', icon: ReceiptText, group: 'work', order: 60 }],
   routes: [
     { path: '/invoices', component: Invoices },

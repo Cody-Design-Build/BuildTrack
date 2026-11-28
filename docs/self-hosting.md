@@ -79,6 +79,10 @@ Supabase's built-in email only reaches people on your Supabase team, a few email
 4. In **Authentication → Rate Limits**, raise *emails per hour* from 2 to about 30.
 5. In **Authentication → Sign In / Providers → Email**, set the code length to **6**. In **Authentication → Emails → Templates**, paste `supabase/templates/magic_link.html` into *Magic link* and `supabase/templates/confirmation.html` into *Confirm signup*, so people get a code to type rather than a link (subject: "Your BuildTrack sign-in code").
 
+### AI agents (optional)
+
+To let your team connect Claude and other AI agents (see [AI agents and skills](agents.md)), turn on Supabase's OAuth server: **Authentication → OAuth Server**, enable it, allow dynamic client registration, and set the authorization path to `/oauth/consent`. Or, with the Supabase CLI, set `auth.oauth_server` in `supabase/config.jsonc` as ours is and run `supabase config push`. The agent address is your app's address plus `/mcp`.
+
 How sign-in, invites and email fit together, and what to check when a code doesn't arrive, is in [Accounts, sign-in and email](accounts-and-email.md).
 
 ## Keeping it up to date

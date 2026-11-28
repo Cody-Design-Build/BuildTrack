@@ -10,7 +10,7 @@
 // can be checked before it's approved to pay. More bills can be made against the same award
 // (progress billing), and the package shows awarded vs billed vs paid.
 import type { Activity, Bid, BidItem, BidPackage, BidPackageStatus, BidStatus, Bill, Db } from '../../data';
-import { meOf, localIso, money, uid } from '../../store';
+import { meOf, localIso, money, uid } from '../../model';
 import type { CostEntry } from '../sdk';
 import { billAmount, nextBillNumber, logBill } from '../bills/bills';
 import { todayYmd } from '../invoices/invoices';

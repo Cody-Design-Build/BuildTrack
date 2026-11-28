@@ -6,6 +6,7 @@ import { Shell } from './components/Layout';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Placeholder } from './pages/Other';
 import SettingsPage from './pages/Settings';
+import AgentConsent from './pages/AgentConsent';
 import '@fontsource-variable/inter';
 import './index.css';
 import '@fontsource-variable/jetbrains-mono';
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route key={path} path={path} element={<Page />} />
       ))}
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/oauth/consent" element={<AgentConsent />} />
       <Route path="/profile" element={<Placeholder title="Profile" text="Your name, photo and notification preferences." />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

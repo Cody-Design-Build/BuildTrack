@@ -6,40 +6,26 @@
 import { useSyncExternalStore } from 'react';
 import type { Db, PluginChoices } from '../data';
 import type { CostEntry, Plugin } from './sdk';
-
-const NONE: PluginChoices = { off: [], roles: {} };
+import { activeOf, chosenFor, normalizeChoices, NO_CHOICES } from './activation';
 
 let installed: Plugin[] = [];
-let choices: PluginChoices = NONE;
+let choices: PluginChoices = NO_CHOICES;
 let input: PluginChoices | undefined;
 let active: Plugin[] = [];
 const listeners = new Set<() => void>();
 
 /** The plugin chosen for a role: the saved choice if it's installed, otherwise the first one. */
-export function roleChoice(role: string, list = installed): Plugin | undefined {
-  const candidates = list.filter((p) => p.role?.id === role);
-  return candidates.find((p) => p.id === choices.roles[role]) ?? candidates[0];
-}
+export const roleChoice = (role: string, list = installed): Plugin | undefined => chosenFor(role, list, choices);
 
 function compute() {
-  let on = installed.filter((p) => p.core || !choices.off.includes(p.id));
-  on = on.filter((p) => !p.role || roleChoice(p.role.id) === p);
-  // drop anything whose requirements are off, until nothing changes
-  for (let changed = true; changed; ) {
-    const ids = new Set(on.map((p) => p.id));
-    const next = on.filter((p) => p.core || (p.requires ?? []).every((r) => ids.has(r)));
-    changed = next.length !== on.length;
-    on = next;
-  }
-  active = on;
+  active = activeOf(installed, choices);
 }
 
 /** Use the company's saved choices (called whenever db.plugins changes). */
 export function setChoices(next: PluginChoices | undefined) {
   if (next === input) return;
   input = next;
-  const c = next ?? NONE;
-  choices = { off: Array.isArray(c.off) ? c.off : [], roles: c.roles && typeof c.roles === 'object' ? c.roles : {} };
+  choices = normalizeChoices(next);
   compute();
   listeners.forEach((l) => l());
 }

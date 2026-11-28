@@ -6,7 +6,7 @@
 // moves the bill between Open and Paid. Payments live in the same table as customer payments,
 // marked with billId instead of invoiceId.
 import type { Activity, Bill, BillLine, BillStatus, Db, Payment } from '../../data';
-import { meOf, localIso, uid } from '../../store';
+import { meOf, localIso, uid } from '../../model';
 import { todayYmd } from '../invoices/invoices';
 import type { CostEntry } from '../sdk';
 

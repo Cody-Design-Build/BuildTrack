@@ -3,10 +3,11 @@ import type { Job } from '../../data';
 import { useStore, money } from '../../store';
 import { SummaryRow } from '../../components/Detail';
 import { definePlugin } from '../sdk';
+import base from './base';
 import Bills, { JobBills } from './Bills';
 import BillDetail from './BillDetail';
 import { VendorBills } from './VendorBills';
-import { billCostEntries, jobPayables } from './bills';
+import { jobPayables } from './bills';
 
 function Summary({ job }: { job: Job }) {
   const { db } = useStore();
@@ -20,9 +21,7 @@ function Summary({ job }: { job: Job }) {
 }
 
 export default definePlugin({
-  id: 'buildtrack.bills',
-  name: 'Bills',
-  description: 'What you owe vendors and subcontractors, coded to cost codes, with payments made.',
+  ...base,
   nav: [{ to: '/bills', label: 'Bills', icon: Receipt, group: 'work', order: 70 }],
   routes: [
     { path: '/bills', component: Bills },
@@ -31,8 +30,4 @@ export default definePlugin({
   jobTabs: [{ id: 'bills', label: 'Bills', order: 40, component: JobBills }],
   jobSummary: [{ order: 30, component: Summary }],
   accountSections: [{ id: 'bills', order: 10, component: VendorBills }],
-  costEntries: billCostEntries,
-  filesInUse: (db) => db.bills.flatMap((b) => b.attachments.map((f) => f.fileId)),
-  // bills are financial records: keep them, just without the vendor
-  removeParty: (d, id) => ({ ...d, bills: d.bills.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)) }),
 });
