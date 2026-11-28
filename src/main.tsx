@@ -10,6 +10,7 @@ import AgentConsent from './pages/AgentConsent';
 import '@fontsource-variable/inter';
 import './index.css';
 import '@fontsource-variable/jetbrains-mono';
+import '@fontsource-variable/nunito';
 import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
 import '@fontsource/ibm-plex-sans/600.css';

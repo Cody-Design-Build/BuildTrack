@@ -9,11 +9,11 @@ import type { ThemeDefinition } from './types';
 export interface ThemeEntry {
   theme: ThemeDefinition;
   /** The pack it comes from, or null for one imported into this browser. */
-  pack: { id: string; name: string } | null;
+  pack: { id: string; name: string; note?: string } | null;
 }
 
 const IMPORTED_KEY = 'bt-imported-themes';
-const fromPacks: ThemeEntry[] = THEME_PACKS.flatMap((p) => p.themes.map((theme) => ({ theme, pack: { id: p.id, name: p.name } })));
+const fromPacks: ThemeEntry[] = THEME_PACKS.flatMap((p) => p.themes.map((theme) => ({ theme, pack: { id: p.id, name: p.name, note: p.note } })));
 let imported: ThemeDefinition[] = readImported();
 let snapshot: ThemeEntry[] = [];
 const listeners = new Set<() => void>();

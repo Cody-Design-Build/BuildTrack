@@ -8,12 +8,31 @@ import { OMARCHY_THEMES } from './omarchy-data';
 export interface ThemePack {
   id: string;
   name: string;
+  /** One line under the group's name in Settings → Appearance. */
+  note?: string;
   themes: ThemeDefinition[];
 }
 
+const builtin = (...ids: string[]) => ids.map((id) => BUILTIN_THEMES.find((t) => t.id === id)!).filter(Boolean);
+
+/** What each terminal theme looks like (the Omarchy colours files don't say). */
+const TERMINAL_NOTES: Record<string, string> = {
+  'omarchy-tokyo-night': 'Terminal · deep navy and soft blue',
+  'omarchy-osaka-jade': 'Terminal · dark jade green',
+  'omarchy-gruvbox': 'Terminal · warm retro browns',
+  'omarchy-flexoki-light': 'Terminal · ink on warm paper',
+};
+
+/** Grouped by style. Each theme brings its own colours, font and corners. */
 export const THEME_PACKS: ThemePack[] = [
-  { id: 'builtin', name: 'BuildTrack themes', themes: BUILTIN_THEMES },
-  { id: 'omarchy', name: 'Omarchy', themes: OMARCHY_THEMES.map((t) => omarchyTheme(t.toml, t.id, t.name)) },
+  { id: 'clean', name: 'Clean', note: 'Crisp and businesslike, with small corners.', themes: builtin('buildtrack', 'graphite', 'blueprint', 'concrete', 'hi-vis') },
+  { id: 'soft', name: 'Soft', note: 'Rounded corners and a rounded font.', themes: builtin('sage', 'kraft', 'walnut', 'lilac') },
+  {
+    id: 'terminal',
+    name: 'Terminal',
+    note: 'Monospaced and square, from the Omarchy desktop.',
+    themes: OMARCHY_THEMES.map((t) => ({ ...omarchyTheme(t.toml, t.id, t.name), note: TERMINAL_NOTES[t.id] ?? 'Terminal' })),
+  },
 ];
 
 /**
@@ -28,6 +47,9 @@ export const RETIRED_THEMES: Record<string, string> = {
   catppuccin: 'sage',
   'rose-pine': 'walnut',
   solarized: 'sage',
+  'omarchy-catppuccin': 'omarchy-tokyo-night',
+  'omarchy-catppuccin-latte': 'omarchy-flexoki-light',
+  'omarchy-rose-pine': 'omarchy-flexoki-light',
   'omarchy-ethereal': 'omarchy-tokyo-night',
   'omarchy-everforest': 'omarchy-gruvbox',
   'omarchy-hackerman': 'omarchy-tokyo-night',

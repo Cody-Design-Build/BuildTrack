@@ -17,7 +17,7 @@ const plugin = (id: string) => {
   return p;
 };
 
-const themes = () => THEME_PACKS.flatMap((pack) => pack.themes.map((t) => ({ id: t.id, name: t.name, pack: pack.name })));
+const themes = () => THEME_PACKS.flatMap((pack) => pack.themes.map((t) => ({ id: t.id, name: t.name, style: pack.name, note: t.note })));
 
 function pluginStates(ctx: Pick<AgentContext, 'db'>) {
   const choices = normalizeChoices(ctx.db.plugins);

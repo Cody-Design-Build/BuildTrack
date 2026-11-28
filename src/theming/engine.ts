@@ -113,6 +113,7 @@ export const FONTS: { id: FontId; name: string; stack: string }[] = [
   { id: 'inter', name: 'Inter', stack: "'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" },
   { id: 'system', name: 'System', stack: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif" },
   { id: 'plex', name: 'IBM Plex Sans', stack: "'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif" },
+  { id: 'nunito', name: 'Nunito', stack: "'Nunito Variable', 'Nunito', ui-rounded, ui-sans-serif, system-ui, sans-serif" },
   { id: 'jetbrains-mono', name: 'JetBrains Mono', stack: "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace" },
 ];
 export const fontStack = (id: FontId | undefined) => (FONTS.find((f) => f.id === id) ?? FONTS[0]).stack;

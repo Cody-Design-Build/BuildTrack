@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Bot, Building2, Check, Database, Monitor, Moon, Palette, Puzzle, Sun, Users, type LucideIcon } from 'lucide-react';
 import { TeamSettings } from './TeamSettings';
@@ -172,11 +172,11 @@ function AppearanceSettings() {
   const [note, setNote] = useState('');
 
   // Group by where each theme comes from: each shipped pack, then those imported here.
-  const groups: { key: string; label: string; entries: ThemeEntry[] }[] = [];
+  const groups: { key: string; label: string; note?: string; entries: ThemeEntry[] }[] = [];
   for (const e of themes) {
     const key = e.pack?.id ?? 'imported';
     let g = groups.find((x) => x.key === key);
-    if (!g) groups.push((g = { key, label: e.pack?.name ?? 'Imported into this browser', entries: [] }));
+    if (!g) groups.push((g = { key, label: e.pack?.name ?? 'Imported into this browser', note: e.pack?.note, entries: [] }));
     g.entries.push(e);
   }
 
@@ -237,7 +237,10 @@ function AppearanceSettings() {
         <div className="space-y-5">
           {groups.map((g) => (
             <div key={g.key}>
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{g.label}</div>
+              <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{g.label}</span>
+                {g.note && <span className="text-xs text-muted-foreground">{g.note}</span>}
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {g.entries.map(({ theme: t }) => (
                   <Choice
@@ -245,6 +248,7 @@ function AppearanceSettings() {
                     selected={theme === t.id}
                     onSelect={() => (look.colors && !confirm('Switching theme clears the colours you changed. Save them as a preset first if you want to keep them. Switch?') ? undefined : setAppearance({ theme: t.id, colors: undefined }))}
                     label={t.name}
+                    labelFont={fontStack(t.font)}
                     note={themeNote(t)}
                   >
                     <Preview theme={t.id} accent={accent} mode={modeFor(t, state.look.mode === 'system' ? resolved : state.look.mode)} />
@@ -521,7 +525,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 
 function themeNote(t: ThemeDefinition) {
   const only = t.light && t.dark ? '' : t.dark ? 'Dark only' : 'Light only';
-  return [t.note, only && !t.note?.toLowerCase().includes(only.split(' ')[0].toLowerCase()) ? only : ''].filter(Boolean).join(' · ') || undefined;
+  return [t.note, only && !t.note?.toLowerCase().includes(only.toLowerCase()) ? only : ''].filter(Boolean).join(' · ') || undefined;
 }
 
 
@@ -541,12 +545,15 @@ function Choice({
   label,
   note,
   icon,
+  labelFont,
   children,
 }: {
   selected: boolean;
   onSelect: () => void;
   label: string;
   note?: string;
+  /** Show the label in this font (a theme's name in the theme's own font). */
+  labelFont?: string;
   icon?: ReactNode;
   children: ReactNode;
 }) {
@@ -564,7 +571,7 @@ function Choice({
       <span className="flex items-start gap-2 px-1 pb-0.5">
         {icon && <span className="mt-0.5 text-muted-foreground">{icon}</span>}
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium">{label}</span>
+          <span className="block text-sm font-medium" style={labelFont ? { fontFamily: labelFont } : undefined}>{label}</span>
           {note && <span className="block text-xs text-muted-foreground">{note}</span>}
         </span>
         {selected && <Check className="mt-0.5 size-4 shrink-0 text-primary" />}
@@ -596,8 +603,11 @@ function AccentSwatch({ id, name, theme, mode, selected }: { id: Accent; name: s
 
 /** A tiny sketch of the app, drawn in the given theme, mode and accent. */
 function Preview({ theme, mode, accent = 'theme', className }: { theme: string; mode: 'light' | 'dark'; accent?: Accent; className?: string }) {
+  // Drawn with the theme's own corners when it has them (Soft: round, Terminal: square).
+  const radius = findTheme(theme)?.radius;
   return (
     <div
+      style={radius === undefined ? undefined : ({ '--radius': `${radius}px` } as CSSProperties)}
       data-theme={theme}
       data-mode={mode}
       data-accent={accent === 'theme' ? undefined : accent}
