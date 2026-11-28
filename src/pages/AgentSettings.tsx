@@ -30,7 +30,7 @@ function Connect() {
       <div className="card-head"><h2>Connect an agent</h2></div>
       <div className="card-body space-y-3 text-sm">
         <p className="form-note text-muted-foreground">
-          AI agents such as Claude can read your company's BuildTrack data and answer questions about it: what a job will make, what's overdue, which bid is best. They use BuildTrack's tools and the skills below, and see only what you can see. For now agents can read everything but change only skills.
+          AI agents such as Claude can read your company's BuildTrack data and answer questions about it: what a job will make, what's overdue, which bid is best. They can also do the work: write a proposal, bill a job, enter a bill, put work out to bid, add a task, or change settings. They use BuildTrack's tools and the skills below, follow the same rules as the app, and see only what you can see. Anything that matters (sending, approving, paying, settings, the team) waits for your yes.
         </p>
         {cloud ? (
           <>
@@ -50,7 +50,7 @@ function Connect() {
               </li>
               <li><span className="text-foreground">Other agents:</span> any MCP client that supports remote servers with sign-in.</li>
             </ul>
-            <p className="form-note text-muted-foreground">The first time, the agent sends you here to sign in and approve it. New tools and skills reach every connected agent automatically, with nothing to reinstall.</p>
+            <p className="form-note text-muted-foreground">The first time, the agent sends you here to sign in and approve it. New tools and skills, and plugins you turn on or off, reach every connected agent automatically, with nothing to reinstall.</p>
           </>
         ) : (
           <p className="form-note text-muted-foreground">Agents work with shared data, so they connect to the live app, not to this browser-only copy.</p>

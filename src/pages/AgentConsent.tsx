@@ -55,7 +55,7 @@ export default function AgentConsent() {
                   </div>
                 </div>
                 <p className="text-sm">
-                  wants to use BuildTrack as <b>{details.user.email}</b>. It will be able to read your company's jobs, contacts, budgets, bids, invoices, bills and costs, and change your company's skills. It sees only what you can see.
+                  wants to use BuildTrack as <b>{details.user.email}</b>. It will be able to read and change your company's jobs, contacts, budgets, bids, invoices, bills, tasks, settings and skills, as you, with the same access you have. It asks you before anything that matters, like sending, approving, paying or inviting.
                 </p>
                 <p className="text-xs text-muted-foreground">Only approve agents you started connecting yourself. You can disconnect it any time in Settings → Agents.</p>
                 <div className="flex justify-end gap-2">

@@ -117,7 +117,7 @@ Don't like how a module works? Change that module or replace it, without touchin
 
 ## Built for the agentic era
 
-**Ask an agent about your jobs.** BuildTrack has an MCP server, so Claude and other AI agents can work with your live data: "what will Oak Avenue make?", "what's overdue?", "which electrical bid is best?". Agents use BuildTrack's own tools, so the numbers follow the same rules as the app, and they see only what the person who connected them can see. Each plugin brings its own tools, so a plugin you turn off takes its tools with it, and new ones reach every connected agent with nothing to reinstall.
+**Ask an agent, or have it do the work.** BuildTrack has an MCP server, so Claude and other AI agents can work with your live data. They can answer "what will Oak Avenue make?", "what's overdue?" or "which electrical bid is best?". They can also write the proposal, bill the job, enter the sub's invoice or put the tile out to bid. Agents use BuildTrack's own tools, so they follow the same rules as the app. They see only what the person who connected them can see, and they ask before anything that matters, like sending, approving or paying. Each plugin brings its own tools, so a plugin you turn off takes its tools with it, and new ones reach every connected agent with nothing to reinstall.
 
 **Skills you can read and change.** Agents also get your company's **skills**: short written guides to how you bill, level bids or cost a job. BuildTrack and each plugin come with some. Change them in **Settings → Agents** to fit how you work, or add your own, or just ask an agent to change one. See [AI agents and skills](docs/agents.md).
 
