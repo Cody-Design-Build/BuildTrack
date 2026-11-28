@@ -279,7 +279,7 @@ function AppearanceSettings() {
           )}
         </div>
         <p className="form-note small mt-2 text-muted-foreground">
-          Import an Omarchy <code>colors.toml</code> (from <code>~/.config/omarchy/themes/…</code>) or a downloaded BuildTrack theme. Imported themes stay in this browser.
+          Import a downloaded BuildTrack theme or an Omarchy <code>colors.toml</code>. Imported themes stay in this browser.
         </p>
         {note && <p className="form-note small mt-1">{note}</p>}
       </Card>
