@@ -14,7 +14,7 @@
 // removed. Paid is never set by hand.
 import type { Activity, Budget, BudgetLine, Db, Invoice, InvoiceStatus, Payment } from '../../data';
 import { linesByBudget, totals } from '../budgets/budgets';
-import { meOf, linePrice, localIso, uid } from '../../store';
+import { meOf, linePrice, localIso, uid } from '../../model';
 
 export const INVOICE_STATUS_COLOR: Record<InvoiceStatus, string> = {
   Draft: '#2b7fff',

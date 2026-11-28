@@ -1,6 +1,6 @@
 // Budget rules shared by the job page, the budget page and the Budgets list.
 import type { Activity, Budget, BudgetKind, BudgetLine, BudgetStatus, Db, StoredFile } from '../../data';
-import { meOf, lineCost, linePrice, localIso, uid } from '../../store';
+import { meOf, lineCost, linePrice, localIso, uid } from '../../model';
 import type { CostEntry } from '../sdk';
 
 export const BUDGET_STATUS_COLOR: Record<BudgetStatus, string> = {
@@ -29,7 +29,7 @@ export function totals(lines: Pick<BudgetLine, 'quantity' | 'unitCost' | 'markup
   return { cost, price, profit: price - cost, margin: price ? ((price - cost) / price) * 100 : NaN };
 }
 
-export { pct } from '../../store';
+export { pct } from '../../model';
 
 export const budgetLabel = (b: Pick<Budget, 'kind' | 'number'>) => `${b.kind} ${b.number}`;
 

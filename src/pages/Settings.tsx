@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Check, Database, Monitor, Moon, Palette, Puzzle, Sun, Users, type LucideIcon } from 'lucide-react';
+import { Bot, Building2, Check, Database, Monitor, Moon, Palette, Puzzle, Sun, Users, type LucideIcon } from 'lucide-react';
 import { TeamSettings } from './TeamSettings';
 import { PluginSettings } from './PluginSettings';
+import { AgentSettings } from './AgentSettings';
 import { PageHeader } from '../components/Layout';
 import { Field } from '../components/Forms';
 import { useStore } from '../store';
@@ -27,6 +28,7 @@ const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
   ...(cloud ? [{ id: 'members', label: 'Members', icon: Users }] : []),
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'plugins', label: 'Plugins', icon: Puzzle },
+  { id: 'agents', label: 'Agents', icon: Bot },
   { id: 'data', label: 'Data', icon: Database },
 ];
 
@@ -59,6 +61,7 @@ export default function SettingsPage() {
           {section === 'members' && <TeamSettings />}
           {section === 'appearance' && <AppearanceSettings />}
           {section === 'plugins' && <PluginSettings />}
+          {section === 'agents' && <AgentSettings />}
           {section === 'data' && <Data />}
         </div>
       </div>

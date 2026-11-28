@@ -377,6 +377,21 @@ export interface PluginChoices {
   roles: Record<string, string>; // role id → plugin id
 }
 
+/**
+ * A company's own version of a skill (Settings → Agents): a changed copy of a plugin's default
+ * skill, a default it has turned off, or a skill of its own. See src/skills.ts.
+ */
+export interface SkillRecord {
+  id: string; // the skill's name, so there's one record per skill
+  name: string;
+  description: string;
+  body: string; // Markdown
+  plugin?: string; // set when it changes (or turns off) a plugin's default skill
+  off?: boolean; // a default skill the company doesn't want agents to use
+  updated: string; // local date and time
+  updatedBy: string; // who changed it last, e.g. "Dana Cole" or "Dana Cole's agent"
+}
+
 export interface Db {
   activity: Activity[];
   costCodes: CostCode[];
@@ -405,6 +420,8 @@ export interface Db {
   preferences?: Preferences[];
   /** The company theme: the look people start with until they change their own. */
   companyLook?: Look;
+  /** The company's changes to agent skills (missing until the first change). */
+  skills?: SkillRecord[];
 }
 
 export const AVATAR_COLORS = ['#c026d3', '#d97706', '#16a34a', '#e11d48', '#ea580c', '#0284c7', '#65a30d', '#7c3aed', '#0d9488'];

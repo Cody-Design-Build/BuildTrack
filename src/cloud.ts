@@ -12,6 +12,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { createClient, type RealtimeChannel } from '@supabase/supabase-js';
 import type { Db } from './data';
+import { setSignedInAccount } from './session';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
@@ -82,10 +83,8 @@ export interface Company { id: string; name: string }
 const COMPANY_KEY = 'bt-company';
 let companyId: string | null = null;
 let companies: Company[] = [];
-let account: { email: string; name: string } | null = null;
 
-/** The signed-in account (email and Google name), or null when not connected. */
-export const signedInAccount = () => account;
+export { signedInAccount } from './session';
 
 /** The signed-in person's companies (more than one only when they've been invited to several). */
 export const myCompanies = () => companies;
@@ -98,7 +97,7 @@ export async function openCompany(): Promise<Company[]> {
   const { data: who } = await cloud!.auth.getUser();
   const email = who.user?.email?.toLowerCase() ?? '';
   const meta = who.user?.user_metadata ?? {};
-  account = email ? { email, name: String(meta.full_name || meta.name || email.split('@')[0]) } : null;
+  setSignedInAccount(email ? { email, name: String(meta.full_name || meta.name || email.split('@')[0]) } : null);
   const { data, error } = await cloud!.from('companies').select('id,name').order('created_at');
   if (error) throw error;
   const list = (data ?? []) as Company[];

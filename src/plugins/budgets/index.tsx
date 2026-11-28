@@ -3,10 +3,11 @@ import type { Job } from '../../data';
 import { useStore, money, pct } from '../../store';
 import { SummaryRow } from '../../components/Detail';
 import { definePlugin } from '../sdk';
+import base from './base';
 import Budgets, { JobBudgets } from './Budgets';
 import BudgetDetail from './BudgetDetail';
 import { VendorBudgetLines } from './VendorBudgetLines';
-import { budgetCostEntries, jobRollup } from './budgets';
+import { jobRollup } from './budgets';
 
 function Summary({ job }: { job: Job }) {
   const { db } = useStore();
@@ -20,9 +21,7 @@ function Summary({ job }: { job: Job }) {
 }
 
 export default definePlugin({
-  id: 'buildtrack.budgets',
-  name: 'Budgets',
-  description: 'Proposals and change orders: lines with cost and markup, a customer document, signing and approval.',
+  ...base,
   nav: [{ to: '/budgets', label: 'Budgets', icon: Calculator, group: 'work', order: 40 }],
   routes: [
     { path: '/budgets', component: Budgets },
@@ -31,11 +30,4 @@ export default definePlugin({
   jobTabs: [{ id: 'budget', label: 'Budgets', order: 10, component: JobBudgets }],
   jobSummary: [{ order: 10, component: Summary }],
   accountSections: [{ id: 'budget-lines', order: 30, component: VendorBudgetLines }],
-  costEntries: budgetCostEntries,
-  filesInUse: (db) => db.budgets.flatMap((b) => (b.signedCopy ? [b.signedCopy.fileId] : [])),
-  removeParty: (d, id) => ({
-    ...d,
-    budgets: d.budgets.map((x) => (x.partyId === id ? { ...x, partyId: '' } : x)),
-    budgetLines: d.budgetLines.map((x) => (x.vendorId === id ? { ...x, vendorId: '' } : x)),
-  }),
 });

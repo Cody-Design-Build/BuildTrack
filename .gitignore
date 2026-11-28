@@ -6,3 +6,5 @@
 !.env.example
 *.local
 .vercel
+# built by scripts/build-agent.mjs
+api/_agent.mjs

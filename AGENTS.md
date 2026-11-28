@@ -28,7 +28,7 @@ Local and Preview never touch live data. Only `npm run dev:live` connects your m
    ```
 4. **Open a pull request** (`git push -u origin <task>` then `gh pr create`). GitHub runs the type check and build; Vercel posts a preview link.
 5. **Merging:**
-   - **Agents merge their own pull requests** as soon as the checks pass: open it with `gh pr create`, then `gh pr merge --auto --squash` so GitHub merges it the moment the type check, build and database tests pass. No need to wait for David's OK. GitHub deletes the branch after merging.
+   - **Agents merge their own pull requests** as soon as the checks pass: open it with `gh pr create`, then `gh pr merge --auto --squash` so GitHub merges it the moment the type check, build, database tests and agent tests pass. No need to wait for David's OK. GitHub deletes the branch after merging.
    - **Exception: changes to the live database or Supabase settings** (`supabase/migrations/` or `supabase/config.jsonc`). The live app depends on them, so David runs `npm run db:push -- --yes` / `supabase config push --yes` first; only then merge. Don't set auto-merge on these.
    - Merging to `main` is a release: Vercel deploys it to the live site within a minute or two. Check it went out (the status corner shows the commit), and roll back in Vercel if something's wrong.
 6. **Clean up**: `git worktree remove ../BuildTrack-<task>` and `git branch -D <task>` (GitHub already deleted the remote branch).
@@ -61,6 +61,17 @@ BuildTrack is live: several people use the same data at once, and every change y
 - **Sign-in** is an emailed 6-digit code (Supabase email OTP, templates in `supabase/templates/`) or, for @codydesignbuild.com, Google; passwords are refused. Sessions don't expire, so people sign in once per device. Codes go out through **Resend** from `no-reply@buildtrack.run` (Supabase SMTP in `supabase/config.jsonc`, sending-only key `RESEND_API_KEY` in `.env.live.local`, at most 30 emails an hour). The domain's DNS is at Namecheap (reachable through the `namecheap` MCP connector), not Vercel. Runbook, limits and troubleshooting: `docs/accounts-and-email.md`.
 - **Anything for other companies or outside people** (multi-company accounts, client or subcontractor portals) changes the access rules: plan it with David first.
 
+## AI agents (MCP) and skills
+
+BuildTrack serves AI agents at `/mcp` (`api/mcp.js` → `src/agent/`): tools and skills from the plugins that are on, built fresh for every request, as the signed-in person. Full guide: `docs/agents.md`.
+
+- **Each plugin is split in two:** `base.ts` (id, requires, the `Db` lists it owns in `collections`, its contracts, its `skills`) and `index.tsx` (`...base` plus screens). Its agent tools go in `tools.ts`, listed in `src/agent/plugins.ts`. A new plugin goes in `src/plugins/index.ts` **and** `src/plugins/bases.ts`.
+- **Server code never imports React, `.tsx` files or the browser app** (`store.tsx`, `cloud.ts`, `files.ts`). Shared helpers live in `src/model.ts`; plugin rules files (`budgets.ts`, `invoices.ts`…) import from there, not from `store`. `npm run check` bundles the server and fails if this breaks.
+- **Tools apply the plugin's own rules** (its `.ts` functions), never new arithmetic. Read-only by default; tools that change data set `writes: true` and save with `ctx.save()`.
+- **Skills** are the company's know-how for agents (`src/skills.ts`, Settings → Agents). A feature with rules people get wrong deserves a skill in its plugin's `base.ts`.
+- **Test** with `npm run test:agent` (a real MCP client runs every tool on the sample data; GitHub runs it too).
+- The server's sign-in is Supabase's OAuth server (`auth.oauth_server` in `supabase/config.jsonc`), approved on `/oauth/consent`.
+
 ## Secrets
 
 - Never commit keys or passwords. `.env*.local` files are git-ignored; `.env.example` lists what exists.
@@ -75,6 +86,7 @@ BuildTrack is live: several people use the same data at once, and every change y
 | `npm run dev:live` | Local app against the **live** database |
 | `npm run check` | Type check and build, as GitHub does |
 | `npm run test:db` | Run every migration on PGlite and test the access rules (`supabase/tests/`), as GitHub does |
+| `npm run test:agent` | Test the agent server: tools, skills, plugins on and off (`scripts/agent.test.ts`), as GitHub does |
 | `npm run build` | Full build into `dist/` (what the 4173 preview serves) |
 | `npm run db:new <name>` / `npm run db:push` | New migration / apply migrations to the live database |
 | `vercel ls`, `vercel logs <url>` | Deployments and logs |

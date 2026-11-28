@@ -51,7 +51,7 @@ A build without Supabase settings runs on sample data stored in the browser (loc
 
 ## Where things live
 
-- **The app itself:** this folder. `src/` holds the code: the kernel (store, shell, shared components) at the top level and every feature in `src/plugins/` (see [its README](../src/plugins/README.md)). `npm run build` writes the finished site to `dist/`.
+- **The app itself:** this folder. `src/` holds the code: the kernel (store, shell, shared components) at the top level and every feature in `src/plugins/` (see [its README](../src/plugins/README.md)), and the MCP server for AI agents in `src/agent/` (see [AI agents and skills](agents.md)). `npm run build` writes the finished site to `dist/` and the agent server to `api/_agent.mjs`.
 - **Live data:** in Supabase, one row per record in the `records` table, filed under a company (`supabase/migrations/`). Files are in the private `files` storage bucket under the company's id. Signing out clears the browser's copy.
 - **Browser-only data:** your browser saves a local copy under `buildtrack-db-v6`. Older saves and restored backups are migrated automatically (`src/migrate.ts`). Existing to-dos become Tasks, and existing schedule records go into Schedule Entries with an unassigned crew. Each job's old budget table becomes one proposal (attached to the job's existing proposal document if it had one), its "spent so far" amounts become expenses, and other proposal and change-order documents become budgets with a single line for their total. The previous `buildtrack-db-v5` copy is left in place. To export or restore a copy, go to **Settings → Data**.
 

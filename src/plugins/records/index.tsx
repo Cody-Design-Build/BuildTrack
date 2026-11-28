@@ -1,12 +1,10 @@
 import { Book, ChartPie, FileText, Folder } from 'lucide-react';
 import { definePlugin } from '../sdk';
+import base from './base';
 import { Documents, Placeholder, Reports } from '../../pages/Other';
 
 export default definePlugin({
-  id: 'buildtrack.records',
-  name: 'Records',
-  description: 'Documents, the catalog, files and reports.',
-  core: true,
+  ...base,
   nav: [
     { to: '/documents', label: 'Documents', icon: FileText, group: 'records', order: 10 },
     { to: '/catalog', label: 'Catalog', icon: Book, group: 'records', order: 40 },
