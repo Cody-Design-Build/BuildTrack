@@ -57,6 +57,8 @@ export interface Skill {
   source?: string;
   sourceName?: string;
   status: 'default' | 'changed' | 'off' | 'custom';
+  /** One of the company's own skills (not from BuildTrack or a plugin), on or off. */
+  own?: boolean;
   updated?: string;
   updatedBy?: string;
 }
@@ -86,7 +88,7 @@ export function companySkills(db: Db, plugins: PluginBase[]): Skill[] {
   for (const r of db.skills ?? []) {
     // a changed default whose plugin is off stays hidden until the plugin is back on
     if (installed.has(r.name) || r.plugin) continue;
-    out.push({ name: r.name, description: r.description, body: r.body, updated: r.updated, updatedBy: r.updatedBy, status: 'custom' });
+    out.push({ name: r.name, description: r.description, body: r.body, updated: r.updated, updatedBy: r.updatedBy, status: r.off ? 'off' : 'custom', own: true });
   }
   return out;
 }
@@ -132,4 +134,54 @@ export function resetSkill(db: Db, name: string): Db {
 export function skillMarkdown(s: Pick<Skill, 'name' | 'description' | 'body'>): string {
   // JSON strings are valid YAML, so this quotes any description safely
   return `---\nname: ${s.name}\ndescription: ${JSON.stringify(s.description)}\n---\n\n${s.body}\n`;
+}
+
+/**
+ * Reads a SKILL.md file (YAML front matter with name and description, then the Markdown body),
+ * as written by skillMarkdown or by other tools that use the same format. Throws with a readable
+ * message when it isn't one.
+ */
+export function parseSkillMarkdown(text: string): { name: string; description: string; body: string } {
+  const m = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').match(/^---\n([\s\S]*?)\n---[ \t]*(?:\n|$)([\s\S]*)$/);
+  if (!m) throw new Error('This isn\'t a SKILL.md file: it should start with front matter (a "---" line, name: and description:, then "---").');
+  const fields: Record<string, string> = {};
+  const lines = m[1].split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const kv = lines[i].match(/^([A-Za-z_][\w-]*):[ \t]*(.*)$/);
+    if (!kv) continue;
+    let value = kv[2].trim();
+    if (/^[>|][+-]?$/.test(value)) {
+      // a block scalar: the indented lines that follow
+      const block: string[] = [];
+      while (i + 1 < lines.length && (/^\s/.test(lines[i + 1]) || lines[i + 1] === '')) block.push(lines[++i].trim());
+      value = value.startsWith('>') ? block.join(' ').replace(/\s+/g, ' ').trim() : block.join('\n').trim();
+    } else if (value.startsWith('"')) {
+      try { value = JSON.parse(value); } catch { value = value.replace(/^"|"$/g, ''); }
+    } else if (value.startsWith("'")) {
+      value = value.replace(/^'|'$/g, '').replace(/''/g, "'");
+    }
+    fields[kv[1]] = value;
+  }
+  if (!fields.name) throw new Error('The SKILL.md has no name in its front matter.');
+  return { name: fields.name.trim(), description: (fields.description ?? '').trim(), body: m[2].trim() };
+}
+
+/** Line-by-line differences from `a` to `b`, for showing what a company changed in a skill. */
+export function lineDiff(a: string, b: string): { kind: 'same' | 'added' | 'removed'; text: string }[] {
+  const x = a.split('\n');
+  const y = b.split('\n');
+  // longest common subsequence, filled from the end
+  const lcs: number[][] = Array.from({ length: x.length + 1 }, () => new Array<number>(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) lcs[i][j] = x[i] === y[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const out: { kind: 'same' | 'added' | 'removed'; text: string }[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < x.length && j < y.length) {
+    if (x[i] === y[j]) out.push({ kind: 'same', text: x[i++] }), j++;
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) out.push({ kind: 'removed', text: x[i++] });
+    else out.push({ kind: 'added', text: y[j++] });
+  }
+  while (i < x.length) out.push({ kind: 'removed', text: x[i++] });
+  while (j < y.length) out.push({ kind: 'added', text: y[j++] });
+  return out;
 }

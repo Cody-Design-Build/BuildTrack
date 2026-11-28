@@ -8,6 +8,7 @@ import { seed, type Db, type PluginChoices } from '../src/data';
 import { activeOf, normalizeChoices } from '../src/plugins/activation';
 import { PLUGIN_BASES } from '../src/plugins/bases';
 import { readFileSync } from 'node:fs';
+import { lineDiff, parseSkillMarkdown, saveSkill, skillMarkdown } from '../src/skills';
 import { eventsFor, mcpHandlerFor, protectedResourceMetadata } from '../src/agent/http';
 import type { AgentContext } from '../src/agent/sdk';
 
@@ -115,6 +116,24 @@ check((await call(client, 'read_skill', { name: 'job-costing' })).data?.markdown
 check((await call(client, 'save_skill', { name: 'Bad Name', description: 'x', body: 'y' })).error.includes('lowercase'), 'save_skill refuses a bad name');
 await call(client, 'save_skill', { name: 'our-warranty', description: 'How we handle warranty calls.', body: 'Call within a day.' });
 check((await skills.list()).skills.some((s) => s.frontmatter?.name === 'our-warranty'), "the company's own skill is served to the next request");
+// Settings → Agents → Upload SKILL.md: the file is read, saved like save_skill, and served
+const uploaded = parseSkillMarkdown(`---\nname: punch-lists\ndescription: >\n  How we run punch lists\n  at the end of a job.\n---\n\n# Punch lists\n\nWalk the job with the customer.\n`);
+check(uploaded.name === 'punch-lists' && uploaded.description === 'How we run punch lists at the end of a job.' && uploaded.body.startsWith('# Punch lists'), 'an uploaded SKILL.md is read (folded description)');
+const roundTrip = parseSkillMarkdown(skillMarkdown({ name: 'x-y', description: 'Says "hi": twice', body: 'Body' }));
+check(roundTrip.description === 'Says "hi": twice' && roundTrip.body === 'Body', 'a downloaded SKILL.md reads back the same');
+let notSkill = '';
+try { parseSkillMarkdown('# no front matter'); } catch (e) { notSkill = (e as Error).message; }
+check(notSkill.includes('front matter'), 'a file without front matter is refused with a reason');
+const activePlugins = () => activeOf(PLUGIN_BASES, normalizeChoices(store.db.plugins));
+store.db = saveSkill(store.db, activePlugins(), uploaded, 'Dana Cole');
+const servedUpload = (await skills.list()).skills.find((s) => s.frontmatter?.name === 'punch-lists');
+check(servedUpload && (await skills.read(servedUpload)).body?.includes('Walk the job'), 'an uploaded skill is served over MCP and reads back');
+// switching off one of the company's own skills stops agents getting it
+store.db = saveSkill(store.db, activePlugins(), { ...uploaded, off: true }, 'Dana Cole');
+check(!(await skills.list()).skills.some((s) => s.frontmatter?.name === 'punch-lists'), "a company skill that's switched off isn't served");
+check((await call(client, 'list_skills')).data.items.find((s: { name: string }) => s.name === 'punch-lists')?.status === 'off', 'list_skills shows it as off');
+check(lineDiff('a\nb\nc', 'a\nc\nd').map((l) => l.kind[0]).join('') === 'srsa', 'line differences for What changed');
+
 await call(client, 'reset_skill', { name: 'job-costing' });
 check(!store.db.skills?.some((s) => s.name === 'job-costing'), 'reset_skill goes back to the default');
 
