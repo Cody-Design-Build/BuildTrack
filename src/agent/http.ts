@@ -6,7 +6,7 @@
 // apply exactly as in the app: one company's data only, and team changes only for owners and
 // admins. The server never holds a secret key.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createMcpHandler } from '@modelcontextprotocol/server';
+import { createMcpHandler, type ServerEvent, type ServerEventBus } from '@modelcontextprotocol/server';
 import type { Db } from '../data';
 import { activeOf, normalizeChoices } from '../plugins/activation';
 import { PLUGIN_BASES } from '../plugins/bases';
@@ -112,8 +112,54 @@ async function saveChanges(sb: SupabaseClient, companyId: string, prev: AnyDb, n
   }
 }
 
-/** The MCP side of one request for a signed-in person's company. */
-export const mcpHandlerFor = (ctx: AgentContext) => createMcpHandler(() => buildServer(ctx), { onerror: (e) => console.error('[mcp]', e.message) });
+/** The MCP side of one request for a signed-in person's company. `bus` carries change notifications to agents listening for them. */
+export const mcpHandlerFor = (ctx: AgentContext, bus?: ServerEventBus) =>
+  createMcpHandler(() => buildServer(ctx), { onerror: (e) => console.error('[mcp]', e.message), ...(bus ? { bus } : {}) });
+
+/** What a change to one record means for agents: their tools, or their skills, changed. */
+export function eventsFor(row: { collection?: string; id?: string }): ServerEvent[] {
+  // plugins switched on or off change the tools, the records and the skills on offer
+  if (row.collection === META && row.id === 'plugins') return [{ kind: 'tools_list_changed' }, { kind: 'resources_list_changed' }];
+  if (row.collection === 'skills' && row.id) return [{ kind: 'resources_list_changed' }, { kind: 'resource_updated', uri: `skill://${row.id}/SKILL.md` }];
+  return [];
+}
+
+/**
+ * Change notifications for agents that keep a `subscriptions/listen` stream open: while one is
+ * open, this watches the company's records over Supabase Realtime (as the signed-in person, so
+ * the access rules apply) and tells the agent when plugins or skills change. Each Vercel instance
+ * watches for its own streams, so no shared message bus is needed.
+ */
+function realtimeBus(sb: SupabaseClient, companyId: string, token: string): ServerEventBus {
+  const listeners = new Set<(e: ServerEvent) => void>();
+  let channel: ReturnType<SupabaseClient['channel']> | null = null;
+  const publish = (e: ServerEvent) => listeners.forEach((l) => l(e));
+  return {
+    publish,
+    subscribe(listener) {
+      listeners.add(listener);
+      if (!channel) {
+        void sb.realtime.setAuth(token);
+        channel = sb
+          .channel(`agent:${companyId}:${crypto.randomUUID()}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'records', filter: `company_id=eq.${companyId}` }, (payload) => {
+            const row = (payload.eventType === 'DELETE' ? payload.old : payload.new) as { collection?: string; id?: string; company_id?: string };
+            // deletes aren't filtered by Realtime: check the company ourselves
+            if (row.company_id && row.company_id !== companyId) return;
+            eventsFor(row).forEach(publish);
+          })
+          .subscribe();
+      }
+      return () => {
+        listeners.delete(listener);
+        if (!listeners.size && channel) {
+          void sb.removeChannel(channel);
+          channel = null;
+        }
+      };
+    },
+  };
+}
 
 export async function handleAgentRequest(request: Request, env: AgentEnv): Promise<Response> {
   const url = new URL(request.url);
@@ -168,7 +214,12 @@ export async function handleAgentRequest(request: Request, env: AgentEnv): Promi
     company,
     user,
     save: (next) => saveChanges(sb, company.id, db as unknown as AnyDb, next as unknown as AnyDb, known, maxSort),
+    rpc: async <T,>(fn: string, args?: Record<string, unknown>) => {
+      const { data, error } = await sb.rpc(fn, { company: company.id, ...args });
+      if (error) throw new Error(error.message);
+      return data as T;
+    },
   };
 
-  return mcpHandlerFor(ctx).fetch(request, { authInfo: { token, clientId: String(claims.client_id ?? 'buildtrack'), scopes: [], expiresAt: Number(claims.exp) || undefined } });
+  return mcpHandlerFor(ctx, realtimeBus(sb, company.id, token)).fetch(request, { authInfo: { token, clientId: String(claims.client_id ?? 'buildtrack'), scopes: [], expiresAt: Number(claims.exp) || undefined } });
 }

@@ -67,7 +67,7 @@ BuildTrack serves AI agents at `/mcp` (`api/mcp.js` → `src/agent/`): tools and
 
 - **Each plugin is split in two:** `base.ts` (id, requires, the `Db` lists it owns in `collections`, its contracts, its `skills`) and `index.tsx` (`...base` plus screens). Its agent tools go in `tools.ts`, listed in `src/agent/plugins.ts`. A new plugin goes in `src/plugins/index.ts` **and** `src/plugins/bases.ts`.
 - **Server code never imports React, `.tsx` files or the browser app** (`store.tsx`, `cloud.ts`, `files.ts`). Shared helpers live in `src/model.ts`; plugin rules files (`budgets.ts`, `invoices.ts`…) import from there, not from `store`. `npm run check` bundles the server and fails if this breaks.
-- **Tools apply the plugin's own rules** (its `.ts` functions), never new arithmetic. Read-only by default; tools that change data set `writes: true` and save with `ctx.save()`.
+- **Tools apply the plugin's own rules** (its `.ts` functions), never new arithmetic. Tools that change data set `writes: true` and save with `commit()`. Ones that matter (sending, approving, paying, settings, team) add `confirm()` so the person says yes first. A new feature with actions people take should get tools for them too.
 - **Skills** are the company's know-how for agents (`src/skills.ts`, Settings → Agents). A feature with rules people get wrong deserves a skill in its plugin's `base.ts`.
 - **Test** with `npm run test:agent` (a real MCP client runs every tool on the sample data; GitHub runs it too).
 - The server's sign-in is Supabase's OAuth server (`auth.oauth_server` in `supabase/config.jsonc`), approved on `/oauth/consent`.

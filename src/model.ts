@@ -1,6 +1,6 @@
 // Small helpers used everywhere: by the screens, by the plugins' rules and by the agent server
 // (src/agent/). Plain TypeScript with no browser or React dependencies, so it runs anywhere.
-import type { Db, TeamMember } from './data';
+import { AVATAR_COLORS, type Db, type TeamMember } from './data';
 import { signedInAccount } from './session';
 
 /** The local date and time as "yyyy-mm-ddThh:mm:ss" (no time zone), the format all stored dates use. */
@@ -31,3 +31,17 @@ export function meOf(db: Db): TeamMember | undefined {
 /** Cost and price of one budget line. */
 export const lineCost = (i: { quantity: number; unitCost: number }) => i.quantity * i.unitCost;
 export const linePrice = (i: { quantity: number; unitCost: number; markup: number }) => lineCost(i) * (1 + i.markup / 100);
+
+export const initials = (name: string) => {
+  const words = name.replace(/[^A-Za-z& ]/g, ' ').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};
+
+/** A steady avatar colour for a name. */
+export const colorFor = (s: string) => {
+  let h = 0;
+  for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+};

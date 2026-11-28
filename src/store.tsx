@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, type TeamMember, AVATAR_COLORS } from './data';
+import { seed, sampleBids, sampleBilling, samplePayables, SAMPLE_VENDORS, type Db, type Account, type Person, type Membership, type JobLink, type TeamMember } from './data';
 import { filesInUse } from './plugins/registry';
 import { pruneFiles, syncFiles } from './files';
 import { invoiceTotals } from './plugins/invoices/invoices';
 import { useCloudSync } from './cloud';
-import { uid } from './model';
+import { uid, initials, colorFor } from './model';
 
-export { localIso, uid, money, pct, meOf, lineCost, linePrice } from './model';
+export { localIso, uid, money, pct, meOf, lineCost, linePrice, initials, colorFor } from './model';
 import { isBudgetDb, isLegacy, migrateBudgets, migrateLegacy, migrateSchedule, type PreBudgetDb } from './migrate';
 
 export const KEY = 'buildtrack-db-v6';
@@ -149,19 +149,6 @@ export function withTeamMember(db: Db, account: { email: string; name: string } 
 }
 
 export const personName = (p?: Pick<Person, 'firstName' | 'lastName'>) => (p ? `${p.firstName} ${p.lastName}`.trim() : '');
-
-export const initials = (name: string) => {
-  const words = name.replace(/[^A-Za-z& ]/g, ' ').split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-};
-
-export const colorFor = (s: string) => {
-  let h = 0;
-  for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-};
 
 /** A person or an account, seen the same way wherever either can appear (job links, documents, tasks). */
 export interface Party {

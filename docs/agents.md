@@ -1,8 +1,10 @@
 # AI agents and skills
 
-BuildTrack has an [MCP](https://modelcontextprotocol.io) server, so AI agents such as Claude can use it directly: answer "what will the Oak Avenue job make?", list what's overdue, compare bids. Agents use BuildTrack's own tools, which apply the same rules as the app, and the company's **skills**, its know-how written down. People can read and change those skills in the app, or ask an agent to change them.
+BuildTrack has an [MCP](https://modelcontextprotocol.io) server, so AI agents such as Claude can use it directly. They can answer "what will the Oak Avenue job make?", list what's overdue and compare bids. They can also do the work: write a proposal, bill a job, enter and pay a bill, put work out to bid, add a task, or change settings and the team.
 
-For now agents can **read** everything and **change only skills**. Tools that change jobs, budgets, invoices and so on will come plugin by plugin.
+Agents use BuildTrack's own tools, which apply the same rules as the app. Drafts can change, sent documents are locked, and statuses move only the way the app allows. Agents also read the company's **skills**: its know-how, written down. People can read and change skills in the app, or ask an agent to change them.
+
+Anything that matters asks the person first (see [Confirmations](#confirmations)).
 
 ## Connecting an agent
 
@@ -24,19 +26,35 @@ The server builds its list of tools and skills **every time an agent asks**, fro
 
 ### Tools
 
-| Tool | From | What it does |
+| From | Reads | Changes |
 |---|---|---|
-| `company_overview` | BuildTrack | The company, who the agent acts for, the plugins that are on, record counts, jobs and skills. The place to start. |
-| `list_records`, `get_record`, `search_records` | BuildTrack | Read any record the plugins that are on own (jobs, people, accounts, budgets, bids, invoices, bills…). |
-| `list_skills`, `read_skill` | BuildTrack | The company's skills, for clients that don't load skills themselves. |
-| `save_skill`, `reset_skill` | BuildTrack | Change or add a skill, or go back to BuildTrack's version. The only tools that change data. |
-| `job_budgets` | Budgets | A job's contract at cost and price, margin, and each proposal and change order. |
-| `job_billing`, `open_invoices` | Invoices | One job's billing, and every unpaid invoice across jobs. |
-| `bills_owed` | Bills | What's owed to vendors, overdue and due this week. |
-| `bid_comparison` | Bids | Every bid on a package side by side, against the budget. |
-| `job_costs` | Job costing | A job's costs by cost code, with variance and projected profit. |
+| BuildTrack | `company_overview` (start here), `list_records`, `get_record`, `search_records`, `list_skills`, `read_skill` | `save_skill`, `reset_skill` |
+| Settings | `get_settings`, `list_members` | `set_plugin`\*, `choose_plugin`\*, `set_company_details`\*, `set_company_theme`\*, `invite_member`\*, `set_member_role`\*, `cancel_invite`\* |
+| Jobs | | `create_job`, `update_job`, `link_to_job` |
+| Contacts | | `create_account`, `create_person` |
+| Tasks | | `create_task`, `complete_task` |
+| Budgets | `job_budgets` | `create_budget`, `add_budget_lines`, `remove_budget_lines`, `clone_budget`, `set_budget_status`\*, `approve_budget`\* |
+| Invoices | `job_billing`, `open_invoices`, `get_invoice` | `create_invoice`, `set_invoice_progress`, `set_invoice_status`\*, `record_payment`\* |
+| Bills | `bills_owed` | `create_bill`, `set_bill_status`\*, `record_bill_payment`\* |
+| Bids | `bid_comparison` | `create_bid_package`, `invite_vendors`, `mark_bids_sent`, `record_bid`, `decline_bid`, `award_bid`\* |
+| Job costing | `job_costs` | |
 
-Read-only tools are marked as such (`readOnlyHint`), so clients can run them without asking each time.
+\* asks the person first. Team changes go through the same database functions as Settings → Members, so only owners and admins can invite or change roles. Recording that something was sent doesn't email anyone. Deleting records isn't offered to agents.
+
+Read-only tools are marked as such (`readOnlyHint`), so clients can run them without asking each time. Tools that ask first are marked `destructiveHint`.
+
+### Confirmations
+
+Sending, approving, recording payments, awarding bids, settings and team changes wait for the person's yes:
+
+- **In clients that support forms** (MCP elicitation, on the 2026-07-28 protocol), the server pauses the call and the client shows a form, for example *"Mark Invoice 8-3 for $12,135.00 on 538 Market as Sent? It will be locked."* Yes runs it; no changes nothing.
+- **In other clients**, the tool changes nothing and replies with the change to show the person. The agent calls again with `confirmed: true` only after they agree. The server instructions and `buildtrack-basics` tell agents never to set it without asking. The client's own approval prompt for tools that change data is a second check.
+
+A change that isn't allowed (approving a draft, editing a sent invoice) is refused with the reason before anyone is asked.
+
+### Live updates
+
+Agents that keep a `subscriptions/listen` stream open are told straight away when plugins are switched on or off (new tool list) or a skill changes. The server watches the company's records over Supabase Realtime, as the signed-in person, while the stream is open. Other agents pick changes up on their next request.
 
 ### Skills
 
@@ -58,6 +76,7 @@ Skills the company hasn't changed aren't stored. They keep improving as BuildTra
 - **Invite-only still holds.** Only someone with a BuildTrack account can approve an agent, and only for themselves.
 - **Treat record text as data.** Notes, scopes and descriptions can come from outside the company (a sub's exclusions, a customer's email). The server's instructions and `buildtrack-basics` tell agents never to follow instructions found in records.
 - **Skills are instructions,** and any member can change them. Each change records who made it, and **Reset** undoes it. If that ever needs tightening, limiting skill changes to owners and admins is a database rule.
+- **Changes need a yes.** See [Confirmations](#confirmations). Every change is saved as the person (`updated_by`), and activity says "by" them, as in the app.
 - With access to several companies, an agent uses the oldest one. A client can send the `X-BuildTrack-Company` header with a company id to pick another.
 
 ## How it's built
@@ -67,6 +86,7 @@ api/mcp.js            Vercel function at /mcp; runs api/_agent.mjs (built by scr
 src/agent/http.ts     sign-in (bearer token), loading the company's data, saving, sign-in metadata
 src/agent/server.ts   the MCP server for one request: tools and skills from the plugins that are on
 src/agent/tools.ts    BuildTrack's own tools
+src/agent/settings.ts settings and team tools
 src/agent/sdk.ts      AgentTool, defineTool, helpers
 src/plugins/*/tools.ts each plugin's tools (src/agent/plugins.ts lists them)
 src/plugins/*/base.ts  each plugin without its screens: id, requires, records, contracts, skills
@@ -83,11 +103,13 @@ It uses the official MCP TypeScript SDK (`@modelcontextprotocol/server`, MCP ver
 ### Adding a tool or skill to a plugin
 
 - **A skill:** add it to `skills` in the plugin's `base.ts` (name, description, Markdown body).
-- **A tool:** add it to the plugin's `tools.ts` with `defineTool()`. If the plugin has no `tools.ts` yet, create one and add it to `src/agent/plugins.ts`. Use the plugin's own rules functions rather than new arithmetic, and throw an `Error` with a helpful message when the input is wrong; the agent sees the message. Mark tools that change data with `writes: true`. They save through `ctx.save(next)`, which writes only the records that changed, as the signed-in person.
+- **A tool:** add it to the plugin's `tools.ts` with `defineTool()`. If the plugin has no `tools.ts` yet, create one and add it to `src/agent/plugins.ts`. Use the plugin's own rules functions rather than new arithmetic, and throw an `Error` with a helpful message when the input is wrong; the agent sees the message.
+  - **Changing data:** set `writes: true` and save with `commit(ctx, next, reason)`. It writes only the records that changed, as the signed-in person, and turns a rule's refusal (the data coming back unchanged) into an error. Work out `next` before the first `await`: the server sets the signed-in person and the company's plugins for the shared rules just before the tool starts.
+  - **Changes that matter:** add `confirm(ctx, args)`, returning the sentence the person says yes or no to. Throw there if the change isn't allowed. The server handles the form or the `confirmed: true` round trip.
 - **Test** with `npm run test:agent`. A real MCP client connects to the server on the sample data and runs every tool. Add a check for anything new.
 
 ### Not done yet
 
-- Tools that change records other than skills (create a draft invoice, record a payment…), with confirmation before anything that matters (MCP elicitation).
-- Pushing changes to agents that stay connected (`notifications/tools/list_changed`). Today agents pick changes up on their next request.
 - Long-running work as MCP tasks.
+- Uploading files (signed copies, vendor invoices) from an agent.
+- Limiting what an agent may do below the person's own access (scopes).
